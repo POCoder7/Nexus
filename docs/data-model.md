@@ -3,17 +3,70 @@
 PostgreSQL 16. The files are Flyway migrations in `services/mdm-api/src/main/resources/db/migration`, applied automatically when the API starts, or by `scripts/db-test` for the pgTAP tests.
 
 V1–V3 form the core model and work on their own. V4–V6 are the workflow layer, its bridge, and commit policies.
+V7 sets the database roles and privileges; V8 adds entitlements, settings and idempotency keys (Phase 1).
 
 ## What's in each file
 
 | File | Contents |
 |---|---|
-| `V1__core_schema.sql` | Versions, change requests (maker-checker, AI as requester), nodes, identifiers, legal entity profile, hierarchies (shared nodes, cycle protection), properties (global/local, inheritance, derived, typed validation), validation rules, append-only audit log |
+| `V1__core_schema.sql` | Versions, change requests (maker-checker, AI as requester, guarded status transitions, frozen content after draft, row version for ETags, origin), nodes, identifiers, legal entity profile, hierarchies (shared nodes, cycle protection), properties (global/local, inheritance, derived, typed validation), validation rules, append-only audit log; the write path: node allocation, withdraw, submit, decide, validate (trial apply), apply with its handlers, change events (outbox) and item clearance |
 | `V2__ownership_ubo.sql` | Evidence documents, weighted ownership and control graph, UBO thresholds, deterministic effective-ownership calculation, UBO ownership and control prongs, starter validation rules |
 | `V3__drm_export.sql` | Export profiles that reproduce DRM hierarchy and generation exports, as-of tree walk, property resolution with inheritance, export file generation with SHA-256, parallel-run reconciliation, DRM migration staging tables |
 | `V4__workflow.sql` | DRG-equivalent workflow layer in schema `wf`: versioned workflow models, tasks, Submit/Enrich/Approve/Commit stages, approval groups and methods, node access scopes, separation of duties, conditional stages with request splitting, claims, SLAs, append-only request history, event outbox, user worklist |
 | `V5__wf_mdm_bridge.sql` | The only code that writes from `wf` into `mdm`: keeps change request status in sync (including whether a decision was human or policy-based) and exposes the items cleared to apply |
 | `V6__wf_commit_policy.sql` | Governed straight-through commit: approved commit policies, hard limits, protected properties, freeze windows, daily caps, kill switch, shadow mode with comparison views, and sampled post-commit review |
+| `V7__roles_and_privileges.sql` | Database roles (ADR-014, ADR-019): `nexus_api` (drafts only), `nexus_apply` (the only writer of facts), `nexus_decider` (status and decision columns), `nexus_bridge`, `nexus_wf`, `nexus_readonly`; owner-run functions and who may call them |
+| `V8__entitlements.sql` | `system_setting` (business time zone, item limits, tree depth), roles and bitemporal role grants scoped to all hierarchies, one hierarchy or a sub-tree (ADR-022), idempotency keys (ADR-015) |
+
+## Write path (Phase 1)
+
+A change reaches the facts only through a change request, and only through owner-run functions:
+
+| Step | Function (owner) | Rules |
+|---|---|---|
+| Draft | `INSERT` into `change_request` / `change_item` (`nexus_api`); `allocate_node` (`nexus_apply`) for new node identities | Items change only while the request is a draft; every change bumps `row_version` |
+| Validate | `validate_change_request(cr, as_of)` (`nexus_apply`) | Trial apply plus active node and hierarchy rules, always rolled back; findings stored in `validation_result` (trial failures under the system rule `NEXUS.TRIAL_APPLY`) |
+| Submit | `submit_change_request(cr, actor)` (`nexus_decider`) | Requester only, draft only, not empty; the API validates first in the same transaction |
+| Decide | `decide_change_request(cr, decider, approve\|reject, note)` (`nexus_decider`) | Submitted only; basis always `human_review`; maker-checker trigger refuses self-decisions and non-humans |
+| Apply | `apply_change_request(cr, actor)` (`nexus_apply`) | Approved only; all items or none; rule failures leave the request `apply_failed` with the reason; writes one `change_event` |
+| Withdraw | `withdraw_change_request(cr, actor)` (`nexus_decider`) | Requester only, before a decision |
+
+Apply never updates a fact: `apply_fact` closes the current row in recorded time and re-states the parts that stay true
+before the effective date (and after an end date), then inserts the new row. Every row it writes carries the request id,
+and the audit log carries the actor and the request. Each item stores in `payload.expected` what it assumed when it was
+drafted; apply refuses an item whose base has changed since (`N3001`, stale base).
+
+| Action | Effect from the effective date |
+|---|---|
+| `add_node` | New node's attributes and its primary placement |
+| `insert_node` | Primary placement, or a shared one if the node already has a primary parent |
+| `move_node` | Primary placement moves; descendants follow |
+| `remove_node` | Leaves one hierarchy; with children only with `cascade` (removes the primary sub-tree) |
+| `delete_node` | Ends attributes, stored values and placements everywhere; refused for a top node, a node with children, a referenced node or one with changes scheduled later |
+| `update_node` | Name and/or description |
+| `add_hierarchy` | New hierarchy and its top node |
+| `set_property` / `clear_property` | Stored value from the date (optionally until `validTo`; JSON null is an explicit blank) / value ends, so inheritance or the default applies again |
+
+Item limits by origin (`system_setting`): `max_items_per_change_request` 5 000, `sandbox_max_items` 20 000 (`N2103`).
+
+### Error codes added in Phase 1
+
+| Code | Guard | HINT |
+|---|---|---|
+| `N1025` | someone other than the requester withdraws or submits | `change_request.not_requester` |
+| `N2004` | parent is a leaf (apply) | `hierarchy.parent_is_leaf` |
+| `N2005` | remove or delete a node that has children | `hierarchy.remove_with_children` |
+| `N2006` | delete a node still referenced by a `node_ref` value | `node.referenced` |
+| `N2103` | more items than the limit for the request's origin | `change_request.too_many_items` |
+| `N2104` | withdraw, submit or decide in core mode a request governed by a workflow | `change_request.governed` |
+| `N2105` | item cannot be applied as written (parent not in the hierarchy, node missing, change scheduled later); action has no handler yet | `apply.item_invalid`, `apply.action_not_available` |
+| `N2106` | submit an empty request | `change_request.empty` |
+| `N3001` | stale base: the fact changed since the item was drafted (expected and actual in `DETAIL`) | `apply.stale_base` |
+| `22023` | decision other than approve or reject | `decision.invalid` |
+
+API-only rule codes (422): `change_item.action_not_available`, `change_item.not_in_hierarchy`, `change_item.parent_is_leaf`,
+`change_item.already_under_target`, `change_item.node_not_found`, `change_request.not_draft`, `change_request.validation_failed`,
+`hierarchy.code_exists`, `property.derived`.
 
 ## Workflow layer: how the separation works
 
@@ -48,7 +101,7 @@ Maker-checker moves from each request to the policy: humans approve a narrow rul
 - **Kill switch:** any owner-group member or approver can stop a policy instantly. It can only be cleared by approving a new version.
 - **Shadow mode (default for new policies):** the policy is evaluated and recorded, but humans still decide. `v_shadow_summary` shows how often the policy would have committed something a human rejected or pushed back (`too_loose_pct`). That's the evidence for Audit before switching to active.
 - **Detective control:** `sample_auto_commits()` draws a daily random sample of auto-commits for human review; `v_commit_policy_daily` tracks volumes, issues and outstanding reviews.
-- **Core safety net:** `mdm.change_request` records `decision_basis` (`human_review` or `approved_policy`) and the policy reference. The core trigger accepts a non-human decider only for low-risk, non-AI approvals with a policy reference. Restrict write access on `change_request` to the bridge role so the policy reference can't be forged.
+- **Core safety net:** `mdm.change_request` records `decision_basis` (`human_review` or `approved_policy`) and the policy reference. The core trigger accepts a non-human decider only for low-risk, non-AI approvals with a policy reference. Since V7 only the bridge role may write `decision_policy_ref`, and the API's own decision function always records `human_review`, so the policy reference can't be forged (D-04).
 
 Engine flow for a covered model: submit → run full validation → `wf.apply_commit_policy(instance, validation_start_time, system_actor)` → either committed, or left with the human Commit stage.
 
@@ -92,18 +145,16 @@ SELECT * FROM mdm.ubo_ownership_prong('<entity uuid>', 10);
 SELECT * FROM mdm.ubo_control_prong('<entity uuid>');
 ```
 
-During a change, the application sets the actor so the audit log captures who did what:
-
-```sql
-SET LOCAL mdm.actor_id = '<user uuid>';
-SET LOCAL mdm.change_request_id = '<cr uuid>';
-```
+`apply_change_request` sets the actor and the request for the transaction, so the audit log captures who did what.
+Anything written outside it (for example by the owner role in tests) is audited with a NULL actor.
 
 ## Known gaps and next steps
 
-- **Runs on PostgreSQL 16** (verified 2026-11-11): `scripts/db-test` applies V1–V6 to a fresh database and the 35 pgTAP
-  tests in `db/tests` pass. Several guards still have no tests, and some controls described above are not yet enforced
-  in the schema; both are listed in `docs/design/DESIGN_STATE.md` (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33) for a human decision (OD-18).
+- **Runs on PostgreSQL 16** (verified 2026-11-11, Phase 1): `scripts/db-test` applies V1–V8 to a fresh database and the
+  211 pgTAP tests in `db/tests` pass. Phase 1 closed D-04, D-05, D-07 and D-29 for the application path; the remaining
+  untested guards and gaps (D-06, D-12 to D-15, D-22, D-33) are listed in `docs/design/DESIGN_STATE.md` (OD-18).
+- Bulk inserts of many placements into a large hierarchy with stale statistics are slow (the cycle-check plan); loads
+  must refresh statistics between batches (Phase 4).
 - Compare, difference, transaction-log and version exports belong in the export service; only hierarchy and generation exports are in SQL.
 - Derived properties are evaluated in SQL only for the `sql` engine. CEL and Python run in the rules service.
 - Cross-holdings (cycles) are flagged and excluded from totals. Exact treatment needs a matrix solve in the ownership service.

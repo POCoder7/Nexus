@@ -52,6 +52,12 @@
 | `N1009` | role granted to a non-human user (V8) | `roles.human_only` |
 | `N1005` | requester kind does not match the user record (V1, Phase 1) | `requester_kind_mismatch` |
 | `N2101`, `N2102` | invalid request status transition; request (or its items) no longer a draft (V1, Phase 1) | `change_request.status_transition`, `change_request.not_draft` |
+| `N1025` | withdraw or submit by someone other than the requester (V1, Phase 1) | `change_request.not_requester` |
+| `N2004`–`N2006` | parent is a leaf; remove/delete with children; delete of a referenced node (V1 apply, Phase 1) | `hierarchy.parent_is_leaf`, `hierarchy.remove_with_children`, `node.referenced` |
+| `N2103` | too many items for the request's origin (V1 apply, Phase 1, CR-04) | `change_request.too_many_items` |
+| `N2104`, `N2106` | core-mode action on a workflow-governed request; empty request submitted (V1, Phase 1) | `change_request.governed`, `change_request.empty` |
+| `N2105` | item cannot be applied as written, or its action has no handler yet (V1 apply, Phase 1) | `apply.item_invalid`, `apply.action_not_available` |
+| `N3001` | stale base; expected and actual in `DETAIL` (V1 apply, Phase 1) | `apply.stale_base` |
 | `N1015` | decider not a member of the deciding group (V4) | `wf.not_group_member` |
 | `N1016` | user cannot act on the stage (V4) | `wf.cannot_act` |
 | `N1017` | actor kind does not match the user record (V4, V6) | `wf.actor_kind_mismatch` |

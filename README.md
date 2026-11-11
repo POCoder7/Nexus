@@ -9,8 +9,13 @@ for beneficial-ownership analysis, and AI assistance under human approval.
 2. Run the database tests: `scripts\db-test.ps1` or `scripts/db-test.sh`
 3. Build and test the API with the Maven wrapper (no local Maven needed): `cd services/mdm-api`, then
    `.\mvnw.cmd -B verify` (Windows) or `./mvnw -B verify`
-4. Run the API locally: `docker compose up -d db`, then from `services/mdm-api` run `./mvnw spring-boot:run`
-   (`.\mvnw.cmd` on Windows) and open http://localhost:8080/api/v1/hierarchies
+4. Run the API locally: `docker compose up -d db`, then from `services/mdm-api` run
+   `./mvnw spring-boot:run -Dspring-boot.run.profiles=local -Dspring-boot.run.arguments=--mdm.api.local-user=<login>`
+   (`.\mvnw.cmd` on Windows) and open http://localhost:8080/api/v1/me. The API refuses to start without an identity
+   adapter; the `local` profile reads the user from `mdm.api.local-user` or the `X-Nexus-User` header. The login must
+   be a synthetic user in `mdm.app_user` with a role grant in `mdm.user_role` (see
+   [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md#3-verify)).
+   If your local database predates Phase 1, recreate it once: `docker compose down -v` (V1, V5 and V6 were edited).
 
 Full setup: [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md) · Working rules: [CLAUDE.md](CLAUDE.md) ·
 Contributing: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) · Data model: [docs/data-model.md](docs/data-model.md) ·
@@ -35,7 +40,7 @@ Capabilities: [docs/capabilities.md](docs/capabilities.md)
 ## Repository layout
 | Path | Contents |
 |---|---|
-| `services/mdm-api` | Java 21 / Spring Boot service; Flyway migrations V1–V6 |
+| `services/mdm-api` | Java 21 / Spring Boot service; Flyway migrations V1–V8 |
 | `db` | PostgreSQL + pgTAP image and database tests |
 | `docs/specs` | Specifications per capability |
 | `docs/adr` | Architecture decision records |
@@ -44,5 +49,7 @@ Capabilities: [docs/capabilities.md](docs/capabilities.md)
 | `scripts` | Setup checks and database test runners |
 
 ## Status
-Phase 0 (foundation). Migrations V1–V6 apply on a fresh PostgreSQL 16 database and all 35 pgTAP tests pass;
-the API builds and its 6 tests pass (verified 2026-11-11). Current progress: [docs/BUILD_STATE.md](docs/BUILD_STATE.md).
+Phase 1 (core write path) built, awaiting gate approval: change requests from draft to applied data in core mode
+(maker-checker), entitlements by hierarchy and sub-tree, bitemporal reads at any date. Migrations V1–V8 apply on a
+fresh PostgreSQL 16 database and all 211 pgTAP tests pass; the API's 77 tests pass (verified 2026-11-11).
+Current progress: [docs/BUILD_STATE.md](docs/BUILD_STATE.md).

@@ -27,6 +27,27 @@ cd services\mdm-api
 .\mvnw.cmd -B verify           # or ./mvnw -B verify
 ```
 
+Run the API locally (Phase 1 onwards):
+```
+docker compose down -v         # once, if your local database predates Phase 1 (V1, V5, V6 were edited)
+docker compose up -d db
+cd services\mdm-api
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local" "-Dspring-boot.run.arguments=--mdm.api.local-user=dev_steward"
+```
+The API refuses to start without an identity adapter; `local` reads the user from `mdm.api.local-user` or the
+`X-Nexus-User` header. Create a synthetic user and a grant first (after the API has migrated the database once), for example:
+```sql
+INSERT INTO mdm.app_user (login, display_name, kind) VALUES ('dev_admin', 'Dev admin', 'human'), ('dev_steward', 'Dev steward', 'human');
+INSERT INTO mdm.user_role (user_id, role_code, granted_by, valid_period)
+SELECT s.user_id, 'STEWARD', a.user_id, daterange(current_date - 1, NULL)
+FROM mdm.app_user s, mdm.app_user a WHERE s.login = 'dev_steward' AND a.login = 'dev_admin';
+```
+Locally the API connects with the single docker-compose account; in tests it runs as the least-privilege login
+`nexus_api_test` (role `nexus_api`), which is how shared environments must run it (ADR-014).
+
+Performance tests (tag `perf`) are excluded from the default build and deferred to the end of the build; run them with
+`./mvnw -B verify -Dperf`.
+
 Known issues:
 - **"Could not find a valid Docker environment" with Docker Engine 29 or later.** Testcontainers older than 1.21.4
   requests a Docker API version that Engine 29 rejects. `pom.xml` pins `testcontainers.version` to 1.21.4; keep the

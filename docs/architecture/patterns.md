@@ -457,6 +457,20 @@
 - **When not to use:** exports and anything a downstream system consumes (F-3).
 - **Related ADR:** ADR-028.
 
+## Implemented in Phase 1 (where to find it)
+| Pattern | Implementation |
+|---|---|
+| P-01 Bitemporal append-only facts | `mdm.apply_fact` / `apply_insert` (V1): close the current row, re-state history, insert from D; `trg_bitemporal_guard` |
+| P-03 Maker-checker | `trg_cr_maker_checker` + `mdm.decide_change_request` (V1); `ChangeRequestService.decide`; `DecisionApiTest` |
+| P-06 Transactional outbox | `mdm.change_event`, written by `apply_change_request` (V1); no consumers yet |
+| P-09 Change items with atomic apply | `mdm.apply_change_request` → `apply_items_of` / `apply_item` → `apply_*` handlers (V1); `ApplyService`, `ApplySweeper` (`com.mdm.api.apply`) |
+| P-10 Optimistic concurrency, idempotency | `row_version` + `trg_cr_row_version` (V1); `ETags`, `IdempotencyFilter` (`com.mdm.api.common`); `mdm.idempotency_key` (V8) |
+| P-11 Keyset pagination, lazy tree | `Cursors`, `Page` (`com.mdm.api.common`); `HierarchyRepository`, `ChangeRequestRepository.mine/queue` |
+| P-13 Rules engine | `mdm.validate_change_request` (V1): trial apply + SQL rules, positional rule contract; `ValidationService` |
+| P-17 Entitlements | `mdm.user_role` (V8); `EntitlementService`, `RolePermissions` (`com.mdm.api.security`) |
+| P-24 Database-enforced guards | Error codes and hints on every guard (ADR-020); `DbErrorTranslator` |
+| P-28 Overlay by trial apply | The validation trial is the same mechanism the Phase 5 sandbox overlay will reuse |
+
 ## Where each pattern is applied (index, consistency review 2026-11-11)
 
 | Pattern | Design sections |
