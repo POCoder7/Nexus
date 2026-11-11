@@ -1,6 +1,6 @@
 # ADR-031: AI service boundary, model governance and prompted-by maker-checker
 
-- **Status:** Proposed (Phase 7 LLD). The model and provider (OD-07) are **not** decided here
+- **Status:** Accepted (repository owner, 2026-11-11). **Implementation deferred** with Phase 7 (OD-38). The model and provider (OD-07) remain open
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** NEW-03, NEW-04, NEW-05, NEW-06

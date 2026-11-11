@@ -1,6 +1,6 @@
 # Phase 7 — AI assistance: low-level design
 
-- **Status:** Draft, awaiting review (2026-11-11)
+- **Status:** Approved 2026-11-11. **Implementation deferred** by the repository owner (OD-38): the build skips Phase 7; this design stands for when it is resumed.
 - **Phase goal (BUILD_PROTOCOL §2):** AI proposes, humans approve.
 - **Exit criteria:** AI services behind an interface with a deterministic stub for tests; every AI output enters as a change
   request or suggestion; accuracy evaluation harness on synthetic data.

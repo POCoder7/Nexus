@@ -31,6 +31,7 @@
 | ADR-028 | Sandboxes as draft requests with a trial-apply overlay | Accepted |
 | ADR-029 | Role grants as governed change actions | Accepted |
 | ADR-030 | Ownership calculation: exact rational solve, methodology per regime, recorded determinations | Accepted (OD-34, OD-35 open) |
-| ADR-031 | AI service boundary, model governance, prompted-by maker-checker | Proposed (OD-07 open) |
+| ADR-031 | AI service boundary, model governance, prompted-by maker-checker | Accepted (implementation deferred, OD-38) |
+| ADR-032 | Governed export profile versions, streaming export runs, reconciliation review | Proposed |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.

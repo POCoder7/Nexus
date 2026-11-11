@@ -1,6 +1,6 @@
 # Design state
 
-- **Current item:** Phase 7 LLD (protocol step 3)
+- **Current item:** Phase 8 LLD (protocol step 3)
 - **Status:** Awaiting review
 - **Session date:** 2026-11-11 (overview and patterns approved the same day; Phase 0 built and approved first)
 
@@ -19,7 +19,8 @@
 | adr/ADR-026, ADR-027 | 026 Accepted (OD-29 open); 027 Proposed (OD-31, OD-32 open) | — | 2026-11-11 |
 | adr/ADR-028, ADR-029 | Accepted | — | 2026-11-11 |
 | adr/ADR-030 | Accepted (OD-34, OD-35 open) | — | 2026-11-11 |
-| adr/ADR-031 | Proposed with the Phase 7 LLD (OD-07 open) | — | 2026-11-11 |
+| adr/ADR-031 | Accepted; implementation deferred (OD-38) | — | 2026-11-11 |
+| adr/ADR-032 | Proposed with the Phase 8 LLD | — | 2026-11-11 |
 | design/phase-0 | Not written: Phase 0 was built first by your instruction (sequence A); its plan, test report and summary are in `docs/phases/phase-0/` | — | 2026-11-11 |
 | design/phase-1-core-write-path/LLD.md | Approved 2026-11-11 (two small corrections made while writing Phase 2: validation also in `in_review`; writing guard triggers run as owner) | Medium | 2026-11-11 |
 | design/phase-2-governance/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
@@ -27,8 +28,9 @@
 | design/phase-4-data-loading-and-parity/LLD.md | Approved 2026-11-11 | Medium (design); Low (extract format unknown) | 2026-11-11 |
 | design/phase-5-remaining-parity/LLD.md | Approved 2026-11-11 | Medium (designed); Low (outlines) | 2026-11-11 |
 | design/phase-6-ownership-and-ubo/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
-| design/phase-7-ai-assistance/LLD.md | Draft, awaiting review | Medium (architecture, guards); Low (accuracy, latency, cost until OD-07) | 2026-11-11 |
-| design/phase-8..9 LLDs | Not started | — | — |
+| design/phase-7-ai-assistance/LLD.md | Approved 2026-11-11; **build deferred (OD-38)** | Medium | 2026-11-11 |
+| design/phase-8-exports-and-reconciliation/LLD.md | Draft, awaiting review | Medium | 2026-11-11 |
+| design/phase-9 LLD | Not started | — | — |
 | design/phase-3-steward-ui/prototypes/landing.html | Landing-page prototype; combined design chosen (OD-27) | Prototype only: placeholder tokens, synthetic data | 2026-11-11 |
 | design/CONSISTENCY_REVIEW.md | Not started | — | — |
 
@@ -176,19 +178,20 @@ one-way kill switch, frozen approved policies and models; 35 pgTAP tests.
 - **OD-28** external capability working copy.
 - **OD-29a, OD-31a, OD-32a** confirmations by Audit-Risk and Security of the adopted load-run, masking and storage choices.
 - **OD-34, OD-35** personal data in the ownership graph; UBO methodology per regime (Phase 6 build).
-- **OD-07, OD-36, OD-37** AI provider and inference location; prompt retention; accuracy thresholds (Phase 7 build beyond the stub).
+- **OD-07, OD-36, OD-37** AI decisions: no longer blocking while Phase 7 is deferred (OD-38).
+- **OD-39, OD-40** DRM file access for reconciliation; who may accept a parity difference (Phase 8 build).
 
-## Self-review (DESIGN_PROTOCOL §5) for the Phase 7 LLD
-- *Implementable without a design question?* Yes with the stub provider: boundary, schemas, validation, governance tables,
-  guards, flows, harness and UI are specified. The real provider adapter waits for OD-07; thresholds for model approval wait for OD-37.
-- *Existing code verified?* Against V1 (`ai_model`/`ai_confidence` CHECK, maker-checker AI rule), V2 (AI edge evidence CHECK,
-  `OWN_AI_LOW_CONFIDENCE`), V4 (`ai_suggestion` action, actor-kind guard), V6 (AI-originated and AI-contributed checks). Found while
-  writing: AI drafts could not be submitted under the Phase 1 rule (requester only); fixed by letting only the prompting human submit, recorded in ADR-031.
-- *Weakens a control, crosses the layer, contradicts an Accepted ADR?* No. New rules strengthen maker-checker (`prompted_by`),
-  require rationale, gate model versions. Consistent with ADR-008 and ADR-011; CLAUDE.md rule 4 kept (no AI calculation; NL answers are query results).
-- *Assumptions listed?* H-1 to H-6; Phase 7 parameters in OPEN_DECISIONS.
-- *Acceptance criteria covered?* NEW-03 to NEW-06 each have P/N/C cases and an evaluation metric tied to OD-37.
-- *Confidence honest?* Medium for design; Low for model-dependent quality, stated.
+## Self-review (DESIGN_PROTOCOL §5) for the Phase 8 LLD
+- *Implementable without a design question?* Yes for the export runner, profile governance, bundles, schedules, run history,
+  reconciliation, readiness and event feed. EXP-* parity specifics, ADM-02 and ADM-03 are outlines (pending decision). DRM file access waits for OD-39.
+- *Existing code verified?* Against V3: `export_profile` (unique `profile_code`, `is_active`), `export_profile_column`,
+  `export_drm` (row-by-row via `export_column_value`), `run_export` (`string_agg` in memory, trailing line ending, `convert_to` + SHA-256),
+  `export_run` and `drm_reconciliation` columns (generated `is_exact_match`). The streaming writer reproduces `run_export` exactly; a consistency test enforces it.
+- *Does it depend on the deferred Phase 7?* No: no AI component is used; Home's AI cards stay hidden.
+- *Weakens a control, crosses the layer, contradicts an Accepted ADR?* No. Profiles and difference acceptance gain a second person; history becomes append-only; events carry identifiers only.
+- *Assumptions listed?* I-1 to I-6; parameters in OPEN_DECISIONS; OD-39, OD-40 added.
+- *Acceptance criteria covered?* NEW-09, NEW-07 and the exit criteria have cases; EXP byte parity is golden-tested per profile once data is available.
+- *Confidence honest?* Medium.
 
 ## Next action
-Human review of `docs/design/phase-7-ai-assistance/LLD.md` and ADR-031. On approval: Phase 8 LLD (exports and reconciliation), then stop.
+Human review of `docs/design/phase-8-exports-and-reconciliation/LLD.md` and ADR-032. On approval: Phase 9 LLD (hardening), then stop.

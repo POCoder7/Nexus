@@ -32,6 +32,9 @@
 1. Review the Phase 1 LLD and ADR-019 to ADR-022 (design track). Overview, patterns and ADR-013 to ADR-018 were approved 2026-11-11.
 2. OD-11 decided (enterprise GitHub organisation, private): create the remote and say when to push; CI runs only after that.
 
+## Scope changes
+- **Phase 7 (AI assistance) deferred** by the repository owner on 2026-11-11 (OD-38): design approved; the build goes from Phase 6 to Phase 8. The `BUILD_PROTOCOL.md` phase table is updated in design step 5 (wiring).
+
 ## Known gaps, stubs and technical debt
 - CI has never run on GitHub (no remote; OD-11).
 - Mockito dynamic-agent warning in tests (future JDKs will block it).
