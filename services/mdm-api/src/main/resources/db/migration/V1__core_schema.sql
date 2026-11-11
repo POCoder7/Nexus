@@ -711,3 +711,316 @@ BEGIN
   END IF;
   UPDATE mdm.change_request SET status = 'withdrawn' WHERE change_request_id = p_change_request_id;
 END $$;
+
+-- -----------------------------------------------------------------------------
+-- Apply (Phase 1 LLD §4.3, §4.5, §7.1–§7.3). The only path by which facts change: owned by nexus_apply (V7),
+-- runs once per approved request, and writes every fact row with the request's id and the actor's id (D-29).
+-- -----------------------------------------------------------------------------
+
+-- Outbox of applied requests (ADR-016); consumers arrive in Phase 2/8. Append-only.
+CREATE TABLE change_event (
+  event_id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  change_request_id uuid NOT NULL REFERENCES change_request,
+  event_type        text NOT NULL CHECK (event_type IN ('change_request_applied')),
+  payload           jsonb NOT NULL,              -- {items:[{seq, action, node_id, hierarchy_id, property_id}], effective_from}
+  created_at        timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+CREATE TRIGGER change_event_append_only BEFORE UPDATE OR DELETE ON change_event
+  FOR EACH ROW EXECUTE FUNCTION trg_append_only();
+
+-- Which items a governing workflow committed (ADR-019). mdm defines it; only wf_bridge writes it (Phase 2);
+-- mdm never references wf. Append-only.
+CREATE TABLE change_item_clearance (
+  change_item_id uuid PRIMARY KEY REFERENCES change_item,
+  cleared_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE TRIGGER change_item_clearance_append_only BEFORE UPDATE OR DELETE ON change_item_clearance
+  FOR EACH ROW EXECUTE FUNCTION trg_append_only();
+
+-- Inserts one row from JSON, using only the columns present (so the others keep their defaults) and never the
+-- surrogate key.
+CREATE FUNCTION apply_insert(p_table text, p_id_col text, p_row jsonb)
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE v_cols text;
+BEGIN
+  SELECT string_agg(quote_ident(a.attname), ', ' ORDER BY a.attnum) INTO v_cols
+  FROM pg_attribute a
+  WHERE a.attrelid = ('mdm.' || quote_ident(p_table))::regclass AND a.attnum > 0 AND NOT a.attisdropped
+    AND a.attname::text IS DISTINCT FROM p_id_col AND p_row ? a.attname::text;
+  EXECUTE format('INSERT INTO mdm.%1$I (%2$s) SELECT %2$s FROM jsonb_populate_record(NULL::mdm.%1$I, $1)', p_table, v_cols)
+    USING p_row;
+  RETURN 1;
+END $$;
+
+-- Generic "set fact from D" / "end fact at D" on a bitemporal fact table (LLD §7.1). Never changes a fact in place:
+-- the current row containing D is closed in recorded time and re-stated as copies for the parts that stay true
+-- (before D; and, with an explicit valid_to, after it); then the new row is inserted for [D, upper).
+--   p_key     columns that identify the fact (JSON; a null value matches NULL)
+--   p_id_col  surrogate key column, left to its default on inserted rows (NULL when the table has none)
+--   p_values  columns of the new row (ignored when p_end)
+-- D, the recorded instant and the request id come from the settings made by apply_change_request.
+-- Returns the number of rows written (closed + inserted).
+CREATE FUNCTION apply_fact(p_table text, p_id_col text, p_key jsonb, p_values jsonb, p_valid_to date, p_end boolean)
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE
+  v_d     date        := current_setting('mdm.apply_date')::date;
+  v_t     timestamptz := now();                                   -- one recorded instant for the whole request
+  v_cr    uuid        := current_setting('mdm.change_request_id')::uuid;
+  v_where text;
+  r       jsonb;
+  v_ctid  tid;
+  v_valid daterange;
+  v_upper date;
+  v_rows  int := 0;
+  v_stamp jsonb;
+BEGIN
+  IF p_valid_to IS NOT NULL AND p_valid_to <= v_d THEN
+    RAISE EXCEPTION 'validTo % must be after the effective date %', p_valid_to, v_d
+      USING ERRCODE = 'N2105', HINT = 'apply.item_invalid';
+  END IF;
+  SELECT string_agg(CASE WHEN p_key ->> col IS NULL THEN format('t.%I IS NULL', col)
+                         ELSE format('t.%1$I = k.%1$I', col) END, ' AND ')
+    INTO v_where FROM jsonb_object_keys(p_key) AS col;
+  v_stamp := jsonb_build_object('recorded_period', tstzrange(v_t, NULL)::text, 'change_request_id', v_cr);
+
+  EXECUTE format($q$SELECT to_jsonb(t), t.ctid FROM mdm.%1$I t, jsonb_populate_record(NULL::mdm.%1$I, $1) k
+                    WHERE %2$s AND t.valid_period @> $2 AND upper_inf(t.recorded_period) FOR UPDATE OF t$q$, p_table, v_where)
+    INTO r, v_ctid USING p_key, v_d;
+
+  IF r IS NOT NULL THEN
+    v_valid := (r ->> 'valid_period')::daterange;
+    EXECUTE format('UPDATE mdm.%I SET recorded_period = tstzrange(lower(recorded_period), $1) WHERE ctid = $2', p_table)
+      USING v_t, v_ctid;
+    v_rows := v_rows + 1;
+    IF lower_inf(v_valid) OR lower(v_valid) < v_d THEN           -- history before D stays as it was
+      v_rows := v_rows + apply_insert(p_table, p_id_col, r || v_stamp
+                  || jsonb_build_object('valid_period', daterange(lower(v_valid), v_d)::text));
+    END IF;
+    IF NOT p_end AND p_valid_to IS NOT NULL AND (upper_inf(v_valid) OR upper(v_valid) > p_valid_to) THEN
+      v_rows := v_rows + apply_insert(p_table, p_id_col, r || v_stamp
+                  || jsonb_build_object('valid_period', daterange(p_valid_to, upper(v_valid))::text));
+    END IF;
+    v_upper := coalesce(p_valid_to, upper(v_valid));            -- A-2: later scheduled rows are kept
+  ELSIF NOT p_end THEN
+    EXECUTE format($q$SELECT min(lower(t.valid_period)) FROM mdm.%1$I t, jsonb_populate_record(NULL::mdm.%1$I, $1) k
+                      WHERE %2$s AND lower(t.valid_period) > $2 AND upper_inf(t.recorded_period)$q$, p_table, v_where)
+      INTO v_upper USING p_key, v_d;
+    v_upper := coalesce(p_valid_to, v_upper);
+  END IF;
+
+  IF NOT p_end THEN
+    v_rows := v_rows + apply_insert(p_table, p_id_col, coalesce(r, '{}'::jsonb) || p_key || coalesce(p_values, '{}'::jsonb)
+                || v_stamp || jsonb_build_object('valid_period', daterange(v_d, v_upper)::text));
+  END IF;
+  RETURN v_rows;
+END $$;
+
+-- Placement of a node in a hierarchy on a date: {primary: parent id or null, parents: [ids, sorted]}.
+CREATE FUNCTION apply_placement(p_hierarchy uuid, p_node uuid, p_d date)
+RETURNS jsonb LANGUAGE sql STABLE SET search_path = mdm, public AS $$
+  SELECT jsonb_build_object(
+    'primary', (SELECT r.parent_node_id FROM mdm.hierarchy_relationship r
+                WHERE r.hierarchy_id = p_hierarchy AND r.child_node_id = p_node AND r.is_primary
+                  AND r.valid_period @> p_d AND upper_inf(r.recorded_period)),
+    'parents', coalesce((SELECT jsonb_agg(r.parent_node_id::text ORDER BY r.parent_node_id::text COLLATE "C")
+                         FROM mdm.hierarchy_relationship r
+                         WHERE r.hierarchy_id = p_hierarchy AND r.child_node_id = p_node
+                           AND r.valid_period @> p_d AND upper_inf(r.recorded_period)), '[]'::jsonb))
+$$;
+
+-- Stale base (LLD §7.3): the fact must still be what the item assumed when it was drafted. The HINT carries the
+-- machine code (ADR-020); expected and actual go in DETAIL.
+CREATE FUNCTION apply_expect(p_item change_item, p_field text, p_actual jsonb)
+RETURNS void LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE v_expected jsonb := p_item.payload -> 'expected' -> p_field;
+BEGIN
+  IF v_expected IS NOT NULL AND v_expected IS DISTINCT FROM coalesce(p_actual, 'null'::jsonb) THEN
+    RAISE EXCEPTION 'Item % changed since it was drafted: % was expected to be %, but is %',
+      p_item.seq, p_field, v_expected, coalesce(p_actual, 'null'::jsonb)
+      USING ERRCODE = 'N3001', HINT = 'apply.stale_base',
+            DETAIL = jsonb_build_object('seq', p_item.seq, 'field', p_field, 'expected', v_expected, 'actual', p_actual)::text;
+  END IF;
+END $$;
+
+-- The target parent must be placed in the hierarchy on D and allow children.
+CREATE FUNCTION apply_require_parent(p_hierarchy uuid, p_parent uuid, p_d date)
+RETURNS void LANGUAGE plpgsql SET search_path = mdm, public AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM mdm.hierarchy WHERE hierarchy_id = p_hierarchy AND top_node_id = p_parent)
+     AND NOT EXISTS (SELECT 1 FROM mdm.hierarchy_relationship r
+                     WHERE r.hierarchy_id = p_hierarchy AND r.child_node_id = p_parent
+                       AND r.valid_period @> p_d AND upper_inf(r.recorded_period)) THEN
+    RAISE EXCEPTION 'Parent % is not in hierarchy % on %', p_parent, p_hierarchy, p_d
+      USING ERRCODE = 'N2105', HINT = 'apply.item_invalid';
+  END IF;
+  IF NOT coalesce((SELECT a.allows_children FROM mdm.node_attr a WHERE a.node_id = p_parent
+                   AND a.valid_period @> p_d AND upper_inf(a.recorded_period)), false) THEN
+    RAISE EXCEPTION 'Parent % is a leaf on % and cannot have children', p_parent, p_d
+      USING ERRCODE = 'N2004', HINT = 'hierarchy.parent_is_leaf';
+  END IF;
+END $$;
+
+-- Sort order of a new child: the item's, or after the last current sibling.
+CREATE FUNCTION apply_sort_order(p_item change_item, p_d date)
+RETURNS numeric LANGUAGE sql STABLE SET search_path = mdm, public AS $$
+  SELECT coalesce((p_item.payload ->> 'sortOrder')::numeric,
+                  (SELECT max(r.sort_order) + 1000 FROM mdm.hierarchy_relationship r
+                   WHERE r.hierarchy_id = p_item.hierarchy_id AND r.parent_node_id = p_item.target_parent_id
+                     AND r.valid_period @> p_d AND upper_inf(r.recorded_period)),
+                  1000)
+$$;
+
+-- Places the item's node under its target parent from D (until p_upper, or the next scheduled placement).
+CREATE FUNCTION apply_place(p_item change_item, p_primary boolean, p_upper date)
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE v_d date := current_setting('mdm.apply_date')::date;
+BEGIN
+  PERFORM apply_require_parent(p_item.hierarchy_id, p_item.target_parent_id, v_d);
+  RETURN apply_fact('hierarchy_relationship', 'relationship_id',
+           jsonb_build_object('hierarchy_id', p_item.hierarchy_id, 'parent_node_id', p_item.target_parent_id,
+                              'child_node_id', p_item.node_id),
+           jsonb_build_object('is_primary', p_primary, 'sort_order', apply_sort_order(p_item, v_d)),
+           p_upper, false);
+END $$;
+
+-- add_node (LLD §7.2): attributes from D, then the primary placement.
+CREATE FUNCTION apply_add_node(p_item change_item)
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE v_rows int;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM mdm.node WHERE node_id = p_item.node_id)
+     OR EXISTS (SELECT 1 FROM mdm.node_attr WHERE node_id = p_item.node_id) THEN
+    RAISE EXCEPTION 'Item %: node % must be a new identity without attributes', p_item.seq, p_item.node_id
+      USING ERRCODE = 'N2105', HINT = 'apply.item_invalid';
+  END IF;
+  v_rows := apply_fact('node_attr', NULL, jsonb_build_object('node_id', p_item.node_id),
+              jsonb_build_object('node_name', p_item.payload ->> 'name',
+                                 'description', p_item.payload ->> 'description',
+                                 'is_active', true,
+                                 'allows_children', NOT coalesce((p_item.payload ->> 'isLeaf')::boolean, false)),
+              NULL, false);
+  RETURN v_rows + apply_place(p_item, true, NULL);
+END $$;
+
+-- insert_node: primary if the node has no primary placement in the hierarchy on D, otherwise shared
+-- (trg_hierarchy_integrity refuses shared placements where the hierarchy does not allow them).
+CREATE FUNCTION apply_insert_node(p_item change_item)
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE
+  v_d     date  := current_setting('mdm.apply_date')::date;
+  v_place jsonb := apply_placement(p_item.hierarchy_id, p_item.node_id, v_d);
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM mdm.node_attr a WHERE a.node_id = p_item.node_id
+                 AND a.valid_period @> v_d AND upper_inf(a.recorded_period)) THEN
+    RAISE EXCEPTION 'Item %: node % does not exist on %', p_item.seq, p_item.node_id, v_d
+      USING ERRCODE = 'N2105', HINT = 'apply.item_invalid';
+  END IF;
+  PERFORM apply_expect(p_item, 'parentIds', v_place -> 'parents');
+  RETURN apply_place(p_item, v_place ->> 'primary' IS NULL, NULL);
+END $$;
+
+-- move_node: end the primary placement at D and place the node under the target until the old placement's end;
+-- descendants follow (adjacency list). The integrity trigger refuses cycles.
+CREATE FUNCTION apply_move_node(p_item change_item)
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE
+  v_d     date  := current_setting('mdm.apply_date')::date;
+  v_place jsonb := apply_placement(p_item.hierarchy_id, p_item.node_id, v_d);
+  v_rel   uuid;
+  v_valid daterange;
+  v_rows  int;
+BEGIN
+  PERFORM apply_expect(p_item, 'parentId', v_place -> 'primary');
+  PERFORM apply_expect(p_item, 'parentIds', v_place -> 'parents');
+  SELECT r.relationship_id, r.valid_period INTO v_rel, v_valid FROM mdm.hierarchy_relationship r
+  WHERE r.hierarchy_id = p_item.hierarchy_id AND r.child_node_id = p_item.node_id AND r.is_primary
+    AND r.valid_period @> v_d AND upper_inf(r.recorded_period);
+  IF v_rel IS NULL THEN
+    RAISE EXCEPTION 'Item %: node % has no primary placement in hierarchy % on %', p_item.seq, p_item.node_id,
+      p_item.hierarchy_id, v_d USING ERRCODE = 'N2105', HINT = 'apply.item_invalid';
+  END IF;
+  v_rows := apply_fact('hierarchy_relationship', 'relationship_id', jsonb_build_object('relationship_id', v_rel),
+                       NULL, NULL, true);
+  RETURN v_rows + apply_place(p_item, true, upper(v_valid));
+END $$;
+
+-- Actions whose handlers arrive in later increments (1-8b, 1-8c) fail the apply rather than being skipped.
+CREATE FUNCTION apply_not_available(p_item change_item)
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+BEGIN
+  RAISE EXCEPTION 'Item %: action % cannot be applied yet', p_item.seq, p_item.action
+    USING ERRCODE = 'N2105', HINT = 'apply.action_not_available';
+END $$;
+
+-- Applies an approved request as one unit (LLD §7.1). Rule failures (N2…, stale base, overlaps, duplicates)
+-- undo every item and leave the request apply_failed with the reason; anything else is raised to the caller.
+CREATE FUNCTION apply_change_request(p_change_request_id uuid, p_actor uuid)
+RETURNS int LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
+DECLARE
+  cr       mdm.change_request%ROWTYPE;
+  it       mdm.change_item%ROWTYPE;
+  v_rows   int := 0;
+  v_seq    int;
+  v_state  text;
+  v_msg    text;
+  v_detail text;
+BEGIN
+  SELECT * INTO cr FROM mdm.change_request WHERE change_request_id = p_change_request_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Change request % not found', p_change_request_id USING ERRCODE = 'N2102', HINT = 'change_request.not_found';
+  END IF;
+  IF cr.status = 'applied' THEN
+    RETURN 0;                                                    -- idempotent: a repeated apply does nothing
+  END IF;
+  IF cr.status <> 'approved' THEN
+    RAISE EXCEPTION 'Change request % is % and cannot be applied', p_change_request_id, cr.status
+      USING ERRCODE = 'N2101', HINT = 'change_request.status_transition';
+  END IF;
+  PERFORM set_config('mdm.actor_id', p_actor::text, true);
+  PERFORM set_config('mdm.change_request_id', p_change_request_id::text, true);
+  PERFORM set_config('mdm.apply_date', cr.effective_from::text, true);
+
+  BEGIN                                                          -- subtransaction: all items or none
+    FOR it IN
+      SELECT ci.* FROM mdm.change_item ci
+      WHERE ci.change_request_id = p_change_request_id
+        AND (NOT cr.governed_by_workflow
+             OR EXISTS (SELECT 1 FROM mdm.change_item_clearance c WHERE c.change_item_id = ci.change_item_id))
+      ORDER BY ci.seq
+    LOOP
+      v_seq := it.seq;
+      v_rows := v_rows + CASE it.action
+        WHEN 'add_node'    THEN mdm.apply_add_node(it)
+        WHEN 'insert_node' THEN mdm.apply_insert_node(it)
+        WHEN 'move_node'   THEN mdm.apply_move_node(it)
+        ELSE mdm.apply_not_available(it)
+      END;
+    END LOOP;
+    v_seq := NULL;
+
+    INSERT INTO mdm.change_event (change_request_id, event_type, payload)
+    SELECT p_change_request_id, 'change_request_applied',
+           jsonb_build_object('effective_from', cr.effective_from,
+             'items', coalesce(jsonb_agg(jsonb_build_object('seq', ci.seq, 'action', ci.action, 'node_id', ci.node_id,
+                                'hierarchy_id', ci.hierarchy_id, 'property_id', ci.property_id) ORDER BY ci.seq), '[]'::jsonb))
+    FROM mdm.change_item ci
+    WHERE ci.change_request_id = p_change_request_id
+      AND (NOT cr.governed_by_workflow
+           OR EXISTS (SELECT 1 FROM mdm.change_item_clearance c WHERE c.change_item_id = ci.change_item_id));
+
+    UPDATE mdm.change_request SET status = 'applied', applied_at = now(), apply_error = NULL
+    WHERE change_request_id = p_change_request_id;
+    RETURN v_rows;
+  EXCEPTION WHEN OTHERS THEN
+    GET STACKED DIAGNOSTICS v_state = RETURNED_SQLSTATE, v_msg = MESSAGE_TEXT, v_detail = PG_EXCEPTION_DETAIL;
+    IF v_state LIKE 'N2%' OR v_state IN ('N3001', '23P01', '23505') THEN
+      UPDATE mdm.change_request
+      SET status = 'apply_failed',
+          apply_error = v_state || ' (item ' || coalesce(v_seq::text, '-') || '): ' || v_msg
+                        || coalesce(' ' || nullif(v_detail, ''), '')
+      WHERE change_request_id = p_change_request_id;
+      RETURN -1;
+    END IF;
+    RAISE;
+  END;
+END $$;

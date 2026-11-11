@@ -541,6 +541,7 @@ insert new row with valid [D, new_upper), recorded [T, ∞), change_request_id =
 ```
 "End fact at D" (remove, delete, clear) is the same without the final insert. Complexity per item: O(1) index lookups plus
 the guard's ancestor walk for relationship inserts (O(depth)). Whole request: O(items × depth).
+*Built in 1-8a:* the generic routine is `mdm.apply_fact` (internal, executable only by `nexus_apply`). Rows re-stated by apply (the parts before D and after `validTo`) carry the applying request's id, so every current row written by apply is traceable to it (D-29); the previous belief stays in the closed row. Structural preconditions that no guard covers (target parent not in the hierarchy on D, `add_node` identity already has attributes, no primary placement to move) raise the new code `N2105` (`apply.item_invalid`); actions whose handlers arrive in 1-8b/1-8c raise `N2105` (`apply.action_not_available`), so they fail the apply rather than being skipped. Both are added to the registry in 1-12.
 
 ### 7.2 Handlers
 | Action | Steps |
@@ -555,7 +556,8 @@ the guard's ancestor walk for relationship inserts (O(depth)). Whole request: O(
 
 ### 7.3 Stale-base check
 At draft time `ItemFactory` stores in `payload.expected` what the item assumes (table above). At apply, each handler
-reads the same fact under lock and compares; any difference raises `N3001` with `HINT` = JSON of expected vs actual.
+reads the same fact under lock and compares; any difference raises `N3001` with `HINT` = `apply.stale_base` and `DETAIL` = JSON of expected vs actual.
+*Built in 1-8a:* the JSON moved from `HINT` to `DETAIL`, because ADR-020 reserves `HINT` for the machine code that `DbErrorTranslator` reads.
 Edge case: two items in the same request touching the same fact — the second item's expected value is checked against
 the state after the first item (handlers run in `seq` order), and `ItemFactory` captures expected values accordingly
 (it consults earlier draft items of the same request first).

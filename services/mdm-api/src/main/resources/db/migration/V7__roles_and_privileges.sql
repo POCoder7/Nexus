@@ -79,3 +79,26 @@ GRANT UPDATE (status, submitted_at, decided_by, decided_at, decision_note, decis
 ALTER FUNCTION mdm.withdraw_change_request(uuid, uuid) OWNER TO nexus_decider;
 REVOKE EXECUTE ON FUNCTION mdm.withdraw_change_request(uuid, uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION mdm.withdraw_change_request(uuid, uuid) TO nexus_api;
+
+-- -----------------------------------------------------------------------------
+-- Apply (Phase 1 increment 1-8): nexus_apply is the only writer of facts. It may insert fact rows and close their
+-- recorded_period (the bitemporal guard allows nothing else), and append change events.
+-- -----------------------------------------------------------------------------
+GRANT INSERT, UPDATE (recorded_period) ON mdm.node_attr, mdm.hierarchy_relationship, mdm.property_value TO nexus_apply;
+GRANT INSERT ON mdm.change_event TO nexus_apply;
+GRANT INSERT ON mdm.change_item_clearance TO nexus_bridge;      -- written in Phase 2 when a workflow commits items
+
+-- Internal helpers: run inside apply_change_request with nexus_apply's rights; nobody else may call them.
+DO $$
+DECLARE f regprocedure;
+BEGIN
+  FOR f IN SELECT p.oid::regprocedure FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+           WHERE n.nspname = 'mdm' AND p.proname LIKE 'apply\_%' AND p.proname <> 'apply_change_request' LOOP
+    EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC', f);
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO nexus_apply', f);
+  END LOOP;
+END $$;
+
+ALTER FUNCTION mdm.apply_change_request(uuid, uuid) OWNER TO nexus_apply;
+REVOKE EXECUTE ON FUNCTION mdm.apply_change_request(uuid, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION mdm.apply_change_request(uuid, uuid) TO nexus_api;   -- ApplyService, after a decision (1-10)
