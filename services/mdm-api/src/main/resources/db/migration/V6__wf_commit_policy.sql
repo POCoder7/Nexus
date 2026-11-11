@@ -194,6 +194,7 @@ CREATE TRIGGER policy_scope_frozen BEFORE INSERT OR UPDATE OR DELETE ON wf.polic
 CREATE FUNCTION wf.submit_commit_policy(p_policy_id uuid, p_actor uuid)
 RETURNS void LANGUAGE plpgsql SET search_path = wf, mdm, public AS $$
 BEGIN
+  PERFORM set_config('wf.actor_id', p_actor::text, true);   -- configuration audit (wf.config_audit) records who
   UPDATE wf.commit_policy SET status = 'pending_approval'
   WHERE policy_id = p_policy_id AND status = 'draft' AND proposed_by = p_actor;
   IF NOT FOUND THEN
@@ -207,6 +208,7 @@ CREATE FUNCTION wf.approve_commit_policy(p_policy_id uuid, p_approver uuid, p_no
 RETURNS void LANGUAGE plpgsql SET search_path = wf, mdm, public AS $$
 DECLARE v_code text;
 BEGIN
+  PERFORM set_config('wf.actor_id', p_approver::text, true);   -- configuration audit (wf.config_audit) records who
   SELECT policy_code INTO v_code FROM wf.commit_policy
   WHERE policy_id = p_policy_id AND status = 'pending_approval' FOR UPDATE;
   IF v_code IS NULL THEN
@@ -230,6 +232,7 @@ CREATE FUNCTION wf.engage_kill_switch(p_policy_code text, p_actor uuid, p_reason
 RETURNS void LANGUAGE plpgsql SET search_path = wf, mdm, public AS $$
 DECLARE v_policy uuid;
 BEGIN
+  PERFORM set_config('wf.actor_id', p_actor::text, true);   -- configuration audit (wf.config_audit) records who
   SELECT p.policy_id INTO v_policy
   FROM wf.commit_policy p
   WHERE p.policy_code = p_policy_code AND p.status = 'approved'

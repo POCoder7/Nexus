@@ -2,7 +2,7 @@
 
 - **Current phase:** 2 — Governance
 - **Step in loop:** Build — branch `feature/GOV-02-phase-2-governance` (from the Phase 1 branch)
-- **Baseline:** db-test **pass** 311/311 · mvnw verify **pass** 87/87 (after 2-8b, 2026-11-11)
+- **Baseline:** db-test **pass** 311/311 · mvnw verify **pass** 90/90 (after 2-8c, 2026-11-11)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -39,8 +39,9 @@
 | 2-6 Bridge: D-06 attribution, clearance, governed flag, enrichment, `requires_workflow` | PROG, GOV-02 | Done `b30010f` | pgTAP 18 (16) | draft-only guard split into an invoker check and an owner-run version bump (LLD noted); N2107 |
 | 2-7 Stage progression, model activation by a second admin, model loader | GOV-01, GOV-02 | Done `72bf7d0` | pgTAP 19 (19), JUnit 2 | fixtures in 16–18 and the concurrency test name an activator (setup only); N2234, N2235 |
 | 2-8a Submit with a workflow model, urgent flag, governed withdraw | GOV-02 | Done `33fcb1e` | JUnit 3 | 2-8 split into a/b/c (size); `start_instance` owner-run with requester and model checks (N2236); OpenAPI regenerated |
-| 2-8b Stage decisions, claims, enrichment, instance view, refusals in words | GOV-02 | Done `9308ee5` + fix (this commit) | JUnit 3 | `wf.why_cannot_act`; `WorkflowGateway`; N2201 is 422 per ADR-020 (LLD table corrected in a note); OpenAPI operation ids kept unique (test added) |
-| 2-8c … 2-12 | GOV-01, GOV-12, GOV-13 | Planned | per plan | |
+| 2-8b Stage decisions, claims, enrichment, instance view, refusals in words | GOV-02 | Done `9308ee5` + `8298a6e` | JUnit 3 | `wf.why_cannot_act`; `WorkflowGateway`; N2201 is 422 per ADR-020 (LLD table corrected in a note); OpenAPI operation ids kept unique (test added) |
+| 2-8c Model and commit-policy admin endpoints | GOV-01, GOV-12 | Done (this commit) | JUnit 3 | V6 lifecycle functions owner-run as `nexus_wf`; `wf.propose_commit_policy` (N1027) |
+| 2-9 … 2-12 | GOV-02, GOV-13, PROG | Planned | per plan | |
 
 ## Decisions awaiting human review
 | ADR | Title | Why it needs review |
@@ -71,4 +72,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Increment 2-8c (model and commit-policy admin endpoints), then 2-9 … 2-12, asking before each commit. Performance tests deferred to the end of the build.
+Increment 2-9 (worklist function and endpoint with the nine views, counts, search and keyset paging), then 2-10a … 2-12, asking before each commit. Performance tests deferred to the end of the build.

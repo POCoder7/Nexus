@@ -22,6 +22,18 @@
         },
         "type" : "object"
       },
+      "ApprovePolicy" : {
+        "properties" : {
+          "note" : {
+            "type" : "string"
+          },
+          "reviewMonths" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "ChangeRequestView" : {
         "properties" : {
           "appliedAt" : {
@@ -155,6 +167,15 @@
             "type" : "string"
           },
           "workflowModelCode" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "Created" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
             "type" : "string"
           }
         },
@@ -402,6 +423,14 @@
       "JsonNode" : {
         "type" : "object"
       },
+      "KillSwitch" : {
+        "properties" : {
+          "reason" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "MeView" : {
         "properties" : {
           "actor" : {
@@ -419,6 +448,40 @@
               "$ref" : "#/components/schemas/Grant"
             },
             "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "ModelSummary" : {
+        "properties" : {
+          "activatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "activatedBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "createdBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "modelId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "version" : {
+            "format" : "int32",
+            "type" : "integer"
           }
         },
         "type" : "object"
@@ -509,6 +572,34 @@
         },
         "type" : "object"
       },
+      "PageModelSummary" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ModelSummary"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PagePolicySummary" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PolicySummary"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "PolicyEvaluationView" : {
         "properties" : {
           "eligible" : {
@@ -532,6 +623,43 @@
           },
           "policyCode" : {
             "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PolicySummary" : {
+        "properties" : {
+          "approvedBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "killSwitch" : {
+            "type" : "boolean"
+          },
+          "mode" : {
+            "type" : "string"
+          },
+          "policyId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "proposedBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "reviewDue" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "version" : {
+            "format" : "int32",
+            "type" : "integer"
           }
         },
         "type" : "object"
@@ -562,6 +690,49 @@
           },
           "value" : {
             "$ref" : "#/components/schemas/JsonNode"
+          }
+        },
+        "type" : "object"
+      },
+      "ProposePolicy" : {
+        "properties" : {
+          "allowedActions" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "itemConditions" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
+          "maxAutoCommitsPerDay" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "maxItemsPerRequest" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "mode" : {
+            "type" : "string"
+          },
+          "modelCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "ownerGroupCode" : {
+            "type" : "string"
+          },
+          "rationale" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -670,6 +841,225 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/api/v1/admin/commit-policies" : {
+      "get" : {
+        "operationId" : "listCommitPolicies",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 100,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PagePolicySummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      },
+      "post" : {
+        "operationId" : "proposeCommitPolicy",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProposePolicy"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Created"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      }
+    },
+    "/api/v1/admin/commit-policies/{policyCode}/kill-switch" : {
+      "post" : {
+        "operationId" : "engageKillSwitch",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "policyCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/KillSwitch"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      }
+    },
+    "/api/v1/admin/commit-policies/{policyId}/approve" : {
+      "post" : {
+        "operationId" : "approveCommitPolicy",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "policyId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ApprovePolicy"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      }
+    },
+    "/api/v1/admin/commit-policies/{policyId}/submit" : {
+      "post" : {
+        "operationId" : "submitCommitPolicy",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "policyId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      }
+    },
+    "/api/v1/admin/workflow-models" : {
+      "get" : {
+        "operationId" : "listWorkflowModels",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 100,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageModelSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      },
+      "post" : {
+        "operationId" : "loadWorkflowModel",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/JsonNode"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Created"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      }
+    },
+    "/api/v1/admin/workflow-models/{modelId}/activate" : {
+      "post" : {
+        "operationId" : "activateWorkflowModel",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "modelId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      }
+    },
     "/api/v1/change-requests" : {
       "get" : {
         "operationId" : "listChangeRequests",

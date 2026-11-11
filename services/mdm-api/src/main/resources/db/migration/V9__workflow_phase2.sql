@@ -458,3 +458,65 @@ BEGIN
 END $$;
 REVOKE EXECUTE ON FUNCTION wf.why_cannot_act(uuid, uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION wf.why_cannot_act(uuid, uuid), wf.can_act(uuid, uuid) TO nexus_api;
+
+-- -----------------------------------------------------------------------------
+-- Policy administration (2-8c, LLD §5.1 GOV-12): the API manages commit policies only through functions.
+-- -----------------------------------------------------------------------------
+
+-- A human holding the role for all hierarchies on the business day (mdm.user_role, read only).
+CREATE FUNCTION wf.has_role(p_user uuid, p_role text)
+RETURNS boolean LANGUAGE sql STABLE SET search_path = wf, mdm, public AS $$
+  SELECT EXISTS (SELECT 1 FROM mdm.user_role ur JOIN mdm.app_user u ON u.user_id = ur.user_id
+                 WHERE ur.user_id = p_user AND ur.role_code = p_role AND ur.hierarchy_id IS NULL
+                   AND ur.valid_period @> mdm.business_today() AND upper_inf(ur.recorded_period)
+                   AND u.kind = 'human' AND u.is_active)
+$$;
+
+-- A POLICY_ADMIN proposes the next version of a policy (a draft, shadow mode unless stated) with the workflow models it
+-- covers. The V6 guards still decide everything after that: hard limits (CHECK), frozen scope, maker-checker on
+-- approval, POLICY_APPROVERS membership, and the activation setting (OD-08).
+CREATE FUNCTION wf.propose_commit_policy(p_code text, p_description text, p_rationale text, p_mode wf.policy_mode,
+                                         p_allowed_actions mdm.change_action[], p_item_conditions jsonb,
+                                         p_max_items int, p_max_per_day int, p_owner_group_code text,
+                                         p_model_codes text[], p_proposer uuid)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = wf, mdm, public AS $$
+DECLARE
+  v_policy uuid;
+  v_group  uuid;
+  v_model  text;
+BEGIN
+  IF NOT wf.has_role(p_proposer, 'POLICY_ADMIN') THEN
+    RAISE EXCEPTION 'Only a policy administrator can propose commit policies' USING ERRCODE = 'N1027', HINT = 'policy.not_policy_admin';
+  END IF;
+  SELECT group_id INTO v_group FROM wf.user_group WHERE group_code = p_owner_group_code AND is_active;
+  IF v_group IS NULL THEN
+    RAISE EXCEPTION 'Unknown or inactive owner group %', p_owner_group_code USING ERRCODE = 'N2235', HINT = 'wf.unknown_group';
+  END IF;
+  PERFORM set_config('wf.actor_id', p_proposer::text, true);
+  INSERT INTO wf.commit_policy (policy_code, policy_version, description, rationale, mode, allowed_actions, item_conditions,
+                                max_items_per_request, max_auto_commits_per_day, owner_group_id, proposed_by)
+  SELECT p_code, coalesce(max(cp.policy_version), 0) + 1, p_description, p_rationale, coalesce(p_mode, 'shadow'),
+         p_allowed_actions, p_item_conditions, coalesce(p_max_items, 50), coalesce(p_max_per_day, 500), v_group, p_proposer
+  FROM wf.commit_policy cp WHERE cp.policy_code = p_code
+  RETURNING policy_id INTO v_policy;
+  FOREACH v_model IN ARRAY coalesce(p_model_codes, '{}') LOOP
+    INSERT INTO wf.policy_scope (policy_id, model_code) VALUES (v_policy, v_model);
+  END LOOP;
+  RETURN v_policy;
+END $$;
+
+-- The V6 lifecycle functions keep their guards; they now run as nexus_wf so the API can call them without write
+-- access to wf. Each records the actor in the configuration audit.
+ALTER FUNCTION wf.submit_commit_policy(uuid, uuid) SECURITY DEFINER;
+ALTER FUNCTION wf.approve_commit_policy(uuid, uuid, text, int) SECURITY DEFINER;
+ALTER FUNCTION wf.engage_kill_switch(text, uuid, text) SECURITY DEFINER;
+ALTER FUNCTION wf.submit_commit_policy(uuid, uuid) OWNER TO nexus_wf;
+ALTER FUNCTION wf.approve_commit_policy(uuid, uuid, text, int) OWNER TO nexus_wf;
+ALTER FUNCTION wf.engage_kill_switch(text, uuid, text) OWNER TO nexus_wf;
+ALTER FUNCTION wf.propose_commit_policy(text, text, text, wf.policy_mode, mdm.change_action[], jsonb, int, int, text, text[], uuid) OWNER TO nexus_wf;
+REVOKE EXECUTE ON FUNCTION wf.submit_commit_policy(uuid, uuid), wf.approve_commit_policy(uuid, uuid, text, int),
+                           wf.engage_kill_switch(text, uuid, text),
+                           wf.propose_commit_policy(text, text, text, wf.policy_mode, mdm.change_action[], jsonb, int, int, text, text[], uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION wf.submit_commit_policy(uuid, uuid), wf.approve_commit_policy(uuid, uuid, text, int),
+                          wf.engage_kill_switch(text, uuid, text),
+                          wf.propose_commit_policy(text, text, text, wf.policy_mode, mdm.change_action[], jsonb, int, int, text, text[], uuid) TO nexus_api;
