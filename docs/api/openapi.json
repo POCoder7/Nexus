@@ -831,6 +831,81 @@
           }
         },
         "type" : "object"
+      },
+      "WorklistPage" : {
+        "properties" : {
+          "counts" : {
+            "additionalProperties" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/WorklistRow"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "WorklistRow" : {
+        "properties" : {
+          "changeRequestId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "claimedBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "dueAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "instanceId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "instanceStageId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "isOverdue" : {
+            "type" : "boolean"
+          },
+          "isUrgent" : {
+            "type" : "boolean"
+          },
+          "modelCode" : {
+            "type" : "string"
+          },
+          "requesterId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "rowId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "stageLabel" : {
+            "type" : "string"
+          },
+          "stageStatus" : {
+            "type" : "string"
+          },
+          "stageType" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
       }
     }
   },
@@ -1862,6 +1937,63 @@
           }
         },
         "tags" : [ "workflow-controller" ]
+      }
+    },
+    "/api/v1/worklist" : {
+      "get" : {
+        "operationId" : "getWorklist",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "view",
+          "required" : false,
+          "schema" : {
+            "default" : "assigned",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "search",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "model",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorklistPage"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "worklist-controller" ]
       }
     }
   },

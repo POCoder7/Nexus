@@ -520,3 +520,99 @@ REVOKE EXECUTE ON FUNCTION wf.submit_commit_policy(uuid, uuid), wf.approve_commi
 GRANT EXECUTE ON FUNCTION wf.submit_commit_policy(uuid, uuid), wf.approve_commit_policy(uuid, uuid, text, int),
                           wf.engage_kill_switch(text, uuid, text),
                           wf.propose_commit_policy(text, text, text, wf.policy_mode, mdm.change_action[], jsonb, int, int, text, text[], uuid) TO nexus_api;
+
+-- -----------------------------------------------------------------------------
+-- Worklist (GOV-13, LLD §4.9, §7.2): the nine DRG views. Rows are filtered here, in SQL, by wf.can_act; the API never
+-- re-checks permissions in Java. row_id is the stage, or the request for drafts (which have no instance yet).
+-- -----------------------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS instance_stage_open ON wf.instance_stage (status, stage_id) WHERE status IN ('active', 'claimed');
+CREATE INDEX IF NOT EXISTS instance_stage_claimed ON wf.instance_stage (claimed_by) WHERE claimed_by IS NOT NULL;
+CREATE INDEX IF NOT EXISTS workflow_instance_open_submitter ON wf.workflow_instance (submitted_by) WHERE status IN ('in_flight', 'pushed_back');
+CREATE INDEX IF NOT EXISTS instance_action_actor ON wf.instance_action (actor_id, instance_id);
+
+CREATE FUNCTION wf.worklist_rows(p_user uuid, p_view text)
+RETURNS TABLE (row_id uuid, instance_stage_id uuid, instance_id uuid, change_request_id uuid, title text, model_code text,
+               stage_label text, stage_type wf.stage_type, stage_status wf.stage_status, due_at timestamptz,
+               claimed_by uuid, is_urgent boolean, is_overdue boolean, requester_id uuid)
+LANGUAGE sql STABLE SET search_path = wf, mdm, public AS $$
+WITH
+-- current stage of an instance: the latest iteration at current_seq
+current_stage AS (
+  SELECT DISTINCT ON (ist.instance_id) ist.*
+  FROM wf.instance_stage ist JOIN wf.workflow_instance i ON i.instance_id = ist.instance_id
+  WHERE ist.seq = i.current_seq
+  ORDER BY ist.instance_id, ist.iteration DESC
+),
+assigned AS (                          -- §7.2: narrow by the user's groups first, then the full guard
+  SELECT DISTINCT ist.instance_stage_id
+  FROM wf.instance_stage ist
+  JOIN wf.stage_group sg ON sg.stage_id = ist.stage_id
+  WHERE ist.status IN ('active', 'claimed')
+    AND wf.is_member(sg.group_id, p_user, mdm.business_today())
+    AND wf.can_act(ist.instance_stage_id, p_user)
+),
+claimed AS (
+  SELECT ist.instance_stage_id FROM wf.instance_stage ist
+  WHERE ist.claimed_by = p_user AND ist.status = 'claimed' AND (ist.claim_expires_at IS NULL OR ist.claim_expires_at >= now())
+),
+picked AS (
+  SELECT a.instance_stage_id FROM assigned a WHERE p_view IN ('assigned', 'all')
+  UNION SELECT a.instance_stage_id FROM assigned a JOIN wf.instance_stage ist USING (instance_stage_id)
+        JOIN wf.workflow_instance i ON i.instance_id = ist.instance_id JOIN mdm.change_request cr ON cr.change_request_id = i.change_request_id
+        WHERE p_view = 'urgent' AND cr.is_urgent
+  UNION SELECT c.instance_stage_id FROM claimed c WHERE p_view IN ('claimed', 'all')
+  UNION SELECT x.instance_stage_id FROM (SELECT instance_stage_id FROM assigned UNION SELECT instance_stage_id FROM claimed) x
+        JOIN wf.instance_stage ist USING (instance_stage_id) WHERE p_view = 'overdue' AND ist.due_at < now()
+  UNION SELECT cs.instance_stage_id FROM current_stage cs JOIN wf.workflow_instance i ON i.instance_id = cs.instance_id
+        WHERE p_view IN ('submitted', 'all') AND i.submitted_by = p_user AND i.status IN ('in_flight', 'pushed_back')
+  UNION SELECT cs.instance_stage_id FROM current_stage cs JOIN wf.workflow_instance i ON i.instance_id = cs.instance_id
+        WHERE p_view IN ('participated', 'all') AND i.status IN ('in_flight', 'pushed_back')
+          AND EXISTS (SELECT 1 FROM wf.instance_action a WHERE a.instance_id = i.instance_id AND a.actor_id = p_user)
+  -- 'notified' stays empty until GOV-08 (notifications) is decided
+)
+SELECT ist.instance_stage_id, ist.instance_stage_id, i.instance_id, cr.change_request_id, cr.title, m.model_code, ws.label,
+       ws.stage_type, ist.status, ist.due_at, ist.claimed_by, cr.is_urgent, coalesce(ist.due_at < now(), false), cr.requester_id
+FROM picked p
+JOIN wf.instance_stage ist  ON ist.instance_stage_id = p.instance_stage_id
+JOIN wf.workflow_stage ws   ON ws.stage_id = ist.stage_id
+JOIN wf.workflow_instance i ON i.instance_id = ist.instance_id
+JOIN wf.workflow_model m    ON m.model_id = i.model_id
+JOIN mdm.change_request cr  ON cr.change_request_id = i.change_request_id
+UNION ALL
+SELECT cr.change_request_id, NULL, NULL, cr.change_request_id, cr.title, cr.workflow_model_code, NULL, NULL, NULL, NULL, NULL,
+       cr.is_urgent, false, cr.requester_id
+FROM mdm.change_request cr
+WHERE p_view IN ('drafted', 'all') AND cr.requester_id = p_user AND cr.status = 'draft'
+$$;
+
+-- One page of a view, filtered by search (title or request id) and model, keyset on (due date, row id) with drafts
+-- and undated stages last.
+CREATE FUNCTION wf.worklist_page(p_user uuid, p_view text, p_search text, p_model text,
+                                 p_after_due timestamptz, p_after_id uuid, p_limit int)
+RETURNS TABLE (row_id uuid, instance_stage_id uuid, instance_id uuid, change_request_id uuid, title text, model_code text,
+               stage_label text, stage_type wf.stage_type, stage_status wf.stage_status, due_at timestamptz,
+               claimed_by uuid, is_urgent boolean, is_overdue boolean, requester_id uuid, sort_due timestamptz)
+LANGUAGE sql STABLE SET search_path = wf, mdm, public AS $$
+SELECT w.*, coalesce(w.due_at, 'infinity'::timestamptz) AS sort_due
+FROM wf.worklist_rows(p_user, p_view) w
+WHERE (p_search IS NULL OR w.title ILIKE '%' || p_search || '%' OR w.change_request_id::text = p_search)
+  AND (p_model IS NULL OR w.model_code = p_model)
+  AND (p_after_id IS NULL OR (coalesce(w.due_at, 'infinity'::timestamptz), w.row_id) > (p_after_due, p_after_id))
+ORDER BY coalesce(w.due_at, 'infinity'::timestamptz), w.row_id
+LIMIT p_limit
+$$;
+
+-- Rows per view for the filter chips, with the same search and model filter.
+CREATE FUNCTION wf.worklist_counts(p_user uuid, p_search text, p_model text)
+RETURNS TABLE (view text, n bigint)
+LANGUAGE sql STABLE SET search_path = wf, mdm, public AS $$
+SELECT v.view, (SELECT count(*) FROM wf.worklist_rows(p_user, v.view) w
+                WHERE (p_search IS NULL OR w.title ILIKE '%' || p_search || '%' OR w.change_request_id::text = p_search)
+                  AND (p_model IS NULL OR w.model_code = p_model))
+FROM unnest(ARRAY['assigned', 'urgent', 'overdue', 'claimed', 'submitted', 'drafted', 'participated', 'notified', 'all']) AS v(view)
+$$;
+
+REVOKE EXECUTE ON FUNCTION wf.worklist_rows(uuid, text), wf.worklist_page(uuid, text, text, text, timestamptz, uuid, int),
+                           wf.worklist_counts(uuid, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION wf.worklist_rows(uuid, text), wf.worklist_page(uuid, text, text, text, timestamptz, uuid, int),
+                          wf.worklist_counts(uuid, text, text) TO nexus_api;

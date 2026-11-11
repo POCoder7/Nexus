@@ -279,6 +279,7 @@ RETURNS TABLE (instance_stage_id uuid, instance_id uuid, change_request_id uuid,
 Ordering `(coalesce(due_at, 'infinity'), instance_stage_id)` with keyset; `p_search` matches title or request id
 (`ILIKE`, trigram index when OD-21 search lands). Performance: ASSIGNED first narrows by group membership
 (`stage_group` ⨝ `is_member`) before calling `can_act`, so `can_act` runs only on candidate rows.
+*Built in 2-9:* `wf.worklist_rows(user, view)` holds the view rules, `wf.worklist_page` adds search, model filter and the keyset, `wf.worklist_counts` the count per view (same filters). Each row has a `row_id` (the stage; the request for drafts, which have no instance). Drafts and undated stages sort last (`infinity`); the cursor carries the sort key as PostgreSQL text so `infinity` round-trips. SUBMITTED and PARTICIPATED show open instances only, at their current stage. The worklist performance test is deferred with the other performance work (repository owner, 2026-11-11).
 
 ### 4.10 Outbox consumers (D-32, ADR-016) — new, V9
 ```sql
