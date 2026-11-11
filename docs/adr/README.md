@@ -18,11 +18,13 @@
 | ADR-014 | Least-privilege database roles per layer | Accepted (Security, Audit-Risk confirmation pending) |
 | ADR-015 | API conventions — keyset paging, Problem Details, concurrency, idempotency, versioning | Accepted |
 | ADR-016 | Transactional outboxes with per-consumer offsets | Accepted |
-| ADR-017 | Workflow orchestration engine — Camunda | Accepted (edition and hosting open) |
+| ADR-017 | Workflow orchestration engine — Camunda 8 | Accepted (hosting fact open, OD-01c) |
 | ADR-018 | Time handling — business time zone `America/New_York`, UTC recorded time | Accepted |
-| ADR-019 | Apply and decide as security-definer SQL functions; bridge-written clearance | Proposed |
-| ADR-020 | Database error codes for guards | Proposed |
-| ADR-021 | Phase 1 control fixes in `mdm` | Proposed (Audit-Risk review) |
-| ADR-022 | Role-and-scope entitlements, Phase 1 model | Proposed |
+| ADR-019 | Apply and decide as security-definer SQL functions; bridge-written clearance | Accepted |
+| ADR-020 | Database error codes for guards | Accepted |
+| ADR-021 | Phase 1 control fixes in `mdm` | Accepted (Audit-Risk review pending) |
+| ADR-022 | Role-and-scope entitlements, Phase 1 model | Accepted |
+| ADR-023 | Phase 2 control fixes in `wf` and the bridge | Proposed (Audit-Risk review) |
+| ADR-024 | Camunda 8 integration | Proposed |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.

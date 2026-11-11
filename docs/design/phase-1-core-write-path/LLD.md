@@ -224,6 +224,10 @@ New guards (ADR-021):
 
 `wf.commit_policy` hard-limit CHECK (V6) gains `'delete_node'` in its forbidden list (a strengthening: deletes always need a human).
 
+Guard trigger functions that **write** (the `row_version` bump from `trg_change_item_draft_only`) are `SECURITY DEFINER`
+owned by the migration owner with a fixed `search_path`, so callers need no `UPDATE (row_version)` privilege; guards
+that only check and raise stay `SECURITY INVOKER`.
+
 ### 4.3 Clearance — new table in `mdm` (V1), written only by the bridge
 ```sql
 CREATE TABLE mdm.change_item_clearance (            -- which items a governing workflow committed (ADR-019)
@@ -552,7 +556,8 @@ the state after the first item (handlers run in `seq` order), and `ItemFactory` 
 ```text
 validated_at := clock_timestamp(); findings := '{}'
 BEGIN                                   -- subtransaction
-   run the apply logic of 7.1 in trial mode (status check: draft or submitted; no event; no status change)
+   run the apply logic of 7.1 in trial mode (status check: draft, submitted or in_review — the Phase 2 worker
+   validates at the Commit stage; no event; no status change)
    affected := nodes touched by items ∪ their parents ∪ (for moves) descendants' ids within MAX_HIERARCHY_DEPTH
    for each active rule r with level in ('node','hierarchy') and (r.hierarchy_id IS NULL or in touched hierarchies),
        engine = 'sql':

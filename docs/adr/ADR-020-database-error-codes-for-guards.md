@@ -1,6 +1,6 @@
 # ADR-020: Database error codes for guards
 
-- **Status:** Proposed (Phase 1 LLD)
+- **Status:** Accepted (repository owner, 2026-11-11)
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** PROG

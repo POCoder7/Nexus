@@ -10,8 +10,7 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 
 | # | Decision / unknown | Owner | Options | Recommendation | Blocks |
 |---|---|---|---|---|---|
-| OD-01b | Camunda edition and hosting (ADR-017) | Architecture / Platform / Procurement | Camunda 8 SaaS · Camunda 8 self-managed · Camunda 7 | Camunda 8: self-managed if the platform team runs it (or will), else SaaS with process variables limited to identifiers. Do not start on Camunda 7 | Phase 2 LLD deployment and test-engine sections; Phase 2 build |
-| OD-22b | Confirm the zone: `America/New_York` (EST in winter, EDT in summer) rather than a fixed UTC−5 all year | Product | `America/New_York` · fixed UTC−5 | `America/New_York` | Phase 1 build time tests |
+| OD-01c | Will the platform team run Camunda 8 self-managed? (decides self-managed vs SaaS under OD-01b) | Platform / Procurement | Yes · No (use SaaS) | — (a fact to confirm; licence terms with the vendor) | Phase 2 build deployment; not the design |
 | OD-02 | Design-system package names, registry, supported Angular version | UX / Platform | — | — | Phase 3 UI build |
 | OD-03 | Design-system token list, for the mapping table in `UI_STANDARD.md` section 3 | UX | — | — | Phase 3 UI design |
 | OD-04 | Does the design system provide a tree and a virtual-scrolling data grid? | UX | — | Use them if they exist; otherwise build on Angular CDK | Phase 3 scope |
@@ -33,8 +32,10 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 
 | # | Decision | Decided by | Date | Effect |
 |---|---|---|---|---|
-| OD-01 | Workflow engine: **Camunda** (supersedes the earlier in-house-worker recommendation). Camunda orchestrates through `WorkflowGateway`; all state changes go through guarded `wf` functions; one generic BPMN process over the `wf` models (ADR-017) | Repository owner | 2026-11-11 | Phase 2 LLD; edition and hosting open (OD-01b) |
-| OD-22a | `BUSINESS_TIME_ZONE` = **US Eastern**, recorded as `America/New_York` | Repository owner ("EST") | 2026-11-11 | Phase 1 and 2; confirm DST handling (OD-22b) |
+| OD-01 | Workflow engine: **Camunda** (supersedes the earlier in-house-worker recommendation). Camunda orchestrates through `WorkflowGateway`; all state changes go through guarded `wf` functions; one generic BPMN process over the `wf` models (ADR-017) | Repository owner | 2026-11-11 | Phase 2 LLD; edition OD-01b (Camunda 8), hosting fact OD-01c |
+| OD-22a | `BUSINESS_TIME_ZONE` = **`America/New_York`** (EST in winter, EDT in summer; OD-22b confirmed with daylight saving) | Repository owner | 2026-11-11 | Phase 1 and 2 |
+| OD-01b | Camunda **8**: self-managed if the platform team runs it, otherwise SaaS with process variables limited to identifiers; not Camunda 7 | Repository owner (adopted recommendation) | 2026-11-11 | Phase 2; hosting fact OD-01c |
+| — | **Phase 1 LLD approved**; ADR-019, ADR-020, ADR-022 Accepted; ADR-021 Accepted subject to Audit-Risk review before its migrations are merged (OD-18a) | Repository owner (adopted recommendation) | 2026-11-11 | Design track continues with Phase 2 |
 | OD-11 | Repository: **enterprise GitHub organisation, private** | Repository owner (adopted recommendation) | 2026-11-11 | Pushing still needs your explicit go-ahead and a remote created by you |
 | OD-13 | **Parity:** HIE-01, HIE-02, HIE-12, PRP-01, GOV-02, GOV-13 (the SLICE-01 set). **Improve:** SEC-01, SEC-02 (a simpler role-and-scope model than DRM, mapped from DRM access groups at migration), brought forward to Phase 1 | Repository owner (adopted recommendation) | 2026-11-11 | Phase 1 and 2 LLDs design these in full. Recorded here and in `TRACEABILITY.md` until the catalogue is regenerated (OD-28) |
 | OD-14 | Accept the phase placement proposed in `TRACEABILITY.md` (marked `*`), plus SEC-01/SEC-02 moved to Phase 1 | Repository owner (adopted recommendation) | 2026-11-11 | `BUILD_PROTOCOL.md` phase table updated in design step 5 (wiring) |
@@ -69,7 +70,8 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | `CHANGE_REQUESTS_PER_DAY` | 2 000 | Load tests, commit-policy caps | Product |
 | `P95_CHILDREN_PAGE_MS` / `P95_NODE_DETAIL_MS` / `P95_WORKLIST_MS` | 300 / 500 / 500 | Performance targets | Product / Platform |
 | `P95_SUBMIT_MS` / `P95_APPLY_MS` (requests of ≤ 50 items) | 2 000 / 2 000 | Phase 1 command latency | Product / Platform |
-| `BUSINESS_TIME_ZONE` | `America/New_York` (OD-22a; confirm OD-22b) in every profile; tests pin the clock | As-of defaults, day boundaries | Product |
+| `BUSINESS_TIME_ZONE` | `America/New_York` (OD-22a) in every profile; tests pin the clock | As-of defaults, day boundaries | Product |
+| `OUTBOX_POLL_INTERVAL` | 1 s | Relay polling (Phase 2) | Architecture |
 | `TX_RETRY_MAX` | 3 | Serialization-failure retries | Architecture |
 | `IDEMPOTENCY_KEY_TTL` | 24 h | Idempotent POSTs | Architecture |
 | `OUTBOX_SAFETY_LAG` / `OUTBOX_BATCH_SIZE` / `OUTBOX_RETENTION_DAYS` / `OUTBOX_LAG_ALERT` | 2 s / 500 / 30 / 5 min | Event consumers (ADR-016) | Architecture / Platform |
@@ -88,10 +90,12 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | ADR-014 | Least-privilege database roles per layer | Accepted 2026-11-11 (repository owner) | Security/Audit-Risk confirmation pending (OD-17a); amended by ADR-019 |
 | ADR-015 | API conventions | Accepted 2026-11-11 | |
 | ADR-016 | Transactional outboxes with per-consumer offsets | Accepted 2026-11-11 | |
-| ADR-017 | Workflow orchestration engine | Accepted 2026-11-11: Camunda | Edition and hosting OD-01b |
-| ADR-018 | Time handling | Accepted 2026-11-11: `America/New_York` | Confirm OD-22b |
-| ADR-019 | Apply and decide as security-definer SQL functions; bridge-written clearance | Proposed (Phase 1 LLD) | Refines P-09 and ADR-014 |
-| ADR-020 | Database error codes for guards | Proposed (Phase 1 LLD) | D-21 |
-| ADR-021 | Phase 1 control fixes in `mdm` | Proposed (Phase 1 LLD) | OD-18 group 1; Audit-Risk review OD-18a |
-| ADR-022 | Role-and-scope entitlements, Phase 1 model | Proposed (Phase 1 LLD) | SEC-01/SEC-02 Improve |
+| ADR-017 | Workflow orchestration engine | Accepted 2026-11-11: Camunda 8 | Hosting OD-01c |
+| ADR-018 | Time handling | Accepted 2026-11-11: `America/New_York` | |
+| ADR-019 | Apply and decide as security-definer SQL functions; bridge-written clearance | Accepted 2026-11-11 | Refines P-09 and ADR-014; amended by ADR-023 |
+| ADR-020 | Database error codes for guards | Accepted 2026-11-11 | D-21 |
+| ADR-021 | Phase 1 control fixes in `mdm` | Accepted 2026-11-11 (Audit-Risk review pending, OD-18a) | Amended by ADR-023 (enrichment items) |
+| ADR-022 | Role-and-scope entitlements, Phase 1 model | Accepted 2026-11-11 | |
+| ADR-023 | Phase 2 control fixes in `wf` and the bridge | Proposed (Phase 2 LLD) | OD-18 group 2; Audit-Risk review |
+| ADR-024 | Camunda 8 integration: generic process, outbox-driven start, message-correlated decisions | Proposed (Phase 2 LLD) | |
 | ADR-005 to ADR-009 | (existing) | Proposed | Unchanged by this design |

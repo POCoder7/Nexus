@@ -1,6 +1,6 @@
 # ADR-022: Role-and-scope entitlements, Phase 1 model
 
-- **Status:** Proposed (Phase 1 LLD)
+- **Status:** Accepted (repository owner, 2026-11-11)
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** SEC-01, SEC-02 (both Improve, OD-13)

@@ -276,11 +276,12 @@
   instance: draft → in_flight ⇄ pushed_back → committed | rejected | withdrawn
   stage:    pending → active → claimed → completed | rejected ; pending → skipped
   ```
-- **Where applied:** exists V4/V6; planned Phase 2 (`wf` operation functions + worker behind `WorkflowGateway`).
+- **Where applied:** exists V4/V6; Phase 2 LLD: `wf.advance_instance`, `wf.complete_stage`, `wf.record_stage_decision`,
+  `wf.claim_stage` (V4/V9), and Camunda 8 job workers in `com.mdm.api.workflow.engine` driving one generic BPMN process (ADR-017, ADR-024).
 - **Trade-offs / failure modes:** two places to look (SQL + worker); missing guards today on claim and close (D-12, D-13).
 - **Alternatives:** all logic in the engine (controls bypassable); all logic in SQL including timers (`pg_cron`; weak escalation and notification support).
 - **When not to use:** core-only maker-checker (no stages).
-- **Related ADR:** ADR-003, ADR-017.
+- **Related ADR:** ADR-003, ADR-017, ADR-023, ADR-024.
 
 ## P-16 Event-driven notifications — Adopted (pending capability decision)
 

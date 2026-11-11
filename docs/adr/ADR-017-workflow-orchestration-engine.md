@@ -1,7 +1,7 @@
 # ADR-017: Workflow orchestration engine
 
 - **Status:** Accepted (repository owner, 2026-11-11): **Camunda**. Superseded part: the earlier recommendation of an
-  in-house worker for Phase 2. **Open:** edition and hosting (OD-01b, options below)
+  in-house worker for Phase 2. **Edition: Camunda 8** (OD-01b): self-managed if the platform team runs it, otherwise SaaS with identifiers-only process variables (OD-01c). Integration detail: ADR-024
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** GOV-01 to GOV-09, GOV-12, GOV-13

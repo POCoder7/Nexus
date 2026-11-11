@@ -1,6 +1,6 @@
 # Design state
 
-- **Current item:** Phase 1 LLD (protocol step 3)
+- **Current item:** Phase 2 LLD (protocol step 3)
 - **Status:** Awaiting review
 - **Session date:** 2026-11-11 (overview and patterns approved the same day; Phase 0 built and approved first)
 
@@ -13,10 +13,12 @@
 | design/TRACEABILITY.md | All 91 capabilities; OD-13 decisions and Phase 1 LLD links applied | Medium | 2026-11-11 |
 | design/OPEN_DECISIONS.md | Recommendations adopted by the owner moved to Decided; remaining open items listed | — | 2026-11-11 |
 | adr/ADR-013 … ADR-018 | Accepted (014 and 017 with confirmations pending) | — | 2026-11-11 |
-| adr/ADR-019 … ADR-022 | Proposed with the Phase 1 LLD | — | 2026-11-11 |
+| adr/ADR-019 … ADR-022 | Accepted (021 with Audit-Risk review pending) | — | 2026-11-11 |
+| adr/ADR-023, ADR-024 | Proposed with the Phase 2 LLD | — | 2026-11-11 |
 | design/phase-0 | Not written: Phase 0 was built first by your instruction (sequence A); its plan, test report and summary are in `docs/phases/phase-0/` | — | 2026-11-11 |
-| design/phase-1-core-write-path/LLD.md | Draft, awaiting review | Medium (High for data/apply; Low for pending VAL semantics) | 2026-11-11 |
-| design/phase-2..9 LLDs | Not started | — | — |
+| design/phase-1-core-write-path/LLD.md | Approved 2026-11-11 (two small corrections made while writing Phase 2: validation also in `in_review`; writing guard triggers run as owner) | Medium | 2026-11-11 |
+| design/phase-2-governance/LLD.md | Draft, awaiting review | Medium (High for DB side; Medium for Camunda; Low for pending GOV parity) | 2026-11-11 |
+| design/phase-3..9 LLDs | Not started | — | — |
 | design/phase-3-steward-ui/prototypes/landing.html | Landing-page prototype; combined design chosen (OD-27) | Prototype only: placeholder tokens, synthetic data | 2026-11-11 |
 | design/CONSISTENCY_REVIEW.md | Not started | — | — |
 
@@ -157,26 +159,25 @@ append-only triggers as listed; maker-checker and human-only decisions; policy h
 one-way kill switch, frozen approved policies and models; 35 pgTAP tests.
 
 ## Decisions blocking design (see OPEN_DECISIONS.md)
-- **OD-09** remaining capability decisions: the rest of Phases 1–2 (HIE-06, PRP-02, PRP-03, VAL-01–03, AUD-01, AUD-02, GOV-03–09) are outline only until decided. Blocks detail in the Phase 2 LLD most.
-- **OD-22b** confirm `America/New_York` (EST/EDT) rather than a fixed UTC−5; zone recorded 2026-11-11 from "EST".
-- **OD-01b** Camunda edition and hosting (owner chose Camunda, ADR-017): blocks the Phase 2 LLD deployment and test-engine sections.
-- **OD-17a / OD-18a** Security and Audit-Risk confirmations: block merging the Phase 1 fix migrations and the first shared environment, not the design.
-- **OD-28** the external capability working copy must receive the OD-13 decisions.
-- OD-02 to OD-07: Phase 3 and later.
+- **OD-09** remaining capability decisions. Phase 2 outlines GOV-04, GOV-07, GOV-08, GOV-09, GOV-11, GOV-16, AUD-02; Phase 3 needs few new decisions (HIE-12, GOV-13, SLICE-01 are decided).
+- **OD-01c** Camunda 8 self-managed or SaaS: deployment only; the design is the same.
+- **OD-02 to OD-04** design-system details: block the Phase 3 UI design's final component choices (the LLD will design against the Nexus token layer, per UI_STANDARD).
+- **OD-08, OD-17a, OD-18a** Audit-Risk and Security confirmations: block activation and merging, not design.
+- **OD-28** external capability working copy.
 
-## Self-review (DESIGN_PROTOCOL §5) for the Phase 1 LLD
-- *Implementable without a design question?* Yes for the decided scope: tables, columns, guards, function signatures,
-  privileges, endpoints, payloads, error codes, algorithms and tests are specified. Open points are named assumptions (A-1 to A-9) with their effect if wrong.
-- *Existing code verified?* Yes. The LLD was checked against V1–V6 and the tests while writing; this check found and fixed
-  that the new status guard would break two `lives_ok` tests and that the app login could no longer seed
-  `HierarchyApiTest`. Both are now explicit setup changes (§13), with no assertion weakened.
-- *Weakens a control, crosses the layer, contradicts an Accepted ADR?* No weakening. No `mdm` → `wf` reference (the
-  clearance table is in `mdm` and written by the bridge). ADR-019 amends Accepted ADR-014 (two owner roles, clearance
-  table); it is Proposed and flagged for review rather than applied silently.
-- *Assumptions listed?* A-1 to A-9 in the LLD; `P95_SUBMIT_MS` / `P95_APPLY_MS` added to OPEN_DECISIONS.
-- *Acceptance criteria covered?* Every in-scope capability and every PROG fix has P/N/C/B cases (§13). HIE-02 parity with DRM needs golden data (Phase 4 framework); cases are written now and marked pending.
-- *Confidence honest?* Medium overall; Low for validation semantics (pending decision), stated in §2.
+## Self-review (DESIGN_PROTOCOL §5) for the Phase 2 LLD
+- *Implementable without a design question?* Yes for GOV-01, GOV-02, GOV-12, GOV-13 and the fixes: functions, guards,
+  endpoints, process, jobs, messages, variables and tests are specified. Outline-only capabilities have a named place in the process.
+- *Existing code verified?* Yes against V4–V6 and `02_workflow_invariants.sql`. Checking found four consistency issues
+  and fixed them before this stop: validation at the Commit stage needed `in_review` (Phase 1 §7.4 corrected); the
+  worker role needed `EXECUTE` on validate/apply; the item-change trigger's `row_version` bump needed to run as owner
+  (Phase 1 §4.2 corrected); a Commit-stage approval would have recorded `commit` twice (now only `close_instance` writes it); and the auto-commit path lacked an apply step (`nexus.apply` added).
+- *Weakens a control, crosses the layer, contradicts an Accepted ADR?* No weakening; one guarded exception added to
+  Phase 1's draft-only rule for enrichment (ADR-023 amends ADR-021, flagged). `wf` gets its own `config_audit` instead
+  of writing `mdm.audit_log`. Consistent with ADR-017 (Camunda) and ADR-016.
+- *Assumptions listed?* B-1 to B-7; `OUTBOX_POLL_INTERVAL` (1 s) is new and recorded below.
+- *Acceptance criteria covered?* Every in-scope capability and fix has P/N/C/B cases; golden parity for GOV-02/GOV-13 needs Phase 4 data.
+- *Confidence honest?* Medium; Camunda hosting and the client dependency are the main unknowns.
 
 ## Next action
-Human review of `docs/design/phase-1-core-write-path/LLD.md` and ADR-019 to ADR-022. On approval: Phase 2 LLD
-(workflow and the `wf`-side control fixes), then stop again. The Phase 1 *build* waits until the design track is complete (your sequence B before C).
+Human review of `docs/design/phase-2-governance/LLD.md` and ADR-023, ADR-024. On approval: Phase 3 LLD (steward UI), then stop.

@@ -8,8 +8,9 @@ Produced by following `docs/DESIGN_PROTOCOL.md`, before implementation.
 | `DESIGN_STATE.md` | Progress memory for design sessions; what exists and where code and documents differ (D-nn) | Orient done; awaiting review |
 | `OPEN_DECISIONS.md` | Decisions (OD-nn), named assumptions and Proposed ADRs needing a human | Extended; awaiting review |
 | `TRACEABILITY.md` | Capability → phase → design section → planned tests (all 91 capabilities) | First version; awaiting review |
-| `phase-1-core-write-path/LLD.md` | Phase 1: change requests, apply, validation infrastructure, roles and scopes, control fixes | Draft; awaiting review |
-| `phase-N-<name>/LLD.md` | Low-level designs for Phases 2–9 (Phase 0 was built directly; see `docs/phases/phase-0/`) | Not started |
+| `phase-1-core-write-path/LLD.md` | Phase 1: change requests, apply, validation infrastructure, roles and scopes, control fixes | Approved |
+| `phase-2-governance/LLD.md` | Phase 2: Camunda 8 orchestration over `wf`, worklist, commit policy in shadow mode, workflow control fixes | Draft; awaiting review |
+| `phase-N-<name>/LLD.md` | Low-level designs for Phases 3–9 (Phase 0 was built directly; see `docs/phases/phase-0/`) | Not started |
 | `CONSISTENCY_REVIEW.md` | Cross-phase review after all LLDs | Not started |
 
 Read in this order: `../architecture/overview.md`, `../architecture/patterns.md`, then the LLD for the phase

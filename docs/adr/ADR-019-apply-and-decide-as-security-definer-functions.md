@@ -1,6 +1,6 @@
 # ADR-019: Apply and decide as security-definer SQL functions; bridge-written clearance
 
-- **Status:** Proposed (Phase 1 LLD)
+- **Status:** Accepted (repository owner, 2026-11-11). Amended by ADR-023
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** HIE-02, PRP-01, GOV-12, AUD-01, PROG

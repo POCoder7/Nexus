@@ -1,6 +1,6 @@
 # ADR-021: Phase 1 control fixes in `mdm` (OD-18 group 1)
 
-- **Status:** Proposed — needs Audit-Risk review before the migrations are merged (OD-18a)
+- **Status:** Accepted (repository owner, 2026-11-11); Audit-Risk review required before the migrations are merged (OD-18a). Amended by ADR-023
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** PROG, HIE-02, AUD-01, GOV-12
