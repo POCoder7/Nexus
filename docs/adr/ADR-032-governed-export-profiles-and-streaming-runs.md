@@ -1,6 +1,6 @@
 # ADR-032: Governed export profile versions, streaming export runs, reconciliation review
 
-- **Status:** Proposed (Phase 8 LLD)
+- **Status:** Accepted (repository owner, 2026-11-11). DRM file access (OD-39) and who accepts differences (OD-40) remain open
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** NEW-09, NEW-07, EXP-01, EXP-02, EXP-07, EXP-08, AUD-03

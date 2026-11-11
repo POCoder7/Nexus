@@ -15,7 +15,7 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-03 | Design-system token list, for the mapping table in `UI_STANDARD.md` section 3 | UX | — | — | Phase 3 UI design |
 | OD-04 | Does the design system provide a tree and a virtual-scrolling data grid? | UX | — | Use them if they exist; otherwise build on Angular CDK | Phase 3 scope |
 | OD-05 | Approved graph-visualisation library for the ownership view | Architecture / Security | — | — | Phase 6 |
-| OD-06 | Authentication and authorisation provider and Angular library | Security | — | Organisation SSO (OIDC/SAML) | Phase 9; any shared environment (Phase 1 API refuses to start outside `local`/`test` without it) |
+| OD-06 | Authentication provider and Angular library (ADR-033 options) | Security | OIDC · SAML (with an OIDC bridge) · gateway headers | OIDC resource server in the API (ADR-033 option A) | Phase 9; any shared environment (the API refuses to start outside `local`/`test` without it) |
 | OD-07 | (Deferred with Phase 7, OD-38) AI model and provider, and where inference runs; whether data naming real people may be sent to it | Architecture / Security / Audit-Risk | External provider API · provider hosted in the organisation's cloud tenancy · self-hosted model inside the network | One that runs inside the organisation's network or tenancy, so ownership documents never leave it; the design works with any (provider adapter) | Phase 7 build beyond the stub provider |
 | OD-08 | Audit/Risk sign-off on policy-governed straight-through commit (ADR-005) | Audit-Risk | Keep STP under approved policies · require human approval for all | Keep STP, shadow mode first | Activating any commit policy |
 | OD-09 | Remaining capabilities marked "—" (75 after OD-13) | Product | Parity · Improve · Retire | Decide from discovery usage evidence; next: the rest of Phases 1–2 (HIE-06, PRP-02, PRP-03, VAL-01–03, AUD-01, AUD-02, GOV-03–09) | Detailed design of those capabilities (outline only until decided) |
@@ -35,6 +35,9 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-37 | Accuracy thresholds per AI capability (catalogue: "agreed threshold / rate / recall") | Product / Audit-Risk | — | Set before any model version is approved: `AI_EXTRACTION_MIN_F1`, `AI_DRAFT_MIN_ACCEPT_RATE`, `AI_ANOMALY_MIN_RECALL`, `AI_NLQ_MIN_EQUIVALENCE` | Approving any model version |
 | OD-39 | How Nexus reads DRM's daily export files for reconciliation (location, access, retention) | Platform / Security | Shared folder inside the network · object-storage drop · DRM job pushes to Nexus | A read-only drop location inside the network written by the existing DRM export jobs | Phase 8 build (`DrmFileSource`) |
 | OD-40 | Who may accept a reconciliation difference as a permanent parity exception | Audit-Risk / Product | Any reviewer · a second reviewer · the consumer's owner | A second reviewer, plus sign-off by the consumer's owner team for its feeds | Phase 8 build; cutover readiness |
+| OD-41 | Recovery objectives (assumed `RPO_MIN` 15, `RTO_H` 4) and the availability SLO (assumed 99.5 % monthly) | Platform / Product / Audit-Risk | — | Confirm or set; they size backups, replicas and on-call | Phase 9 DR design and tests |
+| OD-42 | Security tooling and the CI jobs for it: dependency scanning, SAST, secret scanning, container scanning, licence report | Security / Platform | GitHub-native (Dependabot, CodeQL, secret scanning) · organisation's tools | Whatever the organisation already licenses; otherwise GitHub-native | Phase 9 build (CI changes need approval) |
+| OD-43 | Penetration test: scope, provider, timing | Security | — | External test of UI, API and evidence storage in pre-production before the first production release | Phase 9 gate |
 | OD-28 | `docs/capabilities.md` says it is regenerated from a working copy outside the repository. The OD-13 decisions must be entered there, or the next regeneration will reset them to "—" | Product (catalogue owner) | Update the external working copy · let the repository copy become the master | Update the working copy, then regenerate | Keeping decisions consistent |
 
 ## Decided
@@ -49,6 +52,7 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-31 | Masking: **rank-preserving pseudonyms** for names and codes, one tool for extracts and DRM outputs | Repository owner (adopted recommendation) | 2026-11-11 | Confirmation pending (OD-31a) |
 | OD-32 | Golden datasets in an **internal artefact store**; only synthetic self-tests in git | Repository owner (adopted recommendation) | 2026-11-11 | Confirmation pending (OD-32a) |
 | OD-33 | **ADR-009 accepted** (golden testing as the parity standard) | Repository owner (adopted recommendation) | 2026-11-11 | Phase 4, 5, 8 |
+| — | **Phase 8 LLD approved**; ADR-032 Accepted (OD-39, OD-40 open) | Repository owner | 2026-11-11 | Design track continues with Phase 9 |
 | OD-38 | **Phase 7 (AI assistance): design approved, implementation deferred.** The build sequence skips Phase 7 (Phase 6 → Phase 8); AI features stay hidden; ADR-031 stands for when it is resumed | Repository owner | 2026-11-11 | Build phases; `BUILD_PROTOCOL.md` phase table updated in design step 5; OD-07, OD-36, OD-37 no longer block anything until resumed |
 | — | **Phase 7 LLD approved** (build deferred, OD-38); ADR-031 Accepted | Repository owner | 2026-11-11 | Design track continues with Phase 8 |
 | — | **Phase 6 LLD approved**; ADR-030 Accepted (methodology OD-35 and personal data OD-34 open) | Repository owner | 2026-11-11 | Design track continues with Phase 7 |
@@ -105,6 +109,10 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | `AI_EXTRACT_P95_S` / `AI_DRAFT_P95_S` / `AI_NLQ_P95_S` | 60 / 15 / 5 | AI latency (Phase 7) | Product |
 | `EXPORT_PARALLELISM` / `EXPORT_MAX_MIN` / `EXPORT_WINDOW_H` / `EXPORT_RETRY_DELAY_MIN` | 4 / 10 / 3 / 15 | Exports (Phase 8) | Platform |
 | `RECON_DRM_WAIT_H` / `EVENT_LATENCY_P95_S` | 6 / 5 | Reconciliation, event feed (Phase 8) | Product / Platform |
+| `RPO_MIN` / `RTO_H` / `SLO_AVAILABILITY` | 15 / 4 / 99.5 % | DR and SLOs (Phase 9, OD-41) | Platform / Product |
+| `JWT_CLOCK_SKEW_S` / `JWKS_REFRESH_MIN` / `UI_IDLE_TIMEOUT_MIN` / `STEP_UP_MAX_AGE_MIN` | 60 / 5 / 30 / 15 | Authentication (Phase 9) | Security |
+| `API_RATE_PER_MIN` / `API_WRITE_RATE_PER_MIN` / `API_MAX_BODY_KB` | 600 / 120 / 512 | API protection (Phase 9) | Security / Platform |
+| `SECRET_ROTATION_DAYS` / `LEADER_TAKEOVER_S` / `SOAK_H` | 90 / 30 / 8 | Operations (Phase 9) | Platform |
 | `TX_RETRY_MAX` | 3 | Serialization-failure retries | Architecture |
 | `IDEMPOTENCY_KEY_TTL` | 24 h | Idempotent POSTs | Architecture |
 | `OUTBOX_SAFETY_LAG` / `OUTBOX_BATCH_SIZE` / `OUTBOX_RETENTION_DAYS` / `OUTBOX_LAG_ALERT` | 2 s / 500 / 30 / 5 min | Event consumers (ADR-016) | Architecture / Platform |
@@ -136,7 +144,9 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | ADR-029 | Role grants as governed change actions | Accepted 2026-11-11 | SEC-01, SEC-02 |
 | ADR-030 | Ownership calculation: exact rational solve, methodology per regime, recorded determinations | Accepted 2026-11-11 | Methodology OD-35 open |
 | ADR-031 | AI service boundary, model governance, prompted-by maker-checker | Accepted 2026-11-11 (implementation deferred, OD-38) | OD-07, OD-36, OD-37 open |
-| ADR-032 | Governed export profile versions, streaming runs, reconciliation review | Proposed (Phase 8 LLD) | OD-39, OD-40 |
+| ADR-032 | Governed export profile versions, streaming runs, reconciliation review | Accepted 2026-11-11 | OD-39, OD-40 open |
+| ADR-033 | Authentication: OIDC resource server; identities mapped, roles in Nexus | Proposed (Phase 9 LLD) | IdP OD-06 open |
+| ADR-034 | Observability: structured logs, Micrometer, OpenTelemetry | Proposed (Phase 9 LLD) | |
 | ADR-027 | Golden datasets: masking and storage | Accepted 2026-11-11 (owner); Security/Audit-Risk confirmation pending | OD-31a, OD-32a |
 | ADR-009 | Golden testing as the parity standard | Accepted 2026-11-11 (OD-33) | |
 | ADR-005 to ADR-008 | (existing) | Proposed | Unchanged by this design |

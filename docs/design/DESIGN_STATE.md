@@ -1,6 +1,6 @@
 # Design state
 
-- **Current item:** Phase 8 LLD (protocol step 3)
+- **Current item:** Phase 9 LLD (protocol step 3; last LLD)
 - **Status:** Awaiting review
 - **Session date:** 2026-11-11 (overview and patterns approved the same day; Phase 0 built and approved first)
 
@@ -20,7 +20,8 @@
 | adr/ADR-028, ADR-029 | Accepted | — | 2026-11-11 |
 | adr/ADR-030 | Accepted (OD-34, OD-35 open) | — | 2026-11-11 |
 | adr/ADR-031 | Accepted; implementation deferred (OD-38) | — | 2026-11-11 |
-| adr/ADR-032 | Proposed with the Phase 8 LLD | — | 2026-11-11 |
+| adr/ADR-032 | Accepted (OD-39, OD-40 open) | — | 2026-11-11 |
+| adr/ADR-033, ADR-034 | Proposed with the Phase 9 LLD | — | 2026-11-11 |
 | design/phase-0 | Not written: Phase 0 was built first by your instruction (sequence A); its plan, test report and summary are in `docs/phases/phase-0/` | — | 2026-11-11 |
 | design/phase-1-core-write-path/LLD.md | Approved 2026-11-11 (two small corrections made while writing Phase 2: validation also in `in_review`; writing guard triggers run as owner) | Medium | 2026-11-11 |
 | design/phase-2-governance/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
@@ -29,8 +30,8 @@
 | design/phase-5-remaining-parity/LLD.md | Approved 2026-11-11 | Medium (designed); Low (outlines) | 2026-11-11 |
 | design/phase-6-ownership-and-ubo/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
 | design/phase-7-ai-assistance/LLD.md | Approved 2026-11-11; **build deferred (OD-38)** | Medium | 2026-11-11 |
-| design/phase-8-exports-and-reconciliation/LLD.md | Draft, awaiting review | Medium | 2026-11-11 |
-| design/phase-9 LLD | Not started | — | — |
+| design/phase-8-exports-and-reconciliation/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
+| design/phase-9-hardening/LLD.md | Draft, awaiting review | Medium (platform, IdP, NFR values open) | 2026-11-11 |
 | design/phase-3-steward-ui/prototypes/landing.html | Landing-page prototype; combined design chosen (OD-27) | Prototype only: placeholder tokens, synthetic data | 2026-11-11 |
 | design/CONSISTENCY_REVIEW.md | Not started | — | — |
 
@@ -180,18 +181,19 @@ one-way kill switch, frozen approved policies and models; 35 pgTAP tests.
 - **OD-34, OD-35** personal data in the ownership graph; UBO methodology per regime (Phase 6 build).
 - **OD-07, OD-36, OD-37** AI decisions: no longer blocking while Phase 7 is deferred (OD-38).
 - **OD-39, OD-40** DRM file access for reconciliation; who may accept a parity difference (Phase 8 build).
+- **OD-06, OD-41, OD-42, OD-43** identity provider; recovery objectives and SLO; security tooling; penetration test (Phase 9 build).
 
-## Self-review (DESIGN_PROTOCOL §5) for the Phase 8 LLD
-- *Implementable without a design question?* Yes for the export runner, profile governance, bundles, schedules, run history,
-  reconciliation, readiness and event feed. EXP-* parity specifics, ADM-02 and ADM-03 are outlines (pending decision). DRM file access waits for OD-39.
-- *Existing code verified?* Against V3: `export_profile` (unique `profile_code`, `is_active`), `export_profile_column`,
-  `export_drm` (row-by-row via `export_column_value`), `run_export` (`string_agg` in memory, trailing line ending, `convert_to` + SHA-256),
-  `export_run` and `drm_reconciliation` columns (generated `is_exact_match`). The streaming writer reproduces `run_export` exactly; a consistency test enforces it.
-- *Does it depend on the deferred Phase 7?* No: no AI component is used; Home's AI cards stay hidden.
-- *Weakens a control, crosses the layer, contradicts an Accepted ADR?* No. Profiles and difference acceptance gain a second person; history becomes append-only; events carry identifiers only.
-- *Assumptions listed?* I-1 to I-6; parameters in OPEN_DECISIONS; OD-39, OD-40 added.
-- *Acceptance criteria covered?* NEW-09, NEW-07 and the exit criteria have cases; EXP byte parity is golden-tested per profile once data is available.
+## Self-review (DESIGN_PROTOCOL §5) for the Phase 9 LLD
+- *Implementable without a design question?* Yes for authentication with OIDC, identity mapping, authorisation gates,
+  observability, deployment requirements, tests and runbooks. Provider- and platform-specific configuration waits for OD-06 and OD-15a; values for OD-10/OD-41.
+- *Existing code verified?* Against `pom.xml` (actuator present; no security starter), `application.yml` (actuator exposure
+  `health,info,metrics`: D-20), the Phase 1 `CurrentActor`/`StartupGuard` design and each phase's targets and metrics, consolidated in §10–§11.
+- *Weakens a control, crosses the layer, contradicts an Accepted ADR?* No. Token claims never grant roles (keeps ADR-022/029);
+  the API validates tokens itself; DB roles in every environment; first shared environment gated on confirmations.
+- *Assumptions listed?* J-1 to J-6; Phase 9 parameters and OD-41 to OD-43 in OPEN_DECISIONS.
+- *Acceptance criteria covered?* SEC-05's criterion and every exit criterion have tests; the threat model lists how each mitigation is verified.
 - *Confidence honest?* Medium.
 
 ## Next action
-Human review of `docs/design/phase-8-exports-and-reconciliation/LLD.md` and ADR-032. On approval: Phase 9 LLD (hardening), then stop.
+Human review of `docs/design/phase-9-hardening/LLD.md`, ADR-033 and ADR-034. On approval: protocol step 4, the
+cross-phase consistency review (`docs/design/CONSISTENCY_REVIEW.md`), then stop.
