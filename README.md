@@ -52,5 +52,5 @@ Capabilities: [docs/capabilities.md](docs/capabilities.md)
 ## Status
 Phase 1 (core write path) built and approved: change requests from draft to applied data in core mode
 (maker-checker), entitlements by hierarchy and sub-tree, bitemporal reads at any date. Migrations V1–V8 apply on a
-fresh PostgreSQL 16 database and all 211 pgTAP tests pass; the API's 77 tests pass (verified 2026-11-11).
+fresh PostgreSQL 16 database and all 211 pgTAP tests pass; the API's 78 tests pass (verified 2026-11-11).
 Current progress: [docs/BUILD_STATE.md](docs/BUILD_STATE.md).

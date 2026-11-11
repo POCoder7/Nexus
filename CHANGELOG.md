@@ -2,7 +2,7 @@
 
 All notable changes to Nexus, newest first. Each entry names its capability ID or `PROG`.
 
-## Phase 1 — Core write path (2026-11-11, gate passed with gaps, awaiting approval)
+## Phase 1 — Core write path (2026-11-11, gate approved)
 
 ### Added
 - Change-request API: create, edit, items with expected values, list mine and the review queue, validate, submit, decide, withdraw; ETags (428/412) and idempotency keys. `HIE-02`, `PRP-01`
