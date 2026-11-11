@@ -41,7 +41,8 @@ UI work follows `docs/design/UI_STANDARD.md` (Angular, ADR-012). Phase 7 (AI) is
 2. **Explain before fixing.** For any failing migration or test, state the cause and the proposed fix,
    then make the smallest change that fixes it.
 3. **Layer separation.** Schema `mdm` must never reference `wf`. `wf` may read `mdm` but never write it.
-   Only `wf_bridge` writes across.
+   Only `wf_bridge` writes across. `mdm_stage` is written only by the loader role and may read `mdm`; data reaches `mdm`
+   from it only through change requests.
 4. **Deterministic calculations.** Ownership percentages, inheritance and exports are computed in code/SQL,
    never by an AI model.
 5. **No real data.** Never add production, client or personal data to code, tests, fixtures or prompts.

@@ -1,7 +1,7 @@
 # Design state
 
-- **Current item:** Wiring into build (protocol step 5) — **design track complete**
-- **Status:** Awaiting review
+- **Current item:** Design track **complete and approved** (2026-11-11)
+- **Status:** Approved. Changes from here follow the LLD rule: update the LLD and write an ADR before code changes
 - **Session date:** 2026-11-11 (overview and patterns approved the same day; Phase 0 built and approved first)
 
 ## Documents
@@ -33,7 +33,7 @@
 | design/phase-8-exports-and-reconciliation/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
 | design/phase-9-hardening/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
 | design/CONSISTENCY_REVIEW.md | Approved 2026-11-11; 13 findings fixed (CR-01 to CR-13) | — | 2026-11-11 |
-| Wiring (`BUILD_PROTOCOL.md` §1–§3, `CLAUDE.md` read-first) | Done; awaiting review | — | 2026-11-11 |
+| Wiring (`BUILD_PROTOCOL.md` §1–§3, `CLAUDE.md` read-first and rule 3) | Approved 2026-11-11 | — | 2026-11-11 |
 | design/phase-3-steward-ui/prototypes/landing.html | Landing-page prototype; combined design chosen (OD-27) | Prototype only: placeholder tokens, synthetic data | 2026-11-11 |
 
 ## What exists (verified against the files on 2026-11-11)
@@ -191,8 +191,7 @@ one-way kill switch, frozen approved policies and models; 35 pgTAP tests.
 - §2: build order 0–6, 8, 9; Phase 7 deferred (OD-38); phase table rebuilt from `TRACEABILITY.md` (OD-14), with decided and pending capabilities per phase; infrastructure rule.
 - §3: Orient reads the LLD, its consistency findings and open decisions, and checks for a shared environment (OD-44, CR-07); Plan starts from the LLD's §1, §13, §16.
 - `CLAUDE.md` "Read first": `docs/architecture/`, the LLD, the consistency review and open decisions; the LLD rule; Phase 7 deferred.
-- **Not changed (proposed only):** wording for `mdm_stage` in CLAUDE.md rule 3, because it changes a non-negotiable rule.
+- CLAUDE.md rule 3 extended for `mdm_stage` with the owner's explicit approval.
 
 ## Next action
-Human review of the wiring. Then the design track is closed and your sequence moves to C: **Phase 1 build** —
-`docs/BUILD_PROTOCOL.md` Step 1 (Orient) and Step 2 (Plan) for Phase 1, then stop for approval.
+None in the design track. The build continues in `docs/BUILD_STATE.md` (Phase 1).
