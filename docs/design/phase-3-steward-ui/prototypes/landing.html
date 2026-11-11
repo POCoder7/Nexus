@@ -1,0 +1,568 @@
+<title>Nexus Landing Options</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: app shell per UI_STANDARD §4 — header, global context bar, left nav, master-detail workspace.
+   Neutral placeholder values on the Nexus token layer (--nx-*) until the design-system tokens arrive (OD-03). */
+:root{
+  --nx-color-surface-page:#f4f5f7; --nx-color-surface-panel:#ffffff; --nx-color-surface-raised:#fbfbfc;
+  --nx-color-surface-selected:#e6ecf5; --nx-color-surface-hover:#eef1f5;
+  --nx-color-text-primary:#1b2330; --nx-color-text-secondary:#5a6474; --nx-color-text-disabled:#9aa3af; --nx-color-text-inverse:#ffffff;
+  --nx-color-link:#2f5ea8; --nx-color-accent:#2f5ea8;
+  --nx-color-border-default:#dde1e7; --nx-color-border-strong:#b9c0ca; --nx-color-border-focus:#2f5ea8;
+  --nx-color-status-info:#2f5ea8; --nx-color-status-success:#2e7d4f; --nx-color-status-warning:#9a6400; --nx-color-status-error:#b3261e; --nx-color-status-pending:#6b5aa6;
+  --nx-color-status-info-bg:#e7eef9; --nx-color-status-success-bg:#e5f3ea; --nx-color-status-warning-bg:#fbf0dc; --nx-color-status-error-bg:#fbe7e5; --nx-color-status-pending-bg:#eeeaf8;
+  --nx-color-prov-stored:#1b2330; --nx-color-prov-inherited:#2f5ea8; --nx-color-prov-derived:#6b5aa6; --nx-color-prov-default:#7a828e; --nx-color-prov-ai:#8a4f00; --nx-color-prov-ai-bg:#fdf1e0;
+  --nx-color-header-bg:#1f2a3a; --nx-color-header-fg:#e9edf3; --nx-color-banner-bg:#fff4d6; --nx-color-banner-fg:#5b4300;
+  --nx-font-body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --nx-font-heading:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --nx-font-identifier:ui-monospace,"Cascadia Mono","SF Mono",Menlo,Consolas,monospace;
+  --nx-space-1:4px; --nx-space-2:8px; --nx-space-3:12px; --nx-space-4:16px; --nx-space-5:20px; --nx-space-6:24px; --nx-space-8:32px;
+  --nx-density-row-height:32px; --nx-radius:4px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --nx-color-surface-page:#12161c; --nx-color-surface-panel:#1a1f27; --nx-color-surface-raised:#1f252e;
+  --nx-color-surface-selected:#243349; --nx-color-surface-hover:#232a34;
+  --nx-color-text-primary:#e6e9ee; --nx-color-text-secondary:#a1aab6; --nx-color-text-disabled:#6b7480; --nx-color-text-inverse:#12161c;
+  --nx-color-link:#8db4f0; --nx-color-accent:#8db4f0;
+  --nx-color-border-default:#2c333e; --nx-color-border-strong:#46505d; --nx-color-border-focus:#8db4f0;
+  --nx-color-status-info:#8db4f0; --nx-color-status-success:#7fcf9e; --nx-color-status-warning:#e9b65c; --nx-color-status-error:#f0928a; --nx-color-status-pending:#b9a9ec;
+  --nx-color-status-info-bg:#1e2a3d; --nx-color-status-success-bg:#1b2c22; --nx-color-status-warning-bg:#33291a; --nx-color-status-error-bg:#3a201e; --nx-color-status-pending-bg:#28233a;
+  --nx-color-prov-stored:#e6e9ee; --nx-color-prov-inherited:#8db4f0; --nx-color-prov-derived:#b9a9ec; --nx-color-prov-default:#8f98a4; --nx-color-prov-ai:#f0b871; --nx-color-prov-ai-bg:#352816;
+  --nx-color-header-bg:#0b0e12; --nx-color-header-fg:#dfe4ea; --nx-color-banner-bg:#3a2f14; --nx-color-banner-fg:#f3d98f;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --nx-color-surface-page:#12161c; --nx-color-surface-panel:#1a1f27; --nx-color-surface-raised:#1f252e;
+  --nx-color-surface-selected:#243349; --nx-color-surface-hover:#232a34;
+  --nx-color-text-primary:#e6e9ee; --nx-color-text-secondary:#a1aab6; --nx-color-text-disabled:#6b7480; --nx-color-text-inverse:#12161c;
+  --nx-color-link:#8db4f0; --nx-color-accent:#8db4f0;
+  --nx-color-border-default:#2c333e; --nx-color-border-strong:#46505d; --nx-color-border-focus:#8db4f0;
+  --nx-color-status-info:#8db4f0; --nx-color-status-success:#7fcf9e; --nx-color-status-warning:#e9b65c; --nx-color-status-error:#f0928a; --nx-color-status-pending:#b9a9ec;
+  --nx-color-status-info-bg:#1e2a3d; --nx-color-status-success-bg:#1b2c22; --nx-color-status-warning-bg:#33291a; --nx-color-status-error-bg:#3a201e; --nx-color-status-pending-bg:#28233a;
+  --nx-color-prov-stored:#e6e9ee; --nx-color-prov-inherited:#8db4f0; --nx-color-prov-derived:#b9a9ec; --nx-color-prov-default:#8f98a4; --nx-color-prov-ai:#f0b871; --nx-color-prov-ai-bg:#352816;
+  --nx-color-header-bg:#0b0e12; --nx-color-header-fg:#dfe4ea; --nx-color-banner-bg:#3a2f14; --nx-color-banner-fg:#f3d98f;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--nx-color-surface-page);color:var(--nx-color-text-primary);font:14px/1.45 var(--nx-font-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px}
+h1,h2,h3{font-family:var(--nx-font-heading);margin:0;text-wrap:balance}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--nx-color-border-focus);outline-offset:2px}
+.id{font-family:var(--nx-font-identifier);font-size:12.5px;font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--nx-color-text-secondary)}
+
+/* prototype chrome (outside the app) */
+.proto{max-width:1320px;margin:0 auto;display:grid;gap:12px}
+.proto-head{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between}
+.proto-head h1{font-size:20px}
+.proto-head p{margin:4px 0 0;max-width:70ch;color:var(--nx-color-text-secondary)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs a{display:block;padding:8px 12px;border:1px solid var(--nx-color-border-default);border-radius:var(--nx-radius);
+  text-decoration:none;color:var(--nx-color-text-primary);background:var(--nx-color-surface-panel)}
+.tabs a[aria-current="page"]{background:var(--nx-color-surface-selected);border-color:var(--nx-color-accent);font-weight:600}
+.tabs a small{display:block;font-weight:400;color:var(--nx-color-text-secondary);font-size:12px}
+.startpref{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px}
+.startpref select{height:32px;border:1px solid var(--nx-color-border-strong);border-radius:var(--nx-radius);background:var(--nx-color-surface-panel);padding:0 8px}
+.notes{font-size:13px;background:var(--nx-color-surface-panel);border:1px solid var(--nx-color-border-default);border-radius:var(--nx-radius);padding:10px 14px}
+.notes b{font-weight:600}
+.notes ul{margin:6px 0 0;padding-left:18px;display:grid;gap:3px}
+
+/* app shell */
+.app{border:1px solid var(--nx-color-border-strong);border-radius:6px;overflow:hidden;background:var(--nx-color-surface-panel);min-width:0}
+.hdr{display:flex;align-items:center;gap:12px;background:var(--nx-color-header-bg);color:var(--nx-color-header-fg);padding:0 14px;height:48px}
+.hdr .brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:.02em}
+.hdr .mark{width:22px;height:22px;border:1.5px dashed currentColor;border-radius:3px;opacity:.6;font-size:9px;display:grid;place-items:center}
+.env{font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;border:1px solid currentColor;opacity:.85}
+.hdr .spacer{flex:1}
+.hdr .gsearch{flex:0 1 360px;min-width:0}
+.hdr .gsearch input{width:100%;height:30px;border-radius:var(--nx-radius);border:1px solid #ffffff33;background:#ffffff14;color:var(--nx-color-header-fg);padding:0 10px}
+.hdr .gsearch input::placeholder{color:#ffffffa0}
+.hdr .user{display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap}
+.avatar{width:28px;height:28px;border-radius:50%;background:#ffffff22;display:grid;place-items:center;font-size:12px;font-weight:600}
+
+.ctx{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding:8px 14px;border-bottom:1px solid var(--nx-color-border-default);background:var(--nx-color-surface-raised);font-size:13px}
+.ctx label{display:flex;align-items:center;gap:6px;color:var(--nx-color-text-secondary)}
+.ctx select,.ctx input{height:28px;border:1px solid var(--nx-color-border-default);border-radius:var(--nx-radius);background:var(--nx-color-surface-panel);padding:0 6px;color:var(--nx-color-text-primary)}
+.ctx .ver{font-weight:600;color:var(--nx-color-text-primary)}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:1px 8px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
+.pill svg{width:12px;height:12px;flex:none}
+.p-info{color:var(--nx-color-status-info);background:var(--nx-color-status-info-bg)}
+.p-ok{color:var(--nx-color-status-success);background:var(--nx-color-status-success-bg)}
+.p-warn{color:var(--nx-color-status-warning);background:var(--nx-color-status-warning-bg)}
+.p-err{color:var(--nx-color-status-error);background:var(--nx-color-status-error-bg)}
+.p-pend{color:var(--nx-color-status-pending);background:var(--nx-color-status-pending-bg)}
+.p-ai{color:var(--nx-color-prov-ai);background:var(--nx-color-prov-ai-bg);border-color:currentColor;border-style:dashed}
+.banner{display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--nx-color-banner-bg);color:var(--nx-color-banner-fg);font-size:13px;border-bottom:1px solid var(--nx-color-border-default)}
+.banner button{margin-left:auto;background:none;border:1px solid currentColor;border-radius:var(--nx-radius);padding:2px 10px;cursor:pointer;color:inherit}
+
+.body{display:grid;grid-template-columns:196px minmax(0,1fr);min-height:560px}
+.nav{border-right:1px solid var(--nx-color-border-default);padding:10px 8px;display:flex;flex-direction:column;gap:2px;background:var(--nx-color-surface-raised)}
+.nav a{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:var(--nx-radius);color:var(--nx-color-text-primary);text-decoration:none;font-size:13.5px}
+.nav a:hover{background:var(--nx-color-surface-hover)}
+.nav a[aria-current="page"]{background:var(--nx-color-surface-selected);font-weight:600}
+.nav svg{width:16px;height:16px;flex:none;color:var(--nx-color-text-secondary)}
+.nav .count{margin-left:auto;font-size:11.5px;font-variant-numeric:tabular-nums;background:var(--nx-color-status-info-bg);color:var(--nx-color-status-info);border-radius:999px;padding:0 7px}
+.nav hr{border:0;border-top:1px solid var(--nx-color-border-default);margin:8px 4px;width:auto}
+.main{min-width:0;padding:16px 18px;display:grid;gap:16px;align-content:start}
+.ptitle{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px}
+.ptitle h2{font-size:19px}
+.ptitle .actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{height:32px;padding:0 12px;border-radius:var(--nx-radius);border:1px solid var(--nx-color-border-strong);background:var(--nx-color-surface-panel);cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{background:var(--nx-color-surface-hover)}
+.btn.primary{background:var(--nx-color-accent);border-color:var(--nx-color-accent);color:var(--nx-color-text-inverse);font-weight:600}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.panel{border:1px solid var(--nx-color-border-default);border-radius:var(--nx-radius);background:var(--nx-color-surface-panel);min-width:0}
+.panel>header{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--nx-color-border-default)}
+.panel>header h3{font-size:14px}
+.panel>header .more{margin-left:auto;font-size:12.5px;color:var(--nx-color-link);text-decoration:none}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--nx-color-text-secondary);font-weight:600}
+
+/* filters as segmented chips */
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:1px solid var(--nx-color-border-default);border-radius:999px;background:var(--nx-color-surface-panel);cursor:pointer;font-size:13px}
+.chip .n{font-variant-numeric:tabular-nums;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--nx-color-surface-selected);border-color:var(--nx-color-accent)}
+.chip.alert .n{color:var(--nx-color-status-error)}
+
+/* tables */
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--nx-color-text-secondary);text-align:left;font-weight:600;padding:8px 10px;border-bottom:1px solid var(--nx-color-border-strong);white-space:nowrap}
+td{padding:0 10px;height:var(--nx-density-row-height);border-bottom:1px solid var(--nx-color-border-default);white-space:nowrap}
+td.wrap{white-space:normal;min-width:220px;padding-block:6px}
+tr:hover td{background:var(--nx-color-surface-hover)}
+td a{color:var(--nx-color-link);text-decoration:none}
+td a:hover{text-decoration:underline}
+.due-over{color:var(--nx-color-status-error);font-weight:600}
+.tfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;font-size:12.5px;color:var(--nx-color-text-secondary);flex-wrap:wrap}
+
+/* Option A layout */
+.a-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+.side{display:grid;gap:16px}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-bottom:1px solid var(--nx-color-border-default);font-size:13px}
+.list li:last-child{border-bottom:0}
+.list .meta{font-size:12px;color:var(--nx-color-text-secondary)}
+.tray-foot{padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Option B layout: tree + node panel */
+.b-grid{display:grid;grid-template-columns:minmax(240px,340px) minmax(0,1fr);gap:0;border:1px solid var(--nx-color-border-default);border-radius:var(--nx-radius);min-height:470px}
+.tree{border-right:1px solid var(--nx-color-border-default);display:flex;flex-direction:column;min-width:0}
+.tree-tools{padding:8px;border-bottom:1px solid var(--nx-color-border-default);display:flex;gap:6px}
+.tree-tools input{flex:1;min-width:0;height:30px;border:1px solid var(--nx-color-border-default);border-radius:var(--nx-radius);padding:0 8px;background:var(--nx-color-surface-panel)}
+.tree ul{list-style:none;margin:0;padding:0}
+.tree [role="tree"]{padding:6px 0;overflow:auto;flex:1}
+.ti{display:flex;align-items:center;gap:4px;height:28px;padding-right:8px;cursor:pointer;font-size:13px;white-space:nowrap}
+.ti:hover{background:var(--nx-color-surface-hover)}
+.ti[aria-selected="true"]{background:var(--nx-color-surface-selected)}
+.twisty{width:18px;height:18px;display:grid;place-items:center;color:var(--nx-color-text-secondary);flex:none}
+.twisty svg{width:10px;height:10px;transition:transform .12s}
+[aria-expanded="true"]>.ti .twisty svg{transform:rotate(90deg)}
+.ti .kind{font-size:10.5px;color:var(--nx-color-text-secondary);border:1px solid var(--nx-color-border-default);border-radius:3px;padding:0 4px}
+.ti .shared{font-size:10.5px;color:var(--nx-color-status-pending)}
+.ti .inact{color:var(--nx-color-text-disabled);text-decoration:line-through}
+.showmore{font-size:12.5px;color:var(--nx-color-link);background:none;border:0;cursor:pointer;padding:4px 0;height:26px}
+.node{padding:14px 16px;display:grid;gap:12px;align-content:start;min-width:0}
+.node-h{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline}
+.node-h h3{font-size:17px}
+.tabs-in{display:flex;gap:2px;border-bottom:1px solid var(--nx-color-border-default);overflow-x:auto}
+.tabs-in button{background:none;border:0;border-bottom:2px solid transparent;padding:8px 12px;cursor:pointer;color:var(--nx-color-text-secondary)}
+.tabs-in button[aria-selected="true"]{border-bottom-color:var(--nx-color-accent);color:var(--nx-color-text-primary);font-weight:600}
+.prov{display:inline-flex;align-items:center;gap:5px;font-size:11.5px}
+.prov i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.prov.stored{color:var(--nx-color-prov-stored)} .prov.stored i{background:var(--nx-color-prov-stored)}
+.prov.inherited{color:var(--nx-color-prov-inherited)} .prov.inherited i{border:2px solid var(--nx-color-prov-inherited)}
+.prov.derived{color:var(--nx-color-prov-derived)} .prov.derived i{background:var(--nx-color-prov-derived);transform:rotate(45deg)}
+.prov.default{color:var(--nx-color-prov-default)} .prov.default i{border:1px dashed var(--nx-color-prov-default)}
+.ai-row td{background:var(--nx-color-prov-ai-bg)}
+.traybar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--nx-color-accent);border-radius:var(--nx-radius);background:var(--nx-color-surface-selected);font-size:13px}
+.traybar b{font-variant-numeric:tabular-nums}
+.traybar .btn{margin-left:auto}
+
+/* Option C layout */
+.c-hero{display:grid;gap:10px;padding:18px;border:1px solid var(--nx-color-border-default);border-radius:var(--nx-radius);background:var(--nx-color-surface-raised)}
+.c-hero h2{font-size:20px}
+.bigsearch{display:flex;gap:8px;flex-wrap:wrap}
+.bigsearch input{flex:1 1 280px;min-width:0;height:40px;font-size:15px;border:1px solid var(--nx-color-border-strong);border-radius:var(--nx-radius);padding:0 12px;background:var(--nx-color-surface-panel)}
+.quick{display:flex;flex-wrap:wrap;gap:8px}
+.c-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
+.c-grid .span2{grid-column:span 2}
+.stat-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0}
+.stat{padding:10px 12px;border-right:1px solid var(--nx-color-border-default)}
+.stat:last-child{border-right:0}
+.stat .v{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;font-family:var(--nx-font-heading)}
+.stat .k{font-size:12px;color:var(--nx-color-text-secondary)}
+.hier{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:9px 12px;border-bottom:1px solid var(--nx-color-border-default);font-size:13px}
+.hier:last-child{border-bottom:0}
+.hier a{color:var(--nx-color-link);text-decoration:none;font-weight:600}
+.spark{width:100%;height:46px;display:block}
+.policy-bar{height:8px;border-radius:4px;background:var(--nx-color-surface-hover);overflow:hidden;display:flex}
+.policy-bar span{display:block;height:100%}
+
+.ro [data-write]{opacity:.45;pointer-events:none}
+
+@media (max-width:1100px){.a-grid{grid-template-columns:1fr}.c-grid{grid-template-columns:1fr 1fr}.c-grid .span2{grid-column:span 2}}
+@media (max-width:820px){
+  .body{grid-template-columns:1fr}
+  .nav{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--nx-color-border-default);padding:6px}
+  .nav a{white-space:nowrap} .nav hr{display:none}
+  .hdr .gsearch{display:none}
+  .b-grid{grid-template-columns:1fr}
+  .tree{border-right:0;border-bottom:1px solid var(--nx-color-border-default);max-height:320px}
+  .c-grid{grid-template-columns:1fr}.c-grid .span2{grid-column:auto}
+  .stat-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat:nth-child(2){border-right:0}
+}
+@media (max-width:480px){.hdr .user span{display:none}.main{padding:12px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="proto">
+  <div class="proto-head">
+    <div>
+      <h1>Nexus landing page: combined design</h1>
+      <p>Home is the default landing page; Hierarchies opens the workspace; Worklist opens the queue. Each user can choose where they start. Neutral placeholder tokens, no brand assets (UI_STANDARD §1); all names and numbers are synthetic.</p>
+    </div>
+    <div class="startpref">
+      <label for="start-page">Start page after sign-in</label>
+      <select id="start-page"><option value="option-c">Home (default)</option><option value="option-b">Hierarchies: last one used</option><option value="option-a">Worklist</option></select>
+      <span class="muted" id="start-saved" role="status"></span>
+    </div>
+  </div>
+
+  <div class="notes" id="notes"></div>
+
+  <div class="app" id="app">
+    <header class="hdr">
+      <div class="brand"><span class="mark" aria-hidden="true">DS</span>Nexus</div>
+      <span class="env">Prototype · synthetic data</span>
+      <div class="spacer"></div>
+      <div class="gsearch"><input id="hdr-search" type="search" placeholder="Search nodes, requests, identifiers" aria-label="Search"></div>
+      <div class="user"><div class="avatar" aria-hidden="true">PS</div><span>P. Steward · Data steward</span></div>
+    </header>
+
+    <div class="ctx" role="region" aria-label="Global context">
+      <label>Version <select id="ctx-version"><option>FY27_Feb (working)</option><option>FY27_Jan (finalized)</option><option>FY26_Dec (finalized)</option></select></label>
+      <label>Viewing as of <input id="ctx-asof" type="date" value="2026-11-11"></label>
+      <label>Hierarchy <select id="ctx-hier"><option>LE_CONSOL · Legal consolidation</option><option>MGMT_REGION · Management by region</option><option>REG_REPORT · Regulatory reporting</option></select></label>
+      <span class="muted" id="ctx-today">Today: 11 Nov 2026</span>
+    </div>
+    <div class="banner" id="asof-banner" hidden>
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      <span id="asof-text">Viewing as of a past date. Data is read-only.</span>
+      <button type="button" id="asof-reset">Back to today</button>
+    </div>
+
+    <div class="body">
+      <nav class="nav" aria-label="Main">
+        <a href="#option-c" data-nav="option-c"><svg viewBox="0 0 16 16"><path d="M2 7.5 8 2.5l6 5V14H10v-4H6v4H2z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>Home</a>
+        <a href="#option-b" data-nav="option-b"><svg viewBox="0 0 16 16"><path d="M3 2v12M3 5h5M3 10h5M8 3.5h5v3H8zM8 8.5h5v3H8z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>Hierarchies</a>
+        <a href="#option-a" data-nav="option-a"><svg viewBox="0 0 16 16"><path d="M2 3h12v10H2zM2 6h12M5 9h6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>Worklist<span class="count">12</span></a>
+        <a href="#" data-dead><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="m10.5 10.5 3 3" stroke="currentColor" stroke-width="1.4"/></svg>Search</a>
+        <a href="#" data-dead><svg viewBox="0 0 16 16"><circle cx="4" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4" r="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M7 5.7 5 10.3M9 5.7l2 4.6" stroke="currentColor" stroke-width="1.4"/></svg>Ownership</a>
+        <a href="#" data-dead><svg viewBox="0 0 16 16"><path d="M4 2h6l3 3v9H4zM10 2v3h3M6 8h5M6 11h5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>Audit</a>
+        <hr>
+        <a href="#" data-dead><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" stroke="currentColor" stroke-width="1.4"/></svg>Administration</a>
+      </nav>
+
+      <!-- ============ OPTION A: worklist first ============ -->
+      <main class="main" id="option-a" hidden>
+        <div class="ptitle">
+          <h2>My work</h2><span class="muted">Requests waiting for you, soonest due first</span>
+          <div class="actions"><button class="btn primary" type="button" data-write>+ New change request</button></div>
+        </div>
+        <div class="filters" role="group" aria-label="Worklist filter" id="wl-filters"></div>
+        <div class="a-grid">
+          <section class="panel" aria-label="Worklist">
+            <div class="tbl-wrap"><table>
+              <thead><tr><th>Request</th><th>Title</th><th>Stage</th><th>Status</th><th>Due</th><th>Hierarchy</th><th>Requester</th></tr></thead>
+              <tbody id="wl-body"></tbody>
+            </table></div>
+            <div class="tfoot"><span id="wl-count"></span><button class="btn" type="button">Show next 50</button></div>
+          </section>
+          <aside class="side">
+            <section class="panel" aria-label="Change-request tray">
+              <header><h3>Draft changes</h3><span class="pill p-info">3 items</span></header>
+              <ul class="list">
+                <li><span class="pill p-ok">Add</span><div>Leaf <span class="id">LE-20418</span> under <span class="id">GRP-EU-07</span><div class="meta">LE_CONSOL · 2 properties set</div></div></li>
+                <li><span class="pill p-info">Set</span><div><span class="id">Custom.ReportingCcy</span> = EUR on <span class="id">LE-10233</span><div class="meta">Was USD (stored)</div></div></li>
+                <li><span class="pill p-warn">Move</span><div><span class="id">LE-11870</span> to <span class="id">GRP-APAC-02</span><div class="meta">14 descendants affected</div></div></li>
+              </ul>
+              <div class="tray-foot"><span class="muted" style="font-size:12.5px">Nothing changes until governance approves.</span><button class="btn primary" type="button" data-write>Review and submit</button></div>
+            </section>
+            <section class="panel" aria-label="Recently viewed">
+              <header><h3>Recently viewed</h3></header>
+              <ul class="list">
+                <li><div><a href="#option-b" style="color:var(--nx-color-link);text-decoration:none">LE_CONSOL</a><div class="meta">Legal consolidation · 18 402 nodes</div></div></li>
+                <li><div><a href="#option-b" style="color:var(--nx-color-link);text-decoration:none">GRP-EU-07 Northern Europe holdings</a><div class="meta">Node · 212 children</div></div></li>
+                <li><div><span class="id">CR-2026-04471</span><div class="meta">Your request · in Approve</div></div></li>
+              </ul>
+            </section>
+          </aside>
+        </div>
+      </main>
+
+      <!-- ============ OPTION B: workspace first ============ -->
+      <main class="main" id="option-b" hidden>
+        <div class="ptitle">
+          <h2>LE_CONSOL</h2><span class="muted">Legal consolidation · 18 402 nodes · shared nodes allowed</span>
+          <div class="actions"><button class="btn" type="button" data-write>Move to…</button><button class="btn primary" type="button" data-write>+ Add node</button></div>
+        </div>
+        <div class="b-grid">
+          <section class="tree" aria-label="Hierarchy tree">
+            <div class="tree-tools"><input id="tree-filter" type="search" placeholder="Find in hierarchy" aria-label="Find in hierarchy"></div>
+            <ul role="tree" id="tree" aria-label="LE_CONSOL"></ul>
+          </section>
+          <section class="node" aria-label="Node detail" id="node-panel"></section>
+        </div>
+        <div class="traybar" role="status">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12v9H2zM5 4V2.5h6V4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          <span>Change-request tray: <b>3</b> draft items. Nothing changes until governance approves.</span>
+          <button class="btn primary" type="button" data-write>Review and submit</button>
+        </div>
+      </main>
+
+      <!-- ============ OPTION C: home overview ============ -->
+      <main class="main" id="option-c" hidden>
+        <section class="c-hero">
+          <h2>Good morning. 12 requests need you, 3 are overdue.</h2>
+          <div class="bigsearch">
+            <input id="home-search" type="search" placeholder="Find a node by name, LEI or internal code, or a request by ID" aria-label="Find a node or request">
+            <button class="btn primary" type="button">Search</button>
+          </div>
+          <div class="quick">
+            <button class="btn" type="button" data-write>+ New change request</button>
+            <a class="btn" href="#option-b" style="text-decoration:none">Browse LE_CONSOL</a>
+            <a class="btn" href="#option-a" style="text-decoration:none">Open worklist</a>
+          </div>
+        </section>
+        <div class="c-grid">
+          <section class="panel span2" aria-label="Next in worklist">
+            <header><h3>Next in your worklist</h3><a class="more" href="#option-a">All 12</a></header>
+            <div class="tbl-wrap"><table><thead><tr><th>Request</th><th>Title</th><th>Stage</th><th>Due</th></tr></thead><tbody id="c-wl"></tbody></table></div>
+          </section>
+          <section class="panel" aria-label="Your requests">
+            <header><h3>Your requests</h3></header>
+            <div class="stat-row" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+              <div class="stat"><div class="v">4</div><div class="k">Drafts</div></div>
+              <div class="stat"><div class="v">6</div><div class="k">In review</div></div>
+            </div>
+            <ul class="list" style="border-top:1px solid var(--nx-color-border-default)">
+              <li><span class="pill p-ok"><svg viewBox="0 0 12 12"><path d="m2.5 6.5 2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>Applied</span><div><span class="id">CR-2026-04402</span><div class="meta">Committed by policy <a href="#" style="color:var(--nx-color-link)">ROUTINE_ADDS v2</a> · 10 Nov 2026 16:42 CET</div></div></li>
+              <li><span class="pill p-pend"><svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Approve</span><div><span class="id">CR-2026-04471</span><div class="meta">Waiting for Finance approvers · due 13 Nov 2026</div></div></li>
+              <li><span class="pill p-warn"><svg viewBox="0 0 12 12"><path d="M6 2 10.5 10h-9z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>Pushed back</span><div><span class="id">CR-2026-04390</span><div class="meta">Missing Custom.TaxResidency on 2 nodes</div></div></li>
+            </ul>
+          </section>
+          <section class="panel" aria-label="Hierarchies">
+            <header><h3>Your hierarchies</h3></header>
+            <div class="hier"><a href="#option-b">LE_CONSOL</a><span class="num muted">18 402</span><span class="muted" style="font-size:12px">Legal consolidation · 2 open requests</span></div>
+            <div class="hier"><a href="#option-b">MGMT_REGION</a><span class="num muted">9 116</span><span class="muted" style="font-size:12px">Management by region · freeze from 28 Nov 2026</span></div>
+            <div class="hier"><a href="#option-b">REG_REPORT</a><span class="num muted">4 870</span><span class="muted" style="font-size:12px">Regulatory reporting · no open requests</span></div>
+          </section>
+          <section class="panel" aria-label="AI suggestions">
+            <header><h3>AI suggestions to review</h3><span class="pill p-ai">AI suggestion</span></header>
+            <ul class="list">
+              <li><div><b>Possible duplicate node</b><div class="meta"><span class="id">LE-30117</span> and <span class="id">LE-30142</span> share an LEI. Confidence 0.93 · <a href="#" style="color:var(--nx-color-link)">evidence</a></div></div></li>
+              <li><div><b>Draft request from a document</b><div class="meta">3 ownership edges from a shareholder register. Confidence 0.81 · <a href="#" style="color:var(--nx-color-link)">evidence</a></div></div></li>
+            </ul>
+            <div class="tray-foot"><span class="muted" style="font-size:12.5px">Suggestions are never applied without your accept.</span></div>
+          </section>
+          <section class="panel" aria-label="Governance health">
+            <header><h3>Governance this week</h3></header>
+            <div style="padding:10px 12px;display:grid;gap:10px;font-size:13px">
+              <div><div class="label">Requests decided per day</div>
+                <svg class="spark" viewBox="0 0 200 46" preserveAspectRatio="none" aria-label="Requests decided per day, Mon to Fri: 38, 44, 41, 52, 47">
+                  <line x1="0" y1="45" x2="200" y2="45" stroke="var(--nx-color-border-default)"/>
+                  <path d="M4 22 L52 14 L100 18 L148 4 L196 10 L196 45 L4 45Z" fill="var(--nx-color-status-info-bg)"/>
+                  <path d="M4 22 L52 14 L100 18 L148 4 L196 10" fill="none" stroke="var(--nx-color-status-info)" stroke-width="1.8"/>
+                  <circle cx="196" cy="10" r="3" fill="var(--nx-color-status-info)"/>
+                </svg>
+                <div class="muted" style="font-size:12px">Mon–Fri: 38 · 44 · 41 · 52 · 47</div></div>
+              <div><div class="label">Shadow policy ROUTINE_ADDS v2 (122 evaluations)</div>
+                <div class="policy-bar" aria-hidden="true"><span style="width:61%;background:var(--nx-color-status-success)"></span><span style="width:37%;background:var(--nx-color-status-pending)"></span><span style="width:2%;background:var(--nx-color-status-error)"></span></div>
+                <div class="muted" style="font-size:12px">Would commit 61% · would route 37% · too loose 2% (3 requests)</div></div>
+              <div class="muted" style="font-size:12px">SLA: 3 requests overdue across your groups.</div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const NOTES = {
+    'option-a': ['Worklist', 'Reached from the navigation, from "All 12" on Home, or as the start page for approvers.', [
+      'GOV-13 filters (Assigned, Urgent, Overdue, Claimed, Submitted, Drafted, Participated, Notified, All); paged with "Show next 50".',
+      'Status always uses text plus an icon, never colour alone; overdue dates are bold and labelled.',
+      'The draft-changes tray stays beside the queue: nothing changes until governance approves.']],
+    'option-b': ['Hierarchies', 'Opens the last hierarchy used (chosen in the context bar), or is the start page for heavy editors.', [
+      'Lazy tree with "Show next 200" paging and shared-node markers; node panel with Properties, Relationships, Ownership, History.',
+      'Each property value shows where it comes from: stored, inherited (from which ancestor), derived or default.',
+      'An AI suggestion appears as a labelled row that needs an explicit accept or reject.']],
+    'option-c': ['Home (default start page)', 'One entry point for every role: search first, then what needs attention.', [
+      'Search for nodes, LEIs, internal codes and request IDs, plus quick actions into Hierarchies and Worklist.',
+      'Next 5 worklist items, your own requests (including "Committed by policy" with the policy link), your hierarchies, AI suggestions.',
+      'Governance panel with shadow-mode evidence for commit policies. Change the start page above to land elsewhere.']]
+  };
+  const today = '2026-11-11';
+  const fmt = iso => { const [y,m,d] = iso.split('-').map(Number); return String(d).padStart(2,'0')+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]+' '+y; };
+  const ICON = {
+    active:'<svg viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+    claimed:'<svg viewBox="0 0 12 12"><circle cx="6" cy="4.2" r="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 10.5c.6-2 2-3 3.5-3s2.9 1 3.5 3" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+    urgent:'<svg viewBox="0 0 12 12"><path d="M6 1.5v6M6 9.5v1" stroke="currentColor" stroke-width="1.8"/></svg>',
+    pushed:'<svg viewBox="0 0 12 12"><path d="M9.5 6H3m2.5-3L2.5 6l3 3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+    draft:'<svg viewBox="0 0 12 12"><path d="M2 10 2.5 8 8 2.5l1.5 1.5L4 9.5z" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>'
+  };
+  const WL = [
+    {id:'CR-2026-04488',t:'Add 3 leaves under GRP-EU-07 for new subsidiaries',st:'Approve',s:'active',due:'2026-11-10',h:'LE_CONSOL',r:'K. Mensah',f:['assigned','overdue']},
+    {id:'CR-2026-04476',t:'Change reporting currency on 12 APAC entities',st:'Approve',s:'urgent',due:'2026-11-11',h:'LE_CONSOL',r:'D. Varga',f:['assigned','urgent']},
+    {id:'CR-2026-04469',t:'Move LE-11870 and its 14 descendants to GRP-APAC-02',st:'Commit',s:'claimed',due:'2026-11-12',h:'LE_CONSOL',r:'S. Iyer',f:['assigned','claimed']},
+    {id:'CR-2026-04463',t:'Enrich tax residency for 6 new nodes',st:'Enrich',s:'active',due:'2026-11-09',h:'REG_REPORT',r:'L. Fontaine',f:['assigned','overdue']},
+    {id:'CR-2026-04459',t:'Inactivate dormant entity LE-08812',st:'Approve',s:'active',due:'2026-11-13',h:'LE_CONSOL',r:'K. Mensah',f:['assigned']},
+    {id:'CR-2026-04451',t:'Rename MGMT region nodes after reorganisation',st:'Approve',s:'urgent',due:'2026-11-12',h:'MGMT_REGION',r:'T. Okoro',f:['assigned','urgent']},
+    {id:'CR-2026-04447',t:'Add identifier scheme values for 40 legal entities',st:'Enrich',s:'active',due:'2026-11-08',h:'LE_CONSOL',r:'A. Novak',f:['assigned','overdue']},
+    {id:'CR-2026-04471',t:'Reorder siblings under GRP-AMER-01',st:'Approve',s:'active',due:'2026-11-13',h:'LE_CONSOL',r:'You',f:['submitted','participated']},
+    {id:'CR-2026-04390',t:'Set Custom.TaxResidency on new Irish entities',st:'Enrich',s:'pushed',due:'2026-11-14',h:'REG_REPORT',r:'You',f:['submitted']},
+    {id:'CR-2026-04495',t:'Add leaf LE-20418 under GRP-EU-07',st:'Draft',s:'draft',due:null,h:'LE_CONSOL',r:'You',f:['drafted']},
+    {id:'CR-2026-04437',t:'Update shared placement of LE-15003',st:'Approve',s:'active',due:'2026-11-17',h:'MGMT_REGION',r:'J. Lindqvist',f:['assigned','notified']},
+    {id:'CR-2026-04430',t:'Bulk update cost-centre owner on 85 nodes',st:'Approve',s:'active',due:'2026-11-18',h:'MGMT_REGION',r:'M. Okafor',f:['assigned']}
+  ];
+  const FILTERS = [['assigned','Assigned'],['urgent','Urgent'],['overdue','Overdue'],['claimed','Claimed'],['submitted','Submitted'],['drafted','Drafted'],['participated','Participated'],['notified','Notified'],['all','All']];
+  const statusPill = w => {
+    if (w.s==='urgent') return '<span class="pill p-err">'+ICON.urgent+'Urgent</span>';
+    if (w.s==='claimed') return '<span class="pill p-pend">'+ICON.claimed+'Claimed by you</span>';
+    if (w.s==='pushed') return '<span class="pill p-warn">'+ICON.pushed+'Pushed back</span>';
+    if (w.s==='draft') return '<span class="pill p-info">'+ICON.draft+'Draft</span>';
+    return '<span class="pill p-info">'+ICON.active+'Waiting</span>';
+  };
+  const dueCell = d => !d ? '<span class="muted">—</span>' : (d < today ? '<span class="due-over">Overdue · '+fmt(d)+'</span>' : (d===today ? '<b>Today</b>' : fmt(d)));
+  let filter = 'assigned';
+  function renderWL(){
+    const fEl = document.getElementById('wl-filters');
+    fEl.innerHTML = FILTERS.map(([k,l]) => {
+      const n = k==='all' ? WL.length : WL.filter(w=>w.f.includes(k)).length;
+      return '<button type="button" class="chip'+((k==='overdue'||k==='urgent')&&n?' alert':'')+'" aria-pressed="'+(k===filter)+'" data-f="'+k+'">'+l+' <span class="n">'+n+'</span></button>';
+    }).join('');
+    const rows = WL.filter(w => filter==='all' || w.f.includes(filter)).sort((a,b)=>(a.due||'9')<(b.due||'9')?-1:1);
+    document.getElementById('wl-body').innerHTML = rows.map(w =>
+      '<tr><td><a href="#" class="id">'+w.id+'</a></td><td class="wrap">'+w.t+'</td><td>'+w.st+'</td><td>'+statusPill(w)+'</td><td>'+dueCell(w.due)+'</td><td class="id">'+w.h+'</td><td>'+w.r+'</td></tr>').join('');
+    document.getElementById('wl-count').textContent = rows.length+' of '+rows.length+' shown';
+    document.getElementById('c-wl').innerHTML = WL.filter(w=>w.f.includes('assigned')).sort((a,b)=>a.due<b.due?-1:1).slice(0,5).map(w =>
+      '<tr><td><a href="#" class="id">'+w.id+'</a></td><td class="wrap">'+w.t+'</td><td>'+w.st+'</td><td>'+dueCell(w.due)+'</td></tr>').join('');
+  }
+  document.getElementById('wl-filters').addEventListener('click', e => { const b=e.target.closest('[data-f]'); if(!b) return; filter=b.dataset.f; renderWL(); });
+
+  /* ---------- tree (option B) ---------- */
+  const T = {id:'TOP',name:'LE_CONSOL top',code:'TOP-0001',kind:'structural',children:[
+    {id:'GRP-EU',name:'Europe',code:'GRP-EU',kind:'structural',count:4,children:[
+      {id:'GRP-EU-07',name:'Northern Europe holdings',code:'GRP-EU-07',kind:'structural',count:212,children:[
+        {id:'LE-10233',name:'Halvard Nordic AS',code:'LE-10233',kind:'legal entity'},
+        {id:'LE-10240',name:'Skarven Holdings AB',code:'LE-10240',kind:'legal entity'},
+        {id:'LE-10251',name:'Tornfjell Finance Oy',code:'LE-10251',kind:'legal entity',inactive:true},
+        {id:'LE-15003',name:'Brightmoor Services Ltd',code:'LE-15003',kind:'legal entity',shared:true}
+      ]},
+      {id:'GRP-EU-02',name:'Western Europe holdings',code:'GRP-EU-02',kind:'structural',count:96,children:[]},
+    ]},
+    {id:'GRP-APAC',name:'Asia Pacific',code:'GRP-APAC',kind:'structural',count:3,children:[
+      {id:'GRP-APAC-02',name:'South-East Asia holdings',code:'GRP-APAC-02',kind:'structural',count:58,children:[]}
+    ]},
+    {id:'GRP-AMER',name:'Americas',code:'GRP-AMER',kind:'structural',count:5,children:[]}
+  ]};
+  const expanded = new Set(['TOP','GRP-EU','GRP-EU-07']);
+  let selected = 'LE-10233';
+  const byId = {}; (function idx(n,p){ n.parent=p; byId[n.id]=n; (n.children||[]).forEach(c=>idx(c,n)); })(T,null);
+  const chev = '<svg viewBox="0 0 10 10"><path d="M3 1.5 7 5l-4 3.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
+  function treeHTML(n, level){
+    const hasKids = n.children && (n.children.length || n.count);
+    const open = expanded.has(n.id);
+    let h = '<li role="treeitem" aria-level="'+level+'" aria-selected="'+(n.id===selected)+'"'+(hasKids?' aria-expanded="'+open+'"':'')+' data-id="'+n.id+'">';
+    h += '<div class="ti" aria-selected="'+(n.id===selected)+'" style="padding-left:'+(4+(level-1)*16)+'px"><span class="twisty">'+(hasKids?chev:'')+'</span>';
+    h += '<span class="'+(n.inactive?'inact':'')+'">'+n.name+'</span>';
+    if (n.shared) h += ' <span class="shared" title="Shared node: also placed elsewhere in this hierarchy">⧉ shared</span>';
+    if (n.count) h += ' <span class="muted num" style="font-size:11.5px">'+n.count+'</span>';
+    h += '</div>';
+    if (hasKids && open){
+      h += '<ul role="group">' + n.children.map(c=>treeHTML(c, level+1)).join('');
+      if (n.count && n.count > n.children.length) h += '<li role="none" style="padding-left:'+(26+level*16)+'px"><button class="showmore" type="button">Show next 200 of '+(n.count-n.children.length)+' more</button></li>';
+      if (n.count && !n.children.length) h += '<li role="none" class="muted" style="padding-left:'+(26+level*16)+'px;font-size:12px;height:26px;display:flex;align-items:center">Loading first 200…</li>';
+      h += '</ul>';
+    }
+    return h + '</li>';
+  }
+  function renderTree(){ document.getElementById('tree').innerHTML = treeHTML(T,1); renderNode(); }
+  document.getElementById('tree').addEventListener('click', e => {
+    const li = e.target.closest('[data-id]'); if(!li || e.target.closest('.showmore')) return;
+    const id = li.dataset.id;
+    if (e.target.closest('.twisty') && byId[id].children){ expanded.has(id)?expanded.delete(id):expanded.add(id); }
+    else { selected = id; if (byId[id].children) expanded.add(id); }
+    renderTree();
+  });
+
+  const PROPS = {
+    'LE-10233':[
+      ['Core','Name','Halvard Nordic AS','stored',''],
+      ['Legal','LEI','5299 00HN RD1X 0233 47','stored',''],
+      ['Legal','Jurisdiction','NO','stored',''],
+      ['Finance','Custom.ReportingCcy','USD','stored',''],
+      ['Finance','Custom.ConsolMethod','Full','inherited','from GRP-EU-07'],
+      ['Finance','Custom.Segment','Nordics','inherited','from GRP-EU'],
+      ['Regulatory','Custom.Reportable','True','derived','rule REPORTABLE_V3'],
+      ['Regulatory','Custom.TaxResidency','—','default','no value'],
+    ]
+  };
+  function renderNode(){
+    const n = byId[selected];
+    const path = []; for (let p=n; p; p=p.parent) path.unshift(p.name);
+    const props = PROPS[selected] || [['Core','Name',n.name,'stored',''],['Finance','Custom.ConsolMethod','Full','inherited','from '+(n.parent?n.parent.code:'top')],['Regulatory','Custom.Reportable','True','derived','rule REPORTABLE_V3']];
+    const provLabel = {stored:'Stored',inherited:'Inherited',derived:'Derived',default:'Default'};
+    let h = '<div class="node-h"><h3>'+n.name+'</h3><span class="id muted">'+n.code+'</span><span class="pill '+(n.inactive?'p-warn':'p-ok')+'">'+(n.inactive?'Inactive':'Active')+'</span><span class="muted" style="font-size:12px">'+n.kind+'</span></div>';
+    h += '<div class="muted" style="font-size:12.5px">'+path.join(' › ')+'</div>';
+    h += '<div class="tabs-in" role="tablist"><button role="tab" aria-selected="true">Properties</button><button role="tab" aria-selected="false">Relationships</button><button role="tab" aria-selected="false">Ownership</button><button role="tab" aria-selected="false">History</button></div>';
+    h += '<div class="tbl-wrap"><table><thead><tr><th>Category</th><th>Property</th><th>Value</th><th>Source</th><th></th></tr></thead><tbody>';
+    h += props.map(p => '<tr><td class="muted">'+p[0]+'</td><td class="id">'+p[1]+'</td><td>'+p[2]+'</td><td><span class="prov '+p[3]+'"><i></i>'+provLabel[p[3]]+'</span> <span class="muted" style="font-size:12px">'+p[4]+'</span></td><td>'+(p[3]==='derived'?'':'<button class="btn" style="height:26px" type="button" data-write>Edit</button>')+'</td></tr>').join('');
+    if (selected==='LE-10233') h += '<tr class="ai-row"><td class="muted">Finance</td><td class="id">Custom.ReportingCcy</td><td>EUR</td><td><span class="pill p-ai">AI suggestion · 0.88</span> <a href="#" style="color:var(--nx-color-link);font-size:12px">evidence</a></td><td style="display:flex;gap:6px;align-items:center;height:var(--nx-density-row-height)"><button class="btn" style="height:26px" type="button" data-write>Accept</button><button class="btn" style="height:26px" type="button" data-write>Reject</button></td></tr>';
+    h += '</tbody></table></div>';
+    h += '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px" class="muted"><span class="prov stored"><i></i>Stored on this node</span><span class="prov inherited"><i></i>Inherited from an ancestor</span><span class="prov derived"><i></i>Derived by a rule</span><span class="prov default"><i></i>Default value</span></div>';
+    document.getElementById('node-panel').innerHTML = h;
+  }
+
+  /* ---------- as-of banner ---------- */
+  const asof = document.getElementById('ctx-asof'), banner = document.getElementById('asof-banner'), app = document.getElementById('app');
+  function applyAsOf(){
+    const past = asof.value && asof.value !== today;
+    banner.hidden = !past;
+    app.classList.toggle('ro', !!past);
+    if (past) document.getElementById('asof-text').textContent = 'Viewing as of '+fmt(asof.value)+'. Data is read-only; editing is available for today only.';
+  }
+  asof.addEventListener('change', applyAsOf);
+  document.getElementById('asof-reset').addEventListener('click', () => { asof.value = today; applyAsOf(); });
+
+  /* ---------- routing ---------- */
+  const OPTS = ['option-a','option-b','option-c'];
+  const startSel = document.getElementById('start-page');
+  let startPage = 'option-c';
+  try { const s = localStorage.getItem('nx-start-page'); if (OPTS.includes(s)) startPage = s; } catch (e) {}
+  startSel.value = startPage;
+  startSel.addEventListener('change', () => {
+    startPage = startSel.value;
+    try { localStorage.setItem('nx-start-page', startPage); } catch (e) {}
+    document.getElementById('start-saved').textContent = 'Saved. You will start on '+startSel.options[startSel.selectedIndex].text.split(':')[0].replace(' (default)','')+'.';
+    location.hash = startPage;
+  });
+  function route(){
+    const h = location.hash.replace('#','');
+    const cur = OPTS.includes(h) ? h : startPage;
+    OPTS.forEach(o => document.getElementById(o).hidden = o!==cur);
+    document.querySelectorAll('.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.opt===cur ? 'page' : 'false'));
+    document.querySelectorAll('.nav a[data-nav]').forEach(a => a.setAttribute('aria-current', a.dataset.nav===cur ? 'page' : 'false'));
+    const [t, who, pts] = NOTES[cur];
+    document.getElementById('notes').innerHTML = '<b>'+t+'.</b> '+who+'<ul>'+pts.map(p=>'<li>'+p+'</li>').join('')+'</ul>';
+  }
+  document.querySelectorAll('[data-dead]').forEach(a => a.addEventListener('click', e => e.preventDefault()));
+  window.addEventListener('hashchange', route);
+  renderWL(); renderTree(); route(); applyAsOf();
+})();
+</script>

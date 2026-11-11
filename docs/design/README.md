@@ -1,0 +1,16 @@
+# Design documents
+
+Produced by following `docs/DESIGN_PROTOCOL.md`, before implementation.
+
+| Document | Purpose | Status |
+|---|---|---|
+| `UI_STANDARD.md` | Binding UI standard: Angular on the organisation's design system | Written |
+| `DESIGN_STATE.md` | Progress memory for design sessions; what exists and where code and documents differ (D-nn) | Orient done; awaiting review |
+| `OPEN_DECISIONS.md` | Decisions (OD-nn), named assumptions and Proposed ADRs needing a human | Extended; awaiting review |
+| `TRACEABILITY.md` | Capability → phase → design section → planned tests (all 91 capabilities) | First version; awaiting review |
+| `phase-N-<name>/LLD.md` | Low-level design per phase (0–9) | Not started |
+| `CONSISTENCY_REVIEW.md` | Cross-phase review after all LLDs | Not started |
+
+Read in this order: `../architecture/overview.md`, `../architecture/patterns.md`, then the LLD for the phase
+you are working on, with `UI_STANDARD.md` alongside for any screen work. `DESIGN_STATE.md` lists the differences
+(D-nn) between the repository and its documents that every LLD must take into account.

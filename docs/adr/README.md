@@ -13,5 +13,12 @@
 | ADR-009 | Golden testing against the legacy system as the parity standard | Proposed |
 | ADR-010 | Track the programme in Excel for now | Accepted |
 | ADR-011 | Technology stack | Accepted |
+| ADR-012 | UI framework — Angular with the organisation's design system | Accepted |
+| ADR-013 | mdm-api as a modular monolith with ports and adapters | Proposed |
+| ADR-014 | Least-privilege database roles per layer | Proposed (Security, Audit-Risk review) |
+| ADR-015 | API conventions — keyset paging, Problem Details, concurrency, idempotency, versioning | Proposed |
+| ADR-016 | Transactional outboxes with per-consumer offsets | Proposed |
+| ADR-017 | Workflow orchestration engine (decision open, OD-01) | Proposed |
+| ADR-018 | Time handling — business time zone, UTC recorded time | Proposed |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.
