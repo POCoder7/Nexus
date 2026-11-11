@@ -67,15 +67,20 @@ public class NodeRepository {
                 .optional();
     }
 
-    /** Resolves every property through mdm.property_value_asof (stored -> inherited -> default). */
+    /**
+     * Every property of the node in one call to mdm.node_properties_resolved (D-40), with where each value comes from:
+     * stored, inherited (and from which ancestor), derived, default or none (D-18, UI_STANDARD provenance markers).
+     */
     private List<PropertyValue> properties(UUID nodeId, String hierarchyCode, Slice slice) {
         return jdbc.sql("""
                 SELECT pd.property_code, pd.label, pd.data_type::text AS data_type, pd.scope::text AS scope,
-                       mdm.property_value_asof(CAST(:id AS uuid), pd.property_id, h.hierarchy_id,
-                                               CAST(:asOf AS date), coalesce(CAST(:rec AS timestamptz), now()))::text AS value
-                FROM mdm.property_definition pd
-                LEFT JOIN mdm.hierarchy h ON h.hierarchy_code = CAST(:code AS text)
-                WHERE pd.scope = 'global' OR h.hierarchy_id IS NOT NULL
+                       pd.category_code, x.value::text AS value, x.provenance, x.source_node_id
+                FROM mdm.node_properties_resolved(
+                       CAST(:id AS uuid),
+                       (SELECT h.hierarchy_id FROM mdm.hierarchy h WHERE h.hierarchy_code = CAST(:code AS text)),
+                       CAST(:asOf AS date),
+                       coalesce(CAST(:rec AS timestamptz), now())) x
+                JOIN mdm.property_definition pd ON pd.property_id = x.property_id
                 ORDER BY pd.category_code NULLS LAST, pd.label
                 """)
                 .param("id", nodeId)
@@ -87,7 +92,10 @@ public class NodeRepository {
                         rs.getString("label"),
                         rs.getString("data_type"),
                         rs.getString("scope"),
-                        parse(rs.getString("value"))))
+                        parse(rs.getString("value")),
+                        rs.getString("provenance"),
+                        rs.getObject("source_node_id", UUID.class),
+                        rs.getString("category_code")))
                 .list();
     }
 

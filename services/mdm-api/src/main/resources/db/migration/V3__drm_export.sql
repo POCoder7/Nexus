@@ -206,6 +206,81 @@ BEGIN
 END $$;
 
 -- -----------------------------------------------------------------------------
+-- All properties of one node, resolved in one pass, each with where its value comes from (Phase 1: D-18, D-40).
+-- Same rules as property_value_asof (exports keep using that; a pgTAP test asserts both agree):
+--   stored on the node (a JSON null is an explicit blank that blocks inheritance) -> 'stored'
+--   derived ('sql' engine evaluated, other engines NULL)                          -> 'derived'
+--   nearest primary ancestor's stored value, for inheritable properties         -> 'inherited' (+ source node)
+--   the definition's default                                                     -> 'default'
+--   nothing                                                                      -> 'none'
+-- Local properties are included only when a hierarchy is given.
+-- -----------------------------------------------------------------------------
+CREATE FUNCTION node_properties_resolved(
+  p_node_id        uuid,
+  p_hierarchy_id   uuid,
+  p_as_of          date,
+  p_recorded_as_of timestamptz DEFAULT now()
+)
+RETURNS TABLE (property_id uuid, value jsonb, provenance text, source_node_id uuid, source_property_value_id uuid)
+LANGUAGE sql STABLE SET search_path = mdm, public AS $$
+WITH RECURSIVE
+defs AS (
+  SELECT d.*, CASE WHEN d.scope = 'local' THEN p_hierarchy_id END AS value_hierarchy
+  FROM property_definition d
+  WHERE d.scope = 'global' OR p_hierarchy_id IS NOT NULL
+),
+anc(node_id, dist) AS (                       -- one walk up the primary placements, shared by every property
+  SELECT r.parent_node_id, 1
+  FROM hierarchy_relationship r
+  WHERE p_hierarchy_id IS NOT NULL
+    AND r.hierarchy_id = p_hierarchy_id AND r.child_node_id = p_node_id AND r.is_primary
+    AND r.valid_period @> p_as_of AND r.recorded_period @> p_recorded_as_of
+  UNION ALL
+  SELECT r.parent_node_id, anc.dist + 1
+  FROM anc
+  JOIN hierarchy_relationship r
+    ON r.child_node_id = anc.node_id AND r.hierarchy_id = p_hierarchy_id AND r.is_primary
+   AND r.valid_period @> p_as_of AND r.recorded_period @> p_recorded_as_of
+  WHERE anc.dist < 100                        -- same bound as property_value_asof (D-09)
+),
+stored AS (
+  SELECT pv.property_id, pv.value, pv.property_value_id
+  FROM property_value pv
+  JOIN defs d ON d.property_id = pv.property_id
+  WHERE pv.node_id = p_node_id
+    AND pv.hierarchy_id IS NOT DISTINCT FROM d.value_hierarchy
+    AND pv.valid_period @> p_as_of AND pv.recorded_period @> p_recorded_as_of
+),
+inherited AS (
+  SELECT DISTINCT ON (pv.property_id) pv.property_id, pv.value, anc.node_id AS source_node_id, pv.property_value_id
+  FROM anc
+  JOIN property_value pv ON pv.node_id = anc.node_id
+  JOIN defs d ON d.property_id = pv.property_id AND d.inheritance = 'inherit_from_ancestor'
+  WHERE p_hierarchy_id IS NOT NULL
+    AND pv.hierarchy_id IS NOT DISTINCT FROM d.value_hierarchy
+    AND pv.valid_period @> p_as_of AND pv.recorded_period @> p_recorded_as_of
+  ORDER BY pv.property_id, anc.dist
+)
+SELECT d.property_id,
+       CASE WHEN d.origin = 'derived' THEN
+              CASE WHEN d.derivation_engine = 'sql'
+                   THEN property_value_asof(p_node_id, d.property_id, p_hierarchy_id, p_as_of, p_recorded_as_of) END
+            WHEN s.property_id IS NOT NULL THEN s.value
+            WHEN i.property_id IS NOT NULL THEN i.value
+            ELSE d.default_value END,
+       CASE WHEN d.origin = 'derived'        THEN 'derived'
+            WHEN s.property_id IS NOT NULL   THEN 'stored'
+            WHEN i.property_id IS NOT NULL   THEN 'inherited'
+            WHEN d.default_value IS NOT NULL THEN 'default'
+            ELSE 'none' END,
+       CASE WHEN d.origin <> 'derived' AND s.property_id IS NULL THEN i.source_node_id END,
+       CASE WHEN d.origin = 'derived' THEN NULL ELSE coalesce(s.property_value_id, i.property_value_id) END
+FROM defs d
+LEFT JOIN stored s    ON s.property_id = d.property_id
+LEFT JOIN inherited i ON i.property_id = d.property_id
+$$;
+
+-- -----------------------------------------------------------------------------
 -- Formatting helpers
 -- -----------------------------------------------------------------------------
 CREATE FUNCTION csv_field(p_text text, p_delim text, p_quote text, p_mode text)
