@@ -19,6 +19,10 @@
 
   <properties>
     <java.version>21</java.version>
+    <!-- Overrides the Spring Boot 3.4.5 managed version (1.20.x), whose Docker client asks for API 1.32;
+         Docker Engine 29+ rejects anything below 1.40, so Testcontainers finds "no valid Docker environment".
+         Remove once the Spring Boot parent manages a Docker 29-compatible Testcontainers. -->
+    <testcontainers.version>1.21.4</testcontainers.version>
   </properties>
 
   <dependencies>
