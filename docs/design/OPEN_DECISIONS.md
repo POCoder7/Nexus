@@ -35,7 +35,7 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-01 | Workflow engine: **Camunda** (supersedes the earlier in-house-worker recommendation). Camunda orchestrates through `WorkflowGateway`; all state changes go through guarded `wf` functions; one generic BPMN process over the `wf` models (ADR-017) | Repository owner | 2026-11-11 | Phase 2 LLD; edition OD-01b (Camunda 8), hosting fact OD-01c |
 | OD-22a | `BUSINESS_TIME_ZONE` = **`America/New_York`** (EST in winter, EDT in summer; OD-22b confirmed with daylight saving) | Repository owner | 2026-11-11 | Phase 1 and 2 |
 | OD-01b | Camunda **8**: self-managed if the platform team runs it, otherwise SaaS with process variables limited to identifiers; not Camunda 7 | Repository owner (adopted recommendation) | 2026-11-11 | Phase 2; hosting fact OD-01c |
-| — | **Phase 1 LLD approved**; ADR-019, ADR-020, ADR-022 Accepted; ADR-021 Accepted subject to Audit-Risk review before its migrations are merged (OD-18a) | Repository owner (adopted recommendation) | 2026-11-11 | Design track continues with Phase 2 |
+| — | **Phase 2 LLD approved**; ADR-023 Accepted subject to Audit-Risk review (OD-18a); ADR-024 Accepted | Repository owner | 2026-11-11 | Design track continues with Phase 3 |`n| — | **Phase 1 LLD approved**; ADR-019, ADR-020, ADR-022 Accepted; ADR-021 Accepted subject to Audit-Risk review before its migrations are merged (OD-18a) | Repository owner (adopted recommendation) | 2026-11-11 | Design track continues with Phase 2 |
 | OD-11 | Repository: **enterprise GitHub organisation, private** | Repository owner (adopted recommendation) | 2026-11-11 | Pushing still needs your explicit go-ahead and a remote created by you |
 | OD-13 | **Parity:** HIE-01, HIE-02, HIE-12, PRP-01, GOV-02, GOV-13 (the SLICE-01 set). **Improve:** SEC-01, SEC-02 (a simpler role-and-scope model than DRM, mapped from DRM access groups at migration), brought forward to Phase 1 | Repository owner (adopted recommendation) | 2026-11-11 | Phase 1 and 2 LLDs design these in full. Recorded here and in `TRACEABILITY.md` until the catalogue is regenerated (OD-28) |
 | OD-14 | Accept the phase placement proposed in `TRACEABILITY.md` (marked `*`), plus SEC-01/SEC-02 moved to Phase 1 | Repository owner (adopted recommendation) | 2026-11-11 | `BUILD_PROTOCOL.md` phase table updated in design step 5 (wiring) |
@@ -72,6 +72,9 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | `P95_SUBMIT_MS` / `P95_APPLY_MS` (requests of ≤ 50 items) | 2 000 / 2 000 | Phase 1 command latency | Product / Platform |
 | `BUSINESS_TIME_ZONE` | `America/New_York` (OD-22a) in every profile; tests pin the clock | As-of defaults, day boundaries | Product |
 | `OUTBOX_POLL_INTERVAL` | 1 s | Relay polling (Phase 2) | Architecture |
+| `UI_INITIAL_JS_KB` / `UI_ROUTE_JS_KB` | 350 / 150 (compressed) | Angular build budgets (Phase 3) | Architecture / UX |
+| `UI_TREE_EXPAND_MS` / `UI_INP_MS` | 100 / 200 | UI interaction targets (Phase 3) | Product / UX |
+| `UI_TELEMETRY_SAMPLE` | 10 % | Client timing sampling (Phase 3) | Architecture |
 | `TX_RETRY_MAX` | 3 | Serialization-failure retries | Architecture |
 | `IDEMPOTENCY_KEY_TTL` | 24 h | Idempotent POSTs | Architecture |
 | `OUTBOX_SAFETY_LAG` / `OUTBOX_BATCH_SIZE` / `OUTBOX_RETENTION_DAYS` / `OUTBOX_LAG_ALERT` | 2 s / 500 / 30 / 5 min | Event consumers (ADR-016) | Architecture / Platform |
@@ -96,6 +99,6 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | ADR-020 | Database error codes for guards | Accepted 2026-11-11 | D-21 |
 | ADR-021 | Phase 1 control fixes in `mdm` | Accepted 2026-11-11 (Audit-Risk review pending, OD-18a) | Amended by ADR-023 (enrichment items) |
 | ADR-022 | Role-and-scope entitlements, Phase 1 model | Accepted 2026-11-11 | |
-| ADR-023 | Phase 2 control fixes in `wf` and the bridge | Proposed (Phase 2 LLD) | OD-18 group 2; Audit-Risk review |
-| ADR-024 | Camunda 8 integration: generic process, outbox-driven start, message-correlated decisions | Proposed (Phase 2 LLD) | |
+| ADR-023 | Phase 2 control fixes in `wf` and the bridge | Accepted 2026-11-11 (Audit-Risk review pending, OD-18a) | Amends ADR-021 |
+| ADR-024 | Camunda 8 integration: generic process, outbox-driven start, message-correlated decisions | Accepted 2026-11-11 | Dependencies approved in the Phase 2 plan |`n| ADR-025 | UI toolchain | Proposed (Phase 3 LLD) | Dependencies approved in the Phase 3 plan |
 | ADR-005 to ADR-009 | (existing) | Proposed | Unchanged by this design |

@@ -1,6 +1,6 @@
 # ADR-023: Phase 2 control fixes in `wf` and the bridge (OD-18 group 2)
 
-- **Status:** Proposed — needs Audit-Risk review before the migrations are merged (OD-18a)
+- **Status:** Accepted (repository owner, 2026-11-11); Audit-Risk review required before the migrations are merged (OD-18a)
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** PROG, GOV-01, GOV-02, GOV-12, GOV-13

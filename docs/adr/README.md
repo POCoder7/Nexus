@@ -24,7 +24,7 @@
 | ADR-020 | Database error codes for guards | Accepted |
 | ADR-021 | Phase 1 control fixes in `mdm` | Accepted (Audit-Risk review pending) |
 | ADR-022 | Role-and-scope entitlements, Phase 1 model | Accepted |
-| ADR-023 | Phase 2 control fixes in `wf` and the bridge | Proposed (Audit-Risk review) |
-| ADR-024 | Camunda 8 integration | Proposed |
+| ADR-023 | Phase 2 control fixes in `wf` and the bridge | Accepted (Audit-Risk review pending) |
+| ADR-024 | Camunda 8 integration | Accepted |`n| ADR-025 | UI toolchain: tests, stories, accessibility checks, style lint, generated API client | Proposed |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.

@@ -10,7 +10,7 @@
 | ID | Title | Decision | Phase | Also in | Design status | LLD section | Planned tests |
 |---|---|---|---|---|---|---|---|
 | PROG | Programme / foundation work | — | 0 | all | Phase 0 built and approved; Phase 1 control fixes | Phase 0: `docs/phases/phase-0/`; Phase 1 LLD §13 (PROG rows) | db-test and mvn verify green locally and in CI; Maven wrapper committed; layer-rule check (no `wf.` in V1–V3 or `mdm` Java modules). |
-| SLICE-01 | First vertical slice: browse, add leaf under governance | Spec draft | 3 | 1, 2 | In scope (spec Draft) | phase-3 LLD §13 (not yet written) | E2E: browse, add leaf, submit, commit, verify (UI_STANDARD §10); as-of day before shows no leaf; requester cannot commit own request; shadow policy evaluation recorded; golden inherited values on the chosen masked hierarchy. |
+| SLICE-01 | First vertical slice: browse, add leaf under governance | Spec draft | 3 | 1, 2 | In scope (spec Draft); S1-R1 and golden criterion need Phase 4 | phase-3 LLD §13 | E2E: browse, add leaf, submit, commit, verify (UI_STANDARD §10); as-of day before shows no leaf; requester cannot commit own request; shadow policy evaluation recorded; golden inherited values on the chosen masked hierarchy. |
 
 ## Capabilities
 
@@ -34,7 +34,7 @@
 | HIE-09 | Node types | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP guards · JUnit apply + API · golden exports. Criterion: Correct properties shown and validated per node type. Golden: Validation results by node type. |
 | HIE-10 | Domains | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP guards · JUnit apply + API · golden exports. Criterion: Domain rules enforced identically. Golden: Domain validation results. |
 | HIE-11 | Model after (clone node) | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP guards · JUnit apply + API · golden exports. Criterion: Clone has the source's property values except its name. |
-| HIE-12 | Browse and edit large hierarchies | Parity (OD-13) | 3 | 5 (HIE-* in protocol) | In scope (Parity) | phase-3 LLD §13 (not yet written) | performance at MAX_NODES_PER_HIERARCHY / MAX_SIBLINGS · UI component + E2E. Criterion: Largest hierarchy loads and expands within the NFR targets. Golden: Performance test with production volumes. |
+| HIE-12 | Browse and edit large hierarchies | Parity (OD-13) | 3 | 5 (HIE-* in protocol) | In scope (Parity) | phase-3 LLD §13 | performance at MAX_NODES_PER_HIERARCHY / MAX_SIBLINGS · UI component + E2E. Criterion: Largest hierarchy loads and expands within the NFR targets. Golden: Performance test with production volumes. |
 | PRP-01 | Global and local properties | Parity (OD-13) | 1 |  | In scope (Parity) | phase-1 LLD §13 | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Every property migrated with the correct scope; values match. Golden: Property value extract. |
 | PRP-02 | Property data types | — | 1 |  | Pending decision — outline only | phase-1 LLD §13 / §15 (outline) | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Type rules enforced; values round-trip exactly. Golden: Property value extract. |
 | PRP-03 | List properties | — | 1 |  | Pending decision — outline only | phase-1 LLD §13 / §15 (outline) | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Only listed values accepted; lists match DRM. Golden: List definitions. |
@@ -106,7 +106,7 @@
 | NEW-07 | Real-time API and events | New | 8* |  | In scope (New) | phase-8 LLD §13 (not yet written) | JUnit outbox relay · latency measurement. Criterion: Changes published within agreed latency. Golden: Integration tests. |
 | NEW-08 | Sandboxes and scenarios | New | 5* |  | In scope (New) | phase-5 LLD §13 (not yet written) | JUnit sandbox lifecycle. Criterion: Sandbox lifecycle works end to end. |
 | NEW-09 | Parallel-run reconciliation | New | 8 | 4 (golden framework) | In scope (New) | phase-8 LLD §13 (not yet written) | daily reconciliation job test · golden. Criterion: Daily automated comparison with DRM during parallel run. Golden: DRM export files. |
-| NEW-10 | Modern steward UX | New | 3* | all UI phases | In scope (New) | phase-3 LLD §13 (not yet written) | usability tests · UI component + E2E · accessibility checks. Criterion: Usability targets met in testing. Golden: Usability tests. |
+| NEW-10 | Modern steward UX | New | 3* | all UI phases | In scope (New) | phase-3 LLD §13 | usability tests · UI component + E2E · accessibility checks. Criterion: Usability targets met in testing. Golden: Usability tests. |
 
 ## Count per primary phase
 

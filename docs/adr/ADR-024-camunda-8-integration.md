@@ -1,6 +1,6 @@
 # ADR-024: Camunda 8 integration — generic process, outbox-driven start, message-correlated decisions
 
-- **Status:** Proposed (Phase 2 LLD)
+- **Status:** Accepted (repository owner, 2026-11-11). New dependencies still need approval in the Phase 2 build plan
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** GOV-01, GOV-02, GOV-07, GOV-09, GOV-12

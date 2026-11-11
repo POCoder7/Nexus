@@ -34,6 +34,8 @@
 | P-23 | Strangler migration and parallel run | Adapted: consumer-by-consumer cutover | 4, 8 |
 | P-24 | Database-enforced invariants (guards) | Adopted (exists) | 1–9 |
 | P-25 | Repository per aggregate with explicit SQL | Adopted (exists) | 1–9 |
+| P-26 | Feature store with signals (UI state) | Adopted | 3, 5–8 |
+| P-27 | Generated API client from OpenAPI | Adopted | 3, 5–8 |
 
 ---
 
@@ -415,3 +417,28 @@
 - **Alternatives:** JPA/Hibernate (rejected: bitemporal semantics, explicit SQL convention).
 - **When not to use:** —
 - **Related ADR:** ADR-011.
+
+## P-26 Feature store with signals (UI state) — Adopted
+
+- **Intent:** one place per feature for client state, with predictable change detection.
+- **Problem in Nexus:** the tree, tray and worklist hold large, paged, frequently changing state shared by several components; ad-hoc component state would duplicate requests and break `OnPush`.
+- **Solution:** an injectable store per feature (`HierarchyStore`, `NodeStore`, `TrayStore`, `WorklistStore`, `ContextStore`,
+  `PreferencesStore`) exposing read-only signals and `computed` views (e.g. `visibleRows()`); containers call store
+  methods; presentational components receive inputs and emit outputs only. Stores call the generated client (P-27).
+- **Where applied:** Phase 3 LLD §3.2, `ui/src/app/*/`; later UI phases.
+- **Trade-offs / failure modes:** stores can grow into god objects; keep one per feature and no cross-store writes (stores read `ContextStore` only).
+- **Alternatives:** NgRx (more ceremony; UI_STANDARD §2 requires an ADR to adopt a state library); component-local state (duplication).
+- **When not to use:** purely local UI state (an open menu).
+- **Related ADR:** ADR-012, ADR-025.
+
+## P-27 Generated API client from OpenAPI — Adopted
+
+- **Intent:** the UI and the API cannot drift silently.
+- **Problem in Nexus:** many endpoints with Problem Details, cursors and ETags; hand-written DTOs would diverge.
+- **Solution:** the API build publishes an OpenAPI document (`springdoc-openapi`); the UI build generates TypeScript
+  clients and models into `ui/src/app/api` (never edited by hand); a contract change fails the UI build.
+- **Where applied:** Phase 3 LLD §5, increment 3-2.
+- **Trade-offs / failure modes:** generator quirks for `oneOf` and headers; thin facades wrap ETag and idempotency handling.
+- **Alternatives:** hand-written services (drift); GraphQL codegen (no GraphQL API, ADR-015).
+- **When not to use:** —
+- **Related ADR:** ADR-015, ADR-025.
