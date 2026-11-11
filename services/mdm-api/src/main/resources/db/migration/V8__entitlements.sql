@@ -3,24 +3,8 @@
 -- =============================================================================
 SET search_path = mdm, public;
 
--- -----------------------------------------------------------------------------
--- System settings: one source of truth for values every component must agree on (CR-01).
--- Only the owner (migrations, administrators) can change them; a session cannot.
--- -----------------------------------------------------------------------------
-CREATE TABLE mdm.system_setting (
-  setting_key   text PRIMARY KEY,
-  setting_value text NOT NULL,
-  description   text NOT NULL
-);
-INSERT INTO mdm.system_setting VALUES
-  ('business_time_zone', 'America/New_York',
-   'ADR-018: the business day for as-of defaults, caps, SLAs and schedules (EST in winter, EDT in summer)'),
-  ('max_items_per_change_request', '5000',
-   'Apply refuses larger requests (N2103); bounds the apply transaction (Phase 1 A-9, OPEN_DECISIONS defaults)'),
-  ('sandbox_max_items', '20000',
-   'Item limit for requests of origin sandbox (CR-04, ADR-028); Phase 5 sandboxes'),
-  ('max_hierarchy_depth', '50',
-   'Bound for tree walks (D-09; OPEN_DECISIONS default); validation uses it to find the nodes below a change');
+-- mdm.system_setting and the business-day functions live in V1 (moved there in Phase 2: the workflow layer's day
+-- boundaries in V6 need them, Phase 2 LLD §4.1).
 
 -- -----------------------------------------------------------------------------
 -- Roles and grants (ADR-022). Roles are data; what each role may do is fixed in code (Permission matrix).

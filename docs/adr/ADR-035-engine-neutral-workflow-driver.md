@@ -1,6 +1,6 @@
 # ADR-035: Engine-neutral workflow driver — Camunda behind a port, with an in-process reference driver
 
-- **Status:** Proposed (raised in the Phase 2 plan, 2026-11-11, after the repository owner asked that Camunda stay replaceable)
+- **Status:** Accepted (repository owner, 2026-11-11, with the Phase 2 plan; raised after the owner asked that Camunda stay replaceable)
 - **Date:** 2026-11-11
 - **Deciders:** repository owner
 - **Capabilities:** GOV-01, GOV-02, GOV-12, PROG

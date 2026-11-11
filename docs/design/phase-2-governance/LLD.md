@@ -121,7 +121,7 @@ If the request has a `workflowModelCode`: validate (Phase 1), `mdm.submit_change
 the `submit` action and the `instance_started` outbox event; the bridge trigger sets `governed_by_workflow = true` and
 status `in_review`. If a hierarchy of any item has `requires_workflow` and no model is given → 422 `workflow-required`.
 
-### 3.3 Engine replaceability (ADR-035, proposed with the Phase 2 plan, 2026-11-11)
+### 3.3 Engine replaceability (ADR-035, accepted with the Phase 2 plan, 2026-11-11)
 The repository owner asked that Camunda stay replaceable. The worker is therefore split into engine-neutral ports and
 adapters:
 
@@ -226,6 +226,7 @@ Both lock the instance row (`FOR UPDATE`) and are idempotent.
   `mdm.business_today()` / `mdm.business_day_start()` instead of `current_date` / `date_trunc('day', now())`.
 - `wf.approve_commit_policy` refuses `mode = 'active'` unless `mdm.system_setting('policy_activation_allowed') = 'true'`,
   a row that only the owner role can change, set after Audit-Risk sign-off (OD-08). A guard, not a configuration flag in the application.
+*Built in 2-1:* `mdm.system_setting` (Phase 1, in V8) moved into V1 so the V6 day boundaries can use it, with `mdm.business_time_zone()`, `business_today()`, `business_day_start(d)`, `business_date_of(ts)` and `setting_enabled(key)`. The activation guard sits in `wf.trg_policy_guard` (every path to `approved`), not only in `approve_commit_policy`, with the new code `N2225` (`policy.activation_not_allowed`). Membership date checks still on `current_date` move to `wf.is_member` in 2-2.
 
 ### 4.7 Bridge fixes (D-06) and clearance — edit V5
 ```sql
@@ -605,7 +606,7 @@ defaults; `engage_kill_switch` test still passes (membership valid from today).
 Increment 2-10 splits into 2-10a (relay + offsets, testable without Camunda using a fake `EngineClient`), 2-10b (BPMN and
 workers on the test engine). Dependencies to approve in the Phase 2 plan: the Camunda 8 Java client or Spring SDK, and Camunda's process-testing library.
 
-*Changed with ADR-035 (proposed with the Phase 2 plan):* 2-10a becomes the ports (`WorkflowEngine`, `WorkflowSteps`),
+*Changed with ADR-035 (accepted with the Phase 2 plan):* 2-10a becomes the ports (`WorkflowEngine`, `WorkflowSteps`),
 offsets, relay and the in-process reference driver, with the contract suite running on it; 2-10b is the Camunda adapter
 (BPMN, job adapters) passing the same suite on Camunda's test engine (tag `camunda`); 2-11 runs the reconciler and
 resilience cases on both adapters. *Already built in Phase 1:* `mdm.system_setting` with `business_time_zone` (CR-01,

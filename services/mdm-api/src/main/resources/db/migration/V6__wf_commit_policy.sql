@@ -138,6 +138,12 @@ BEGIN
       IF (SELECT kind FROM mdm.app_user WHERE user_id = NEW.approved_by) IS DISTINCT FROM 'human' THEN
         RAISE EXCEPTION 'Policies must be approved by a human' USING ERRCODE = 'N1002', HINT = 'human_only';
       END IF;
+      -- OD-08: an active policy commits without a human. Until Audit-Risk signs off, only shadow (or disabled)
+      -- policies can be approved; the owner-only setting policy_activation_allowed lifts this (ADR-023).
+      IF NEW.mode = 'active' AND NOT mdm.setting_enabled('policy_activation_allowed') THEN
+        RAISE EXCEPTION 'Active policies cannot be approved until Audit-Risk has signed off straight-through commit (OD-08)'
+          USING ERRCODE = 'N2225', HINT = 'policy.activation_not_allowed';
+      END IF;
       IF NEW.approved_by = NEW.proposed_by THEN
         RAISE EXCEPTION 'Maker-checker violation: the proposer cannot approve their own policy' USING ERRCODE = 'N1001', HINT = 'maker_checker.self_decision';
       END IF;
@@ -215,7 +221,7 @@ BEGIN
 
   UPDATE wf.commit_policy
   SET status = 'approved', approved_by = p_approver, approved_at = now(), approval_note = p_note,
-      review_due = (current_date + make_interval(months => p_review_months))::date
+      review_due = (mdm.business_today() + make_interval(months => p_review_months))::date   -- ADR-018 business day
   WHERE policy_id = p_policy_id;
 
   INSERT INTO wf.policy_event (policy_id, actor_id, event, note) VALUES (p_policy_id, p_approver, 'approved', p_note);
@@ -294,7 +300,7 @@ BEGIN
   -- policy state
   IF p.mode = 'disabled' THEN f := array_append(f, 'policy is disabled'); END IF;
   IF p.kill_switch THEN f := array_append(f, 'kill switch engaged'); END IF;
-  IF p.review_due < current_date THEN f := array_append(f, 'policy re-certification overdue'); END IF;
+  IF p.review_due < mdm.business_today() THEN f := array_append(f, 'policy re-certification overdue'); END IF;
 
   -- request
   IF i.status <> 'in_flight' THEN f := array_append(f, 'request is not in flight'); END IF;
@@ -355,7 +361,7 @@ BEGIN
   END IF;
   IF (SELECT count(*) FROM wf.policy_evaluation pe
       WHERE pe.policy_id = p.policy_id AND pe.outcome = 'auto_committed'
-        AND pe.evaluated_at >= date_trunc('day', now())) >= p.max_auto_commits_per_day THEN
+        AND pe.evaluated_at >= mdm.business_day_start(mdm.business_today())) >= p.max_auto_commits_per_day THEN   -- business day (ADR-018)
     f := array_append(f, 'daily auto-commit limit reached');
   END IF;
 
@@ -521,7 +527,7 @@ END $$;
 CREATE TRIGGER post_commit_review_guard BEFORE INSERT OR UPDATE ON wf.post_commit_review
   FOR EACH ROW EXECUTE FUNCTION wf.trg_review_guard();
 
--- Random sample of a day's auto-commits (at least one when any exist). Returns rows added.
+-- Random sample of a business day's auto-commits (at least one when any exist). Returns rows added.
 CREATE FUNCTION wf.sample_auto_commits(p_policy_code text, p_day date, p_pct numeric DEFAULT 5)
 RETURNS int LANGUAGE plpgsql SET search_path = wf, mdm, public AS $$
 DECLARE n int;
@@ -531,21 +537,21 @@ BEGIN
   FROM wf.policy_evaluation pe
   JOIN wf.commit_policy cp ON cp.policy_id = pe.policy_id
   WHERE cp.policy_code = p_policy_code AND pe.outcome = 'auto_committed'
-    AND pe.evaluated_at >= p_day AND pe.evaluated_at < p_day + 1
+    AND pe.evaluated_at >= mdm.business_day_start(p_day) AND pe.evaluated_at < mdm.business_day_start(p_day + 1)
     AND NOT EXISTS (SELECT 1 FROM wf.post_commit_review r WHERE r.evaluation_id = pe.evaluation_id)
   ORDER BY random()
   LIMIT (SELECT greatest(1, ceil(count(*) * p_pct / 100.0))::int
          FROM wf.policy_evaluation pe2
          JOIN wf.commit_policy cp2 ON cp2.policy_id = pe2.policy_id
          WHERE cp2.policy_code = p_policy_code AND pe2.outcome = 'auto_committed'
-           AND pe2.evaluated_at >= p_day AND pe2.evaluated_at < p_day + 1);
+           AND pe2.evaluated_at >= mdm.business_day_start(p_day) AND pe2.evaluated_at < mdm.business_day_start(p_day + 1));
   GET DIAGNOSTICS n = ROW_COUNT;
   RETURN n;
 END $$;
 
 -- Daily monitoring: volumes by outcome and review results per policy.
 CREATE VIEW wf.v_commit_policy_daily AS
-SELECT cp.policy_code, cp.policy_version, pe.evaluated_at::date AS day,
+SELECT cp.policy_code, cp.policy_version, mdm.business_date_of(pe.evaluated_at) AS day,   -- business day (ADR-018)
        count(*) FILTER (WHERE pe.outcome = 'auto_committed')       AS auto_committed,
        count(*) FILTER (WHERE pe.outcome = 'routed_to_human')      AS routed_to_human,
        count(*) FILTER (WHERE pe.outcome = 'shadow_would_commit')  AS shadow_would_commit,
@@ -556,4 +562,4 @@ SELECT cp.policy_code, cp.policy_version, pe.evaluated_at::date AS day,
 FROM wf.policy_evaluation pe
 JOIN wf.commit_policy cp ON cp.policy_id = pe.policy_id
 LEFT JOIN wf.post_commit_review r ON r.evaluation_id = pe.evaluation_id
-GROUP BY cp.policy_code, cp.policy_version, pe.evaluated_at::date;
+GROUP BY cp.policy_code, cp.policy_version, mdm.business_date_of(pe.evaluated_at);

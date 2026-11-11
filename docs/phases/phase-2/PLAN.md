@@ -1,7 +1,7 @@
 # Phase 2 — Governance: plan
 
-- **Status:** Awaiting approval (2026-11-11)
-- **Follows:** `docs/design/phase-2-governance/LLD.md` (approved), ADR-017, ADR-023, ADR-024, and **ADR-035 (Proposed with
+- **Status:** Approved by the repository owner (2026-11-11), with ADR-035 and the three Camunda dependencies
+- **Follows:** `docs/design/phase-2-governance/LLD.md` (approved), ADR-017, ADR-023, ADR-024, and **ADR-035 (accepted with
   this plan)**: Camunda behind engine-neutral ports with an in-process reference driver, so Camunda stays replaceable (your
   requirement). The LLD carries the change as §3.3 and a note under §16, marked proposed until you approve this plan.
 - **Exit criteria (BUILD_PROTOCOL §2, LLD):** a request moves Submit → (Enrich/Approve) → Commit through the `wf` layer;

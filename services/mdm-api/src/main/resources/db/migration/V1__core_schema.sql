@@ -82,6 +82,51 @@ CREATE TABLE version (
 -- -----------------------------------------------------------------------------
 -- Governance  (DRG requests -> change requests, maker-checker)
 -- -----------------------------------------------------------------------------
+-- -----------------------------------------------------------------------------
+-- System settings: one source of truth for values every component must agree on (CR-01).
+-- Only the owner (migrations, administrators) can change them; a session cannot (unlike a GUC).
+-- -----------------------------------------------------------------------------
+CREATE TABLE system_setting (
+  setting_key   text PRIMARY KEY,
+  setting_value text NOT NULL,
+  description   text NOT NULL
+);
+INSERT INTO system_setting VALUES
+  ('business_time_zone', 'America/New_York',
+   'ADR-018: the business day for as-of defaults, caps, SLAs and schedules (EST in winter, EDT in summer)'),
+  ('max_items_per_change_request', '5000',
+   'Apply refuses larger requests (N2103); bounds the apply transaction (Phase 1 A-9, OPEN_DECISIONS defaults)'),
+  ('sandbox_max_items', '20000',
+   'Item limit for requests of origin sandbox (CR-04, ADR-028); Phase 5 sandboxes'),
+  ('max_hierarchy_depth', '50',
+   'Bound for tree walks (D-09; OPEN_DECISIONS default); validation uses it to find the nodes below a change');
+-- 'policy_activation_allowed' is deliberately absent (= false): only the owner adds it, after Audit-Risk sign-off (OD-08).
+
+-- The business day (ADR-018): what "today" is in the business time zone, and when a business day starts, as an instant.
+-- Every day boundary in mdm and wf uses these, never current_date or date_trunc('day', now()), which follow the
+-- session time zone (UTC).
+CREATE FUNCTION business_time_zone() RETURNS text
+LANGUAGE sql STABLE SET search_path = mdm, public AS $$
+  SELECT setting_value FROM mdm.system_setting WHERE setting_key = 'business_time_zone'
+$$;
+CREATE FUNCTION business_today() RETURNS date
+LANGUAGE sql STABLE SET search_path = mdm, public AS $$
+  SELECT (now() AT TIME ZONE mdm.business_time_zone())::date
+$$;
+CREATE FUNCTION business_day_start(p_day date) RETURNS timestamptz
+LANGUAGE sql STABLE SET search_path = mdm, public AS $$
+  SELECT p_day::timestamp AT TIME ZONE mdm.business_time_zone()
+$$;
+CREATE FUNCTION business_date_of(p_at timestamptz) RETURNS date
+LANGUAGE sql STABLE SET search_path = mdm, public AS $$
+  SELECT (p_at AT TIME ZONE mdm.business_time_zone())::date
+$$;
+-- True only when the owner has added the setting with value 'true' (OD-08).
+CREATE FUNCTION setting_enabled(p_key text) RETURNS boolean
+LANGUAGE sql STABLE SET search_path = mdm, public AS $$
+  SELECT coalesce((SELECT setting_value = 'true' FROM mdm.system_setting WHERE setting_key = p_key), false)
+$$;
+
 CREATE TABLE change_request (
   change_request_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   version_id        uuid NOT NULL REFERENCES version,

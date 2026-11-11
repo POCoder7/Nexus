@@ -1,8 +1,8 @@
 # Build state
 
 - **Current phase:** 2 — Governance
-- **Step in loop:** Plan (awaiting approval): `docs/phases/phase-2/PLAN.md`, ADR-035 Proposed — branch `feature/HIE-02-phase-1-core-write-path` (Phase 2 branch created on approval)
-- **Baseline:** db-test **pass** 211/211 · mvnw verify **pass** 78/78 (after Phase 1 approval + OpenAPI, 2026-11-11)
+- **Step in loop:** Build — branch `feature/GOV-02-phase-2-governance` (from the Phase 1 branch)
+- **Baseline:** db-test **pass** 222/222 · mvnw verify **pass** 78/78 (after 2-1, 2026-11-11)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -28,6 +28,12 @@
 | 1-10 Decision, apply service, sweeper, review queue | HIE-02, PRP-01 | Done `de69b7d` | pgTAP 13 (14), JUnit 6 (SLICE-01 end to end) | `record_apply_failure` added (LLD noted); serialization-retry path not exercised by a test (hard to force; reviewed) |
 | 1-11 Performance tests + synthetic generator | HIE-01, PRP-01 | **Deferred** (scaffold committed, not run) | none run | owner deferred performance testing to the end of the build (2026-11-11); `PerfTest` (tag `perf`, excluded from default build) and `SyntheticHierarchy` committed unverified; finding kept below |
 | 1-12 Records | PROG | Done (this commit) | — | data model, registry, README, setup, CHANGELOG, patterns, test report, summary |
+### Phase 2 progress
+| Increment | Capability | Status | Tests | Notes |
+|---|---|---|---|---|
+| 2-1 Business-day functions, `wf` day boundaries, activation guard | PROG, GOV-12 | Done (this commit) | pgTAP 14 (11) | `system_setting` moved V8 → V1; guard in `trg_policy_guard`, `N2225` |
+| 2-2 … 2-12 | GOV-01, GOV-02, GOV-12, GOV-13, PROG | Planned | per plan | |
+
 ## Decisions awaiting human review
 | ADR | Title | Why it needs review |
 |---|---|---|
@@ -37,7 +43,7 @@
 
 
 ## Open questions for the human
-1. **Approve the Phase 2 plan** and ADR-035 (Camunda replaceable behind engine-neutral ports, in-process reference driver)? Approve the Camunda dependencies (SDK, process test, local image)?
+1. (none blocking) Phase 2 plan, ADR-035 and the Camunda dependencies approved 2026-11-11; building.
 2. OD-11: recommended now, before Phase 2 (prove CI green on the Phase 1 baseline). Waiting for a private repository URL; the first push still needs your go-ahead.
 3. OD-18a: Audit-Risk review of ADR-021 **skipped for now** by the repository owner (2026-11-11). ADR-021 still asks for it before merge to `main`; merging needs the review or your explicit waiver.
 
@@ -57,4 +63,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Phase 2 plan written; waiting for approval of the plan, ADR-035 and the Camunda dependencies. Performance tests deferred to the end of the build.
+Increment 2-2 (bitemporal group membership, governed membership changes, `wf.is_member`, `wf.config_audit`), then 2-3 … 2-12, asking before each commit. Performance tests deferred to the end of the build.
