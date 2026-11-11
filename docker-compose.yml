@@ -1,0 +1,15 @@
+# Local development database. Start with: docker compose up -d db
+services:
+  db:
+    build: ./db
+    environment:
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: nexus
+      POSTGRES_DB: nexus
+    ports:
+      - "5432:5432"
+    volumes:
+      - .:/workspace:ro            # lets psql / pg_prove read migrations and tests
+      - nexus-db:/var/lib/postgresql/data
+volumes:
+  nexus-db:

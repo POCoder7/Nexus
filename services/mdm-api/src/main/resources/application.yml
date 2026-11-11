@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: mdm-api
+  datasource:
+    url: ${MDM_DB_URL:jdbc:postgresql://localhost:5432/nexus}
+    username: ${MDM_DB_USER:nexus}
+    password: ${MDM_DB_PASSWORD:nexus}
+    hikari:
+      maximum-pool-size: ${MDM_DB_POOL_SIZE:20}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  threads:
+    virtual:
+      enabled: true   # Java 21 virtual threads for request handling
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+mdm:
+  api:
+    max-page-size: 1000

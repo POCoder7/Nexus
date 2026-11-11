@@ -1,0 +1,25 @@
+# Build output
+target/
+out/
+build/
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Local environment and secrets
+.env
+*.env.local
+
+# Never commit data extracts
+data/
+*.dump
+*.csv.gz
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
