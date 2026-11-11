@@ -836,16 +836,18 @@ BEGIN
     END IF;
   END IF;
 
-  UPDATE wf.workflow_instance SET status = p_outcome, closed_at = now()
-  WHERE instance_id = p_instance_id AND status IN ('draft', 'in_flight', 'pushed_back');
-  IF NOT FOUND THEN
+  IF i.status IS NULL OR i.status NOT IN ('draft', 'in_flight', 'pushed_back') THEN
     RAISE EXCEPTION 'Instance % is not open', p_instance_id USING ERRCODE = 'N2215', HINT = 'wf.instance_not_open';
   END IF;
 
+  -- The action first: changing the status makes the bridge carry the outcome to the change request, and it takes the
+  -- decider from this action (D-06); the maker-checker trigger refuses an approval without one (as apply_commit_policy).
   INSERT INTO wf.instance_action (instance_id, instance_stage_id, actor_id, actor_kind, action, comment)
   VALUES (p_instance_id, v_commit_stage, p_actor_id, k,
           CASE p_outcome WHEN 'committed' THEN 'commit' WHEN 'rejected' THEN 'reject' ELSE 'withdraw' END::wf.wf_action,
           p_comment);
+
+  UPDATE wf.workflow_instance SET status = p_outcome, closed_at = now() WHERE instance_id = p_instance_id;
 
   INSERT INTO wf.event_outbox (event_type, instance_id, payload)
   VALUES ('instance_closed', p_instance_id, jsonb_build_object('outcome', p_outcome, 'actor_id', p_actor_id));

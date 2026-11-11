@@ -86,6 +86,11 @@ public abstract class PostgresIntegrationTest {
         registry.add("spring.flyway.password", POSTGRES::getPassword);
         registry.add("spring.flyway.locations", () -> "classpath:db/migration,classpath:db/testroles");
         registry.add("mdm.apply.sweep.enabled", () -> "false");   // tests call the sweeper directly when they need it
+        // the workflow worker runs as its own least-privilege login (role nexus_wf), as in production (ADR-014, ADR-035)
+        registry.add("mdm.worker.datasource.url", POSTGRES::getJdbcUrl);
+        registry.add("mdm.worker.datasource.username", () -> "nexus_wf_test");
+        registry.add("mdm.worker.datasource.password", () -> "nexus_wf_test");
+        registry.add("mdm.workflow.outbox-safety-lag-ms", () -> "0");   // tests drive the relay themselves, one at a time
     }
 
     /** Owner connection for test setup only. Never use it for the behaviour under test. */

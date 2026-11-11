@@ -7,3 +7,11 @@ BEGIN
     CREATE ROLE nexus_api_test LOGIN PASSWORD 'nexus_api_test' IN ROLE nexus_api;
   END IF;
 END $$;
+
+-- The workflow worker's login in tests (role nexus_wf), so the worker's steps run with the worker's privileges.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'nexus_wf_test') THEN
+    CREATE ROLE nexus_wf_test LOGIN PASSWORD 'nexus_wf_test' IN ROLE nexus_wf;
+  END IF;
+END $$;

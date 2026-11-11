@@ -1,7 +1,7 @@
 -- pgTAP: model definitions, activation by a second administrator (GOV-01), and stage progression with
 -- wf.advance_instance / wf.complete_stage (Phase 2 increment 2-7). Synthetic data only.
 BEGIN;
-SELECT plan(19);
+SELECT plan(21);
 
 INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
   ('00000000-0000-0000-0000-000000001901', 'l_admin1',    'Admin 1',   'human'),
@@ -112,6 +112,16 @@ SET LOCAL ROLE nexus_wf;
 SELECT is(wf.complete_stage(pg_temp.stage(4)) || '/' || (SELECT action FROM wf.advance_instance((SELECT id FROM ids WHERE k = 'i'))),
   'completed/none', 'When Commit is complete there is nothing left to advance (close follows)');
 RESET ROLE;
+
+-- Closing as committed (the worker's step): the commit action is recorded before the status changes, so the bridge
+-- finds the committer and the maker-checker guard accepts the approval (2-10a regression)
+SET LOCAL ROLE nexus_wf;
+SELECT lives_ok($$SELECT wf.close_instance((SELECT id FROM ids WHERE k = 'i'), 'committed', '00000000-0000-0000-0000-000000001905')$$,
+  'The committer''s close records the commit and closes the instance');
+RESET ROLE;
+SELECT is((SELECT status::text || '/' || decided_by || '/' || decision_basis FROM mdm.change_request
+           WHERE change_request_id = '00000000-0000-0000-0000-000000001951'),
+  'approved/00000000-0000-0000-0000-000000001905/human_review', 'The request is approved with the committer as decider');
 
 -- A new version leaves requests in flight on theirs ------------------------------------------------------------------
 SET LOCAL ROLE nexus_api;

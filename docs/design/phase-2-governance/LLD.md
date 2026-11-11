@@ -137,6 +137,7 @@ adapters:
 The adapter is chosen with `mdm.workflow.engine` (`camunda` | `inprocess`). A single contract suite (§13 GOV-02 and
 the resilience cases) runs against both; the Camunda run is tagged `camunda` (`-Dcamunda`). Replacing the engine means
 writing one adapter and passing that suite.
+*Built in 2-10a:* steps take identifiers only and read who acts from the database (`closeCommitted` uses the person who approved the Commit stage, `closeRejected` the person who rejected, `apply` the request's decider). The worker connects as its own login in role `nexus_wf` (`WorkerDatabase`; `mdm.worker.datasource.*` when API and worker share a JVM, as in tests with `nexus_wf_test`); `nexus_wf` gains `EXECUTE` on validate, apply and `record_apply_failure` (§4.1). The relay has no lock: duplicate delivery is harmless because engine calls are idempotent; it waits `OUTBOX_SAFETY_LAG` (2 s) so a late-committing earlier event is not skipped. Consumer `engine_relay` replaces the name `camunda_relay` (engine-neutral). **Fix found by the contract suite:** `wf.close_instance` changed the status before recording the action, so the bridge saw no committer and the maker-checker guard refused (`N1006`); the action is now recorded first, as `apply_commit_policy` already did. Regression tests in `19_model_lifecycle.sql`.
 
 ## 4. Data design
 

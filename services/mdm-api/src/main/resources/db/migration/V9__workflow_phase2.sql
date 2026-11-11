@@ -616,3 +616,19 @@ REVOKE EXECUTE ON FUNCTION wf.worklist_rows(uuid, text), wf.worklist_page(uuid, 
                            wf.worklist_counts(uuid, text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION wf.worklist_rows(uuid, text), wf.worklist_page(uuid, text, text, text, timestamptz, uuid, int),
                           wf.worklist_counts(uuid, text, text) TO nexus_api;
+
+-- -----------------------------------------------------------------------------
+-- Outbox consumers (D-32, ADR-016) and the worker's rights (2-10a, ADR-035). Each consumer keeps its own offset, so a
+-- second consumer (notifications, GOV-08) can be added without touching the first. processed_at stays unused.
+-- -----------------------------------------------------------------------------
+CREATE TABLE wf.outbox_consumer (
+  consumer_code text PRIMARY KEY,
+  last_event_id bigint NOT NULL DEFAULT 0,
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO wf.outbox_consumer (consumer_code) VALUES ('engine_relay');
+
+-- The worker validates at the Commit stage and applies after close (LLD §4.1); it writes mdm only through these
+-- owner-run functions, never directly.
+GRANT EXECUTE ON FUNCTION mdm.validate_change_request(uuid, date), mdm.apply_change_request(uuid, uuid),
+                          mdm.record_apply_failure(uuid, text) TO nexus_wf;

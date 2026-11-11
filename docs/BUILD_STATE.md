@@ -2,7 +2,7 @@
 
 - **Current phase:** 2 — Governance
 - **Step in loop:** Build — branch `feature/GOV-02-phase-2-governance` (from the Phase 1 branch)
-- **Baseline:** db-test **pass** 311/311 · mvnw verify **pass** 92/92 (after 2-9, 2026-11-11)
+- **Baseline:** db-test **pass** 313/313 · mvnw verify **pass** 98/98 (after 2-10a, 2026-11-11)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -41,8 +41,9 @@
 | 2-8a Submit with a workflow model, urgent flag, governed withdraw | GOV-02 | Done `33fcb1e` | JUnit 3 | 2-8 split into a/b/c (size); `start_instance` owner-run with requester and model checks (N2236); OpenAPI regenerated |
 | 2-8b Stage decisions, claims, enrichment, instance view, refusals in words | GOV-02 | Done `9308ee5` + `8298a6e` | JUnit 3 | `wf.why_cannot_act`; `WorkflowGateway`; N2201 is 422 per ADR-020 (LLD table corrected in a note); OpenAPI operation ids kept unique (test added) |
 | 2-8c Model and commit-policy admin endpoints | GOV-01, GOV-12 | Done `7fdcdfc` | JUnit 3 | V6 lifecycle functions owner-run as `nexus_wf`; `wf.propose_commit_policy` (N1027) |
-| 2-9 Worklist: nine views, counts, search, model filter, keyset | GOV-13 | Done (this commit) | JUnit 2 | perf test deferred with the other performance work |
-| 2-10a … 2-12 | GOV-02, PROG | Planned | per plan | |
+| 2-9 Worklist: nine views, counts, search, model filter, keyset | GOV-13 | Done `f621347` | JUnit 2 | perf test deferred with the other performance work |
+| 2-10a Engine-neutral ports, outbox offsets, relay, in-process driver, contract suite | GOV-02, PROG | Done (this commit) | JUnit 6 (contract 5, boundary 1), pgTAP +2 | bug fixed: `close_instance` recorded the commit after the status change (bridge saw no decider) |
+| 2-10b … 2-12 | GOV-02, PROG | Planned | per plan | |
 
 ## Decisions awaiting human review
 | ADR | Title | Why it needs review |
@@ -73,4 +74,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Increment 2-10a (engine-neutral ports `WorkflowEngine` / `WorkflowSteps`, outbox offsets, relay, in-process reference driver, contract suite; ADR-035), then 2-10b … 2-12, asking before each commit. Performance tests deferred to the end of the build.
+Increment 2-10b (Camunda adapter: client configuration, BPMN, job adapters; the same contract suite on Camunda's test engine, tag `camunda`; dependencies approved), then 2-11, 2-12, asking before each commit. Performance tests deferred to the end of the build.

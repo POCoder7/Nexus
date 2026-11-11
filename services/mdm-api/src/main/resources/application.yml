@@ -29,6 +29,15 @@ management:
 mdm:
   api:
     max-page-size: 1000
+  workflow:
+    engine: inprocess               # ADR-035: inprocess (reference driver) | camunda (2-10b)
+    system-actor-login: nexus_system   # system_feed user that records policy evaluations
+    outbox-poll-interval-ms: 1000   # OUTBOX_POLL_INTERVAL
+    outbox-safety-lag-ms: 2000      # OUTBOX_SAFETY_LAG: events younger than this wait for the next poll
+    worker:
+      enabled: false                # true only in the workflow worker process (profile 'worker')
+  # worker:
+  #   datasource: url/username/password of a nexus_wf login when API and worker share a JVM; empty in the worker process
 
 # OpenAPI description (/v3/api-docs) is off by default, so shared environments do not publish it unauthenticated;
 # the local and test profiles turn it on. The committed copy is docs/api/openapi.json (OpenApiDocumentTest).
