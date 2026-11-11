@@ -1,0 +1,17 @@
+{
+  "code": "T_ADD_LEAF",
+  "label": "Add a leaf (synthetic test model)",
+  "description": "Submit, approve, commit. Test fixture for GOV-01 (Phase 2 LLD §13).",
+  "requestDuration": "5 days",
+  "tasks": [
+    {"code": "T_ADD_LEAF_SUBMIT", "label": "Add a leaf", "allowedActions": ["add_node", "set_property"]},
+    {"code": "T_ADD_LEAF_APPROVE", "label": "Approve the new leaf", "allowedActions": []}
+  ],
+  "submitTasks": ["T_ADD_LEAF_SUBMIT"],
+  "stages": [
+    {"seq": 1, "type": "submit", "label": "Submit"},
+    {"seq": 2, "type": "approve", "label": "Approve", "task": "T_ADD_LEAF_APPROVE", "groups": ["T_APPROVERS"],
+     "separationOfDuties": true, "stageDuration": "2 days", "claimDuration": "4 hours"},
+    {"seq": 3, "type": "commit", "label": "Commit", "groups": ["T_COMMITTERS"]}
+  ]
+}

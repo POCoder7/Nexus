@@ -116,6 +116,8 @@ CREATE TABLE wf.workflow_model (
   status           text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'retired')),
   created_at       timestamptz NOT NULL DEFAULT now(),
   created_by       uuid REFERENCES mdm.app_user,
+  activated_by     uuid REFERENCES mdm.app_user,          -- GOV-01: a second administrator activates (N1014)
+  activated_at     timestamptz,
   UNIQUE (model_code, model_version)
 );
 CREATE UNIQUE INDEX workflow_model_one_active ON wf.workflow_model (model_code) WHERE status = 'active';
@@ -213,6 +215,11 @@ BEGIN
     RETURN NEW;
   END IF;
   IF OLD.status = 'draft' AND NEW.status = 'active' THEN
+    -- GOV-01: models are governance configuration, so activation is four-eyes like policies (ADR-023)
+    IF NEW.activated_by IS NULL OR NEW.activated_by IS NOT DISTINCT FROM NEW.created_by THEN
+      RAISE EXCEPTION 'Model % must be activated by someone other than its creator', NEW.model_code
+        USING ERRCODE = 'N1014', HINT = 'wf.model_self_activation';
+    END IF;
     SELECT string_agg(issue, '; ') INTO issues FROM wf.validate_model(NEW.model_id);
     IF issues IS NOT NULL THEN
       RAISE EXCEPTION 'Model % cannot be activated: %', NEW.model_code, issues USING ERRCODE = 'N2206', HINT = 'wf.model_invalid';

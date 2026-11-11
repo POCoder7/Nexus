@@ -201,3 +201,206 @@ GRANT INSERT ON wf.instance_item, wf.instance_action TO nexus_bridge;
 ALTER FUNCTION wf_bridge.add_enrichment_item(uuid, uuid, mdm.change_action, uuid, uuid, uuid, uuid, jsonb) OWNER TO nexus_bridge;
 REVOKE EXECUTE ON FUNCTION wf_bridge.add_enrichment_item(uuid, uuid, mdm.change_action, uuid, uuid, uuid, uuid, jsonb) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION wf_bridge.add_enrichment_item(uuid, uuid, mdm.change_action, uuid, uuid, uuid, uuid, jsonb) TO nexus_api;
+
+-- -----------------------------------------------------------------------------
+-- Stage progression (LLD §4.5, §7.1): the operations the engine calls (ADR-024, ADR-035 WorkflowSteps). Each locks the
+-- instance and is idempotent, so a repeated or late call does no harm.
+-- -----------------------------------------------------------------------------
+CREATE FUNCTION wf.advance_instance(p_instance uuid)
+RETURNS TABLE (action text, instance_stage_id uuid, stage_type wf.stage_type, due_at timestamptz)
+LANGUAGE plpgsql SET search_path = wf, mdm, public AS $$
+#variable_conflict use_column
+DECLARE
+  i     wf.workflow_instance%ROWTYPE;
+  cur   record;
+  nxt   record;
+  v_inc boolean;
+BEGIN
+  SELECT * INTO i FROM wf.workflow_instance wi WHERE wi.instance_id = p_instance FOR UPDATE;
+  IF NOT FOUND OR i.status <> 'in_flight' THEN
+    RETURN QUERY SELECT 'none'::text, NULL::uuid, NULL::wf.stage_type, NULL::timestamptz; RETURN;
+  END IF;
+  SELECT ist.instance_stage_id AS id, ist.status, ws.stage_type AS type, ist.due_at AS due
+    INTO cur
+  FROM wf.instance_stage ist JOIN wf.workflow_stage ws ON ws.stage_id = ist.stage_id
+  WHERE ist.instance_id = p_instance AND ist.seq = i.current_seq
+  ORDER BY ist.iteration DESC LIMIT 1;
+  IF cur.status IN ('active', 'claimed') THEN
+    RETURN QUERY SELECT 'wait'::text, cur.id, cur.type, cur.due; RETURN;
+  END IF;
+  IF cur.type = 'commit' AND cur.status = 'completed' THEN
+    RETURN QUERY SELECT 'none'::text, NULL::uuid, NULL::wf.stage_type, NULL::timestamptz; RETURN;   -- close follows
+  END IF;
+
+  LOOP
+    SELECT ist.instance_stage_id AS id, ist.seq, ws.stage_type AS type, ws.condition, ws.split_on_condition,
+           ws.stage_duration
+      INTO nxt
+    FROM wf.instance_stage ist JOIN wf.workflow_stage ws ON ws.stage_id = ist.stage_id
+    WHERE ist.instance_id = p_instance AND ist.seq > i.current_seq AND ist.status = 'pending'
+      AND ist.iteration = (SELECT max(x.iteration) FROM wf.instance_stage x
+                           WHERE x.instance_id = ist.instance_id AND x.stage_id = ist.stage_id)
+    ORDER BY ist.seq LIMIT 1;
+    IF NOT FOUND THEN
+      RETURN QUERY SELECT 'none'::text, NULL::uuid, NULL::wf.stage_type, NULL::timestamptz; RETURN;
+    END IF;
+
+    IF nxt.condition IS NOT NULL THEN                              -- GOV-04 (outline): evaluate and skip; no splits
+      IF nxt.split_on_condition THEN
+        RAISE EXCEPTION 'Conditional splits are not enabled (GOV-04 pending a decision)' USING ERRCODE = 'N2202', HINT = 'wf.split_not_enabled';
+      END IF;
+      SELECT bool_and(wf.item_condition_matches(ii.change_item_id, nxt.condition)) INTO v_inc
+      FROM wf.instance_item ii WHERE ii.instance_id = p_instance;
+      IF NOT coalesce(v_inc, false) THEN
+        UPDATE wf.instance_stage SET status = 'skipped', included = false WHERE instance_stage_id = nxt.id;
+        UPDATE wf.workflow_instance SET current_seq = nxt.seq WHERE instance_id = p_instance;
+        i.current_seq := nxt.seq;
+        CONTINUE;
+      END IF;
+      UPDATE wf.instance_stage SET included = true WHERE instance_stage_id = nxt.id;
+    END IF;
+
+    -- the Commit stage is preceded by one policy evaluation per instance (GOV-12; shadow mode by default)
+    IF nxt.type = 'commit' AND NOT EXISTS (SELECT 1 FROM wf.policy_evaluation pe WHERE pe.instance_id = p_instance) THEN
+      RETURN QUERY SELECT 'evaluate_policy'::text, nxt.id, nxt.type, NULL::timestamptz; RETURN;
+    END IF;
+
+    UPDATE wf.instance_stage
+    SET status = 'active', started_at = now(), due_at = now() + nxt.stage_duration
+    WHERE instance_stage_id = nxt.id;
+    UPDATE wf.workflow_instance SET current_seq = nxt.seq WHERE instance_id = p_instance;
+    RETURN QUERY SELECT 'activated'::text, nxt.id, nxt.type, (SELECT s.due_at FROM wf.instance_stage s WHERE s.instance_stage_id = nxt.id);
+    RETURN;
+  END LOOP;
+END $$;
+
+-- An approved stage is completed (the engine calls this after the stage-decided message). Re-checks the outcome, so a
+-- forged or early message cannot move a request on.
+CREATE FUNCTION wf.complete_stage(p_stage uuid)
+RETURNS text LANGUAGE plpgsql SET search_path = wf, mdm, public AS $$
+DECLARE s wf.instance_stage%ROWTYPE;
+BEGIN
+  SELECT * INTO s FROM wf.instance_stage WHERE instance_stage_id = p_stage;
+  PERFORM 1 FROM wf.workflow_instance WHERE instance_id = s.instance_id FOR UPDATE;
+  SELECT * INTO s FROM wf.instance_stage WHERE instance_stage_id = p_stage FOR UPDATE;
+  IF s.status = 'completed' THEN
+    RETURN 'completed';
+  END IF;
+  IF wf.stage_outcome(p_stage) IS DISTINCT FROM 'approved' OR s.status NOT IN ('active', 'claimed') THEN
+    RAISE EXCEPTION 'Stage % is not approved', p_stage USING ERRCODE = 'N2234', HINT = 'wf.stage_not_approved';
+  END IF;
+  UPDATE wf.instance_stage SET status = 'completed', completed_at = now() WHERE instance_stage_id = p_stage;
+  RETURN 'completed';
+END $$;
+
+-- -----------------------------------------------------------------------------
+-- Model definitions (GOV-01, LLD §3.1 ModelDefinitionLoader): a JSON definition becomes a new draft version of the
+-- model; a second workflow administrator activates it (wf.trg_model_status, N1014). Groups must exist; tasks are
+-- created when missing and reused when present. Validation (wf.validate_model) runs at activation.
+-- -----------------------------------------------------------------------------
+CREATE FUNCTION wf.load_model(p_definition jsonb, p_actor uuid)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = wf, mdm, public AS $$
+DECLARE
+  v_model uuid;
+  v_code  text := p_definition ->> 'code';
+  t       jsonb;
+  s       jsonb;
+  p       jsonb;
+  g       text;
+  v_task  uuid;
+  v_stage uuid;
+  v_group uuid;
+BEGIN
+  IF NOT wf.is_workflow_admin(p_actor) THEN
+    RAISE EXCEPTION 'Only a workflow administrator can load models' USING ERRCODE = 'N1026', HINT = 'wf.not_workflow_admin';
+  END IF;
+  IF v_code IS NULL OR p_definition ->> 'label' IS NULL OR jsonb_typeof(p_definition -> 'stages') <> 'array' THEN
+    RAISE EXCEPTION 'A model definition needs code, label and stages' USING ERRCODE = 'N2206', HINT = 'wf.model_invalid';
+  END IF;
+  PERFORM set_config('wf.actor_id', p_actor::text, true);
+
+  INSERT INTO wf.workflow_model (model_code, model_version, label, description, request_duration, created_by)
+  SELECT v_code, coalesce(max(m.model_version), 0) + 1, p_definition ->> 'label', p_definition ->> 'description',
+         (p_definition ->> 'requestDuration')::interval, p_actor
+  FROM wf.workflow_model m WHERE m.model_code = v_code
+  RETURNING model_id INTO v_model;
+
+  FOR t IN SELECT * FROM jsonb_array_elements(coalesce(p_definition -> 'tasks', '[]')) LOOP
+    INSERT INTO wf.workflow_task (task_code, label, instructions, allowed_actions)
+    VALUES (t ->> 'code', t ->> 'label', t ->> 'instructions',
+            ARRAY(SELECT jsonb_array_elements_text(coalesce(t -> 'allowedActions', '[]')))::mdm.change_action[])
+    ON CONFLICT (task_code) DO NOTHING
+    RETURNING task_id INTO v_task;
+    IF v_task IS NOT NULL THEN                                      -- a new task: its properties too
+      FOR p IN SELECT * FROM jsonb_array_elements(coalesce(t -> 'properties', '[]')) LOOP
+        INSERT INTO wf.task_property (task_id, property_id, is_required, is_read_only, sort_seq)
+        SELECT v_task, pd.property_id, coalesce((p ->> 'required')::boolean, false), coalesce((p ->> 'readOnly')::boolean, false),
+               (p ->> 'sortSeq')::int
+        FROM mdm.property_definition pd WHERE pd.property_code = p ->> 'code';
+        IF NOT FOUND THEN
+          RAISE EXCEPTION 'Unknown property % in task %', p ->> 'code', t ->> 'code' USING ERRCODE = 'N2208', HINT = 'wf.condition_property';
+        END IF;
+      END LOOP;
+    END IF;
+  END LOOP;
+
+  FOR g IN SELECT jsonb_array_elements_text(coalesce(p_definition -> 'submitTasks', '[]')) LOOP
+    INSERT INTO wf.submit_task (model_id, task_id) SELECT v_model, task_id FROM wf.workflow_task WHERE task_code = g;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Unknown task % in submitTasks', g USING ERRCODE = 'N2206', HINT = 'wf.model_invalid';
+    END IF;
+  END LOOP;
+
+  FOR s IN SELECT * FROM jsonb_array_elements(p_definition -> 'stages') LOOP
+    INSERT INTO wf.workflow_stage (model_id, seq, stage_type, label, task_id, approval_method, separation_of_duties,
+                                   claim_duration, stage_duration, condition, split_on_condition)
+    VALUES (v_model, (s ->> 'seq')::int, (s ->> 'type')::wf.stage_type, s ->> 'label',
+            (SELECT task_id FROM wf.workflow_task WHERE task_code = s ->> 'task'),
+            coalesce(s ->> 'approvalMethod', 'any_group')::wf.approval_method,
+            coalesce((s ->> 'separationOfDuties')::boolean, false),
+            (s ->> 'claimDuration')::interval, (s ->> 'stageDuration')::interval,
+            s -> 'condition', coalesce((s ->> 'splitOnCondition')::boolean, false))
+    RETURNING stage_id INTO v_stage;
+    FOR g IN SELECT jsonb_array_elements_text(coalesce(s -> 'groups', '[]')) LOOP
+      SELECT group_id INTO v_group FROM wf.user_group WHERE group_code = g AND is_active;
+      IF v_group IS NULL THEN
+        RAISE EXCEPTION 'Unknown or inactive group % in stage %', g, s ->> 'label' USING ERRCODE = 'N2235', HINT = 'wf.unknown_group';
+      END IF;
+      INSERT INTO wf.stage_group (stage_id, group_id, seq)
+      VALUES (v_stage, v_group, (SELECT count(*) + 1 FROM wf.stage_group WHERE stage_id = v_stage));
+    END LOOP;
+    FOR p IN SELECT * FROM jsonb_array_elements(coalesce(s -> 'scopes', '[]')) LOOP
+      INSERT INTO wf.stage_access_scope (stage_id, hierarchy_id, top_node_id)
+      SELECT v_stage, h.hierarchy_id, (p ->> 'topNode')::uuid FROM mdm.hierarchy h WHERE h.hierarchy_code = p ->> 'hierarchy';
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Unknown hierarchy % in a stage scope', p ->> 'hierarchy' USING ERRCODE = 'N2206', HINT = 'wf.model_invalid';
+      END IF;
+    END LOOP;
+  END LOOP;
+  RETURN v_model;
+END $$;
+
+-- Activate a draft version: a workflow administrator other than its creator (the trigger enforces N1014 and runs
+-- wf.validate_model). The active version of the same code is retired; requests in flight keep the version they started on.
+CREATE FUNCTION wf.activate_model(p_model uuid, p_actor uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = wf, mdm, public AS $$
+DECLARE v_code text;
+BEGIN
+  IF NOT wf.is_workflow_admin(p_actor) THEN
+    RAISE EXCEPTION 'Only a workflow administrator can activate models' USING ERRCODE = 'N1026', HINT = 'wf.not_workflow_admin';
+  END IF;
+  SELECT model_code INTO v_code FROM wf.workflow_model WHERE model_id = p_model AND status = 'draft' FOR UPDATE;
+  IF v_code IS NULL THEN
+    RAISE EXCEPTION 'Model % is not a draft', p_model USING ERRCODE = 'N2207', HINT = 'wf.model_status';
+  END IF;
+  PERFORM set_config('wf.actor_id', p_actor::text, true);
+  UPDATE wf.workflow_model SET status = 'retired' WHERE model_code = v_code AND status = 'active';
+  UPDATE wf.workflow_model SET status = 'active', activated_by = p_actor, activated_at = now() WHERE model_id = p_model;
+END $$;
+
+ALTER FUNCTION wf.load_model(jsonb, uuid) OWNER TO nexus_wf;
+ALTER FUNCTION wf.activate_model(uuid, uuid) OWNER TO nexus_wf;
+REVOKE EXECUTE ON FUNCTION wf.load_model(jsonb, uuid), wf.activate_model(uuid, uuid),
+                           wf.advance_instance(uuid), wf.complete_stage(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION wf.load_model(jsonb, uuid), wf.activate_model(uuid, uuid) TO nexus_api;
+GRANT EXECUTE ON FUNCTION wf.advance_instance(uuid), wf.complete_stage(uuid) TO nexus_wf;   -- the worker's steps

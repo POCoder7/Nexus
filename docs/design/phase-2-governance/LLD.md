@@ -290,6 +290,7 @@ INSERT INTO wf.outbox_consumer (consumer_code) VALUES ('camunda_relay');
 `wf.workflow_model` gains `activated_by uuid REFERENCES mdm.app_user`, `activated_at`. `wf.trg_model_status` additionally
 requires, on draft → active, `activated_by IS NOT NULL AND activated_by <> created_by` (N1014). Strengthening; a model is
 governance configuration and gets the same four-eyes rule as policies.
+*Built in 2-7:* `wf.load_model(definition jsonb, actor)` (JSON, no new dependency; groups must exist, `N2235`; tasks created when missing) and `wf.activate_model(model, actor)` (retires the active version) are owner-run as `nexus_wf` and callable by the API; both require `WORKFLOW_ADMIN` (`N1026`). The trigger refuses activation with no activator or by the creator (`N1014`, `IS NOT DISTINCT FROM`, so owner-created bootstrap models need only a named activator). `ModelDefinitionLoader` checks the file's outline (400) and calls `wf.load_model`. `advance_instance` and `complete_stage` are executable by `nexus_wf` only; `complete_stage` refuses a stage that is not approved (`N2234`). Existing fixtures that activate models by `UPDATE` now name an activator (setup only).
 
 ### 4.12 Volumes and indexes
 | Object | Volume | New index |

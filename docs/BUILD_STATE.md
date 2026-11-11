@@ -2,7 +2,7 @@
 
 - **Current phase:** 2 — Governance
 - **Step in loop:** Build — branch `feature/GOV-02-phase-2-governance` (from the Phase 1 branch)
-- **Baseline:** db-test **pass** 292/292 · mvnw verify **pass** 79/79 (after 2-6, 2026-11-11)
+- **Baseline:** db-test **pass** 311/311 · mvnw verify **pass** 81/81 (after 2-7, 2026-11-11)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -36,8 +36,9 @@
 | 2-3 Claims (D-12), close rules (D-13), `record_stage_decision` | PROG, GOV-02 | Done `6f7de5b` | pgTAP 16 (24) | functions owned by `nexus_wf`, callable by the API; SoD and human-only proven |
 | 2-4 Scope by ancestor walk at the effective date (D-10, D-11) | PROG | Done `fefe066` | pgTAP 17 (9) | old vs new equal on 28 cases; old rule kept only in the test |
 | 2-5 Policy row lock for the daily cap (D-14) | GOV-12 | Done `20f3de4` | JUnit 1 (two connections) | activation guard already in 2-1 |
-| 2-6 Bridge: D-06 attribution, clearance, governed flag, enrichment, `requires_workflow` | PROG, GOV-02 | Done (this commit) | pgTAP 18 (16) | draft-only guard split into an invoker check and an owner-run version bump (LLD noted); N2107 |
-| 2-7 … 2-12 | GOV-01, GOV-02, GOV-12, GOV-13 | Planned | per plan | |
+| 2-6 Bridge: D-06 attribution, clearance, governed flag, enrichment, `requires_workflow` | PROG, GOV-02 | Done `b30010f` | pgTAP 18 (16) | draft-only guard split into an invoker check and an owner-run version bump (LLD noted); N2107 |
+| 2-7 Stage progression, model activation by a second admin, model loader | GOV-01, GOV-02 | Done (this commit) | pgTAP 19 (19), JUnit 2 | fixtures in 16–18 and the concurrency test name an activator (setup only); N2234, N2235 |
+| 2-8 … 2-12 | GOV-01, GOV-02, GOV-12, GOV-13 | Planned | per plan | |
 
 ## Decisions awaiting human review
 | ADR | Title | Why it needs review |
@@ -68,4 +69,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Increment 2-7 (`wf.advance_instance`, `wf.complete_stage`, model activation by a second administrator, model loader), then 2-8 … 2-12, asking before each commit. Performance tests deferred to the end of the build.
+Increment 2-8 (API: submit with a model, stage decisions, claims, enrichment, instance view, model and policy admin endpoints), then 2-9 … 2-12, asking before each commit. Performance tests deferred to the end of the build.

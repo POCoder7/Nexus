@@ -66,7 +66,7 @@ class CommitPolicyConcurrencyTest extends PostgresIntegrationTest {
                     """).param("m", MODEL).update();
             jdbc.sql("INSERT INTO wf.submit_task VALUES (:m, :t)").param("m", MODEL).param("t", TASK).update();
             jdbc.sql("INSERT INTO wf.stage_group (stage_id, group_id) VALUES ('00000000-0000-0000-0000-0000000cc011', :g)").param("g", GROUP).update();
-            jdbc.sql("UPDATE wf.workflow_model SET status = 'active' WHERE model_id = :m").param("m", MODEL).update();
+            jdbc.sql("UPDATE wf.workflow_model SET status = 'active', activated_by = :a WHERE model_id = :m").param("a", APPROVER).param("m", MODEL).update();
             jdbc.sql("""
                     INSERT INTO wf.commit_policy (policy_id, policy_code, description, rationale, mode, allowed_actions,
                                                   max_auto_commits_per_day, owner_group_id, proposed_by)
