@@ -50,9 +50,9 @@ AUD-01 history query API. Listed in the LLD §15 as outlines.
 | 1-9 | `validate_change_request` (trial apply) + submit | M | (infrastructure) | pgTAP trial rollback leaves no rows; JUnit submit 422 with findings |
 | 1-10 | `decide_change_request`, decision endpoint, `ApplyService` with sweeper | M | HIE-02, PRP-01 | JUnit end-to-end slice (core mode); maker-checker negatives |
 | 1-11 | Performance tests (tagged `perf`, excluded from the default build) + small synthetic generator | S | HIE-01, PRP-01 | perf: children page at 50 000 siblings, node detail, submit/apply 50 items |
+| 1-12 | Records: `data-model.md` (new objects, error-code registry), changelog, test report, summary, build state | S | PROG | review |
 
 *Changed 2026-11-11:* 1-11 deferred by the repository owner (performance testing at the end of the build); its scaffolding is committed and excluded from the default build.
-| 1-12 | Records: `data-model.md` (new objects, error-code registry), changelog, test report, summary, build state | S | PROG | review |
 
 **Change of order while building (2026-11-11):** `mdm.system_setting` and `BusinessClock` moved from 1-5 into 1-4,
 because entitlement checks need the business date; the idempotency table is created in V8 (1-4) and used in 1-7.

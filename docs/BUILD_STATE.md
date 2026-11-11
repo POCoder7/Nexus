@@ -1,7 +1,7 @@
 # Build state
 
-- **Current phase:** 1 — Core write path
-- **Step in loop:** Phase 1 approved; Phase 2 not started (orient next) — branch `feature/HIE-02-phase-1-core-write-path`
+- **Current phase:** 2 — Governance
+- **Step in loop:** Plan (awaiting approval): `docs/phases/phase-2/PLAN.md`, ADR-035 Proposed — branch `feature/HIE-02-phase-1-core-write-path` (Phase 2 branch created on approval)
 - **Baseline:** db-test **pass** 211/211 · mvnw verify **pass** 78/78 (after Phase 1 approval + OpenAPI, 2026-11-11)
 - **Last commit:** see `git log -1`
 
@@ -37,11 +37,13 @@
 
 
 ## Open questions for the human
-1. (none blocking) Phase 1 gate approved 2026-11-11.
+1. **Approve the Phase 2 plan** and ADR-035 (Camunda replaceable behind engine-neutral ports, in-process reference driver)? Approve the Camunda dependencies (SDK, process test, local image)?
 2. OD-11: recommended now, before Phase 2 (prove CI green on the Phase 1 baseline). Waiting for a private repository URL; the first push still needs your go-ahead.
 3. OD-18a: Audit-Risk review of ADR-021 **skipped for now** by the repository owner (2026-11-11). ADR-021 still asks for it before merge to `main`; merging needs the review or your explicit waiver.
 
 ## Scope changes
+- **Camunda must stay replaceable** (repository owner, 2026-11-11): ADR-035 proposed with the Phase 2 plan.
+- **Phase order kept:** the owner considered building Phase 3 (UI) before Phase 2 and chose Phase 2 first (2026-11-11).
 - **OpenAPI added** (springdoc 2.8.6, JSON only; endpoint on only in `local`/`test`), approved by the repository owner 2026-11-11; committed description `docs/api/openapi.json`, kept current by `OpenApiDocumentTest`.
 - **Performance testing deferred to the end of the build** by the repository owner on 2026-11-11: Phase 1 increment 1-11 is not run; its tests and generator are kept (`./mvnw -B verify -Dperf`). Phase 1 gate reports the LLD §10 targets as "not measured".
 - **Phase 7 (AI assistance) deferred** by the repository owner on 2026-11-11 (OD-38): design approved; the build goes from Phase 6 to Phase 8. The `BUILD_PROTOCOL.md` phase table is updated in design step 5 (wiring).
@@ -55,4 +57,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Phase 2 (workflow with Camunda 8) — orient on `docs/design/phase-2-*/LLD.md`, then plan and stop for plan approval. Performance tests deferred to the end of the build.
+Phase 2 plan written; waiting for approval of the plan, ADR-035 and the Camunda dependencies. Performance tests deferred to the end of the build.

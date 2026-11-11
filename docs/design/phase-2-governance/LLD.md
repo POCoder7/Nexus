@@ -121,6 +121,22 @@ If the request has a `workflowModelCode`: validate (Phase 1), `mdm.submit_change
 the `submit` action and the `instance_started` outbox event; the bridge trigger sets `governed_by_workflow = true` and
 status `in_review`. If a hierarchy of any item has `requires_workflow` and no model is given → 422 `workflow-required`.
 
+### 3.3 Engine replaceability (ADR-035, proposed with the Phase 2 plan, 2026-11-11)
+The repository owner asked that Camunda stay replaceable. The worker is therefore split into engine-neutral ports and
+adapters:
+
+| Type | Package | Responsibility |
+|---|---|---|
+| `WorkflowEngine` (port, Nexus → engine) | `com.mdm.api.workflow.engine` | `startProcess`, `publish(EngineMessage)`, `isRunning`, `deploy` |
+| `WorkflowSteps` (port, engine → Nexus) | `com.mdm.api.workflow.engine` | `nextStage`, `completeStage`, `evaluatePolicy`, `close`, `apply`: each one guarded, idempotent database call (the §5.2 job list) |
+| `OutboxRelay`, `EngineReconciler` | `com.mdm.api.workflow.engine` | Use `WorkflowEngine` only |
+| `CamundaWorkflowEngine`, Camunda job adapters, `nexus-request.bpmn` | `com.mdm.api.workflow.engine.camunda` | The only code that imports Camunda (enforced by a test) |
+| `InProcessWorkflowEngine` | `com.mdm.api.workflow.engine.inprocess` | Reference driver: runs the §6.2 loop in Java from the outbox; default build and CI |
+
+The adapter is chosen with `mdm.workflow.engine` (`camunda` | `inprocess`). A single contract suite (§13 GOV-02 and
+the resilience cases) runs against both; the Camunda run is tagged `camunda` (`-Dcamunda`). Replacing the engine means
+writing one adapter and passing that suite.
+
 ## 4. Data design
 
 File targets follow OD-18: edit the defining file (V4, V5, V6, or V1 for `mdm` columns); new objects in a new file
@@ -588,3 +604,9 @@ defaults; `engage_kill_switch` test still passes (membership valid from today).
 
 Increment 2-10 splits into 2-10a (relay + offsets, testable without Camunda using a fake `EngineClient`), 2-10b (BPMN and
 workers on the test engine). Dependencies to approve in the Phase 2 plan: the Camunda 8 Java client or Spring SDK, and Camunda's process-testing library.
+
+*Changed with ADR-035 (proposed with the Phase 2 plan):* 2-10a becomes the ports (`WorkflowEngine`, `WorkflowSteps`),
+offsets, relay and the in-process reference driver, with the contract suite running on it; 2-10b is the Camunda adapter
+(BPMN, job adapters) passing the same suite on Camunda's test engine (tag `camunda`); 2-11 runs the reconciler and
+resilience cases on both adapters. *Already built in Phase 1:* `mdm.system_setting` with `business_time_zone` (CR-01,
+moved forward), so 2-1 adds only `mdm.business_today()` / `business_day_start()`, the `wf` day boundaries and the activation setting.
