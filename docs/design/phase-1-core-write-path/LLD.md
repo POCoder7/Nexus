@@ -1,6 +1,8 @@
 # Phase 1 — Core write path: low-level design
 
-- **Status:** Draft, awaiting review (2026-11-11)
+- **Status:** Approved 2026-11-11. **Amendment (Phase 4 LLD §4.1, ADR-026, proposed):** add the `add_hierarchy` action
+  (hierarchy + top node) and an `update_node` handler (name, description), both on the commit-policy hard-limit list.
+  Build them in Phase 1 if the amendment is approved before Phase 1 is built.
 - **Phase goal (BUILD_PROTOCOL §2):** changes flow through change requests into the bitemporal model.
 - **Reads with:** `docs/architecture/overview.md`, `docs/architecture/patterns.md`, ADR-013 to ADR-022,
   `docs/design/DESIGN_STATE.md` (D-nn), `docs/specs/SLICE-01-add-leaf.md`.

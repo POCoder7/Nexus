@@ -26,6 +26,11 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-17a | Security and Audit-Risk confirmation of ADR-014 (accepted by the repository owner) | Security / Audit-Risk | Confirm · request changes | Confirm before the first shared environment | First shared environment |
 | OD-18a | Audit-Risk review of the control fixes as they are designed (Phase 1 LLD §9, Phase 2 LLD) | Audit-Risk | — | Review each fix ADR before its migration is merged | Merging the fix migrations |
 | OD-25 | Audit retention period and archival (AUD-04) | Audit-Risk | — | Parameterise `AUDIT_RETENTION_YEARS`; no deletion in any phase until decided | Phase 5, Phase 9 |
+| OD-29 | How a migration load run is approved (ADR-026) | Audit-Risk | A: one human approval of the manifest applied to every request · B: a human decides each request · C: sampled approval + reconciliation sign-off | A, with the manifest hash in each decision note, Audit-Risk review of the first run, and B for runs under `LOAD_SMALL_RUN_ITEMS` | Phase 4 build (load runs) |
+| OD-30 | Which DRM versions to migrate (history depth) | Product / Audit-Risk | Current only · current + parallel-run and golden versions · full history | Current + the versions needed for the parallel run and golden comparisons | Phase 4 load plan |
+| OD-31 | Masking approach for golden datasets (ADR-027) | Security / Audit-Risk | Rank-preserving pseudonyms · keyed hash · format-preserving encryption | Rank-preserving pseudonyms for names and codes, one tool for extracts and DRM outputs | Golden tests on masked data; SLICE-01 AC 1 |
+| OD-32 | Where masked golden datasets are stored (ADR-027) | Security | In git · internal artefact store fetched by CI · inside the network only | Internal artefact store; only synthetic self-tests in git | Golden tests in CI |
+| OD-33 | Accept ADR-009 (golden testing as the parity standard; still Proposed) together with OD-31/OD-32 | Architecture / Audit-Risk | Accept · amend | Accept | Phase 4 golden framework scope |
 | OD-28 | `docs/capabilities.md` says it is regenerated from a working copy outside the repository. The OD-13 decisions must be entered there, or the next regeneration will reset them to "—" | Product (catalogue owner) | Update the external working copy · let the repository copy become the master | Update the working copy, then regenerate | Keeping decisions consistent |
 
 ## Decided
@@ -35,6 +40,7 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-01 | Workflow engine: **Camunda** (supersedes the earlier in-house-worker recommendation). Camunda orchestrates through `WorkflowGateway`; all state changes go through guarded `wf` functions; one generic BPMN process over the `wf` models (ADR-017) | Repository owner | 2026-11-11 | Phase 2 LLD; edition OD-01b (Camunda 8), hosting fact OD-01c |
 | OD-22a | `BUSINESS_TIME_ZONE` = **`America/New_York`** (EST in winter, EDT in summer; OD-22b confirmed with daylight saving) | Repository owner | 2026-11-11 | Phase 1 and 2 |
 | OD-01b | Camunda **8**: self-managed if the platform team runs it, otherwise SaaS with process variables limited to identifiers; not Camunda 7 | Repository owner (adopted recommendation) | 2026-11-11 | Phase 2; hosting fact OD-01c |
+| — | **Phase 3 LLD approved**; ADR-025 Accepted (its dependencies and the UI CI job are approved in the Phase 3 build plan) | Repository owner | 2026-11-11 | Design track continues with Phase 4 |
 | — | **Phase 2 LLD approved**; ADR-023 Accepted subject to Audit-Risk review (OD-18a); ADR-024 Accepted | Repository owner | 2026-11-11 | Design track continues with Phase 3 |`n| — | **Phase 1 LLD approved**; ADR-019, ADR-020, ADR-022 Accepted; ADR-021 Accepted subject to Audit-Risk review before its migrations are merged (OD-18a) | Repository owner (adopted recommendation) | 2026-11-11 | Design track continues with Phase 2 |
 | OD-11 | Repository: **enterprise GitHub organisation, private** | Repository owner (adopted recommendation) | 2026-11-11 | Pushing still needs your explicit go-ahead and a remote created by you |
 | OD-13 | **Parity:** HIE-01, HIE-02, HIE-12, PRP-01, GOV-02, GOV-13 (the SLICE-01 set). **Improve:** SEC-01, SEC-02 (a simpler role-and-scope model than DRM, mapped from DRM access groups at migration), brought forward to Phase 1 | Repository owner (adopted recommendation) | 2026-11-11 | Phase 1 and 2 LLDs design these in full. Recorded here and in `TRACEABILITY.md` until the catalogue is regenerated (OD-28) |
@@ -75,6 +81,8 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | `UI_INITIAL_JS_KB` / `UI_ROUTE_JS_KB` | 350 / 150 (compressed) | Angular build budgets (Phase 3) | Architecture / UX |
 | `UI_TREE_EXPAND_MS` / `UI_INP_MS` | 100 / 200 | UI interaction targets (Phase 3) | Product / UX |
 | `UI_TELEMETRY_SAMPLE` | 10 % | Client timing sampling (Phase 3) | Architecture |
+| `LOAD_PARALLELISM` / `LOAD_SMALL_RUN_ITEMS` | 4 hierarchies / 500 items | Migration apply (Phase 4) | Architecture / Audit-Risk |
+| `STAGE_RETENTION_DAYS` | 30 | Staging data after reconciliation | Security |
 | `TX_RETRY_MAX` | 3 | Serialization-failure retries | Architecture |
 | `IDEMPOTENCY_KEY_TTL` | 24 h | Idempotent POSTs | Architecture |
 | `OUTBOX_SAFETY_LAG` / `OUTBOX_BATCH_SIZE` / `OUTBOX_RETENTION_DAYS` / `OUTBOX_LAG_ALERT` | 2 s / 500 / 30 / 5 min | Event consumers (ADR-016) | Architecture / Platform |
@@ -100,5 +108,7 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | ADR-021 | Phase 1 control fixes in `mdm` | Accepted 2026-11-11 (Audit-Risk review pending, OD-18a) | Amended by ADR-023 (enrichment items) |
 | ADR-022 | Role-and-scope entitlements, Phase 1 model | Accepted 2026-11-11 | |
 | ADR-023 | Phase 2 control fixes in `wf` and the bridge | Accepted 2026-11-11 (Audit-Risk review pending, OD-18a) | Amends ADR-021 |
-| ADR-024 | Camunda 8 integration: generic process, outbox-driven start, message-correlated decisions | Accepted 2026-11-11 | Dependencies approved in the Phase 2 plan |`n| ADR-025 | UI toolchain | Proposed (Phase 3 LLD) | Dependencies approved in the Phase 3 plan |
+| ADR-024 | Camunda 8 integration: generic process, outbox-driven start, message-correlated decisions | Accepted 2026-11-11 | Dependencies approved in the Phase 2 plan |`n| ADR-025 | UI toolchain | Accepted 2026-11-11 | Dependencies approved in the Phase 3 plan |
+| ADR-026 | Governed migration load runs; `add_hierarchy` and `update_node` | Proposed (Phase 4 LLD) | Approval model OD-29; amends the Phase 1 LLD |
+| ADR-027 | Golden datasets: masking and storage | Proposed (decisions open) | OD-31, OD-32 |
 | ADR-005 to ADR-009 | (existing) | Proposed | Unchanged by this design |

@@ -1,6 +1,6 @@
 # ADR-025: UI toolchain — tests, stories, accessibility checks, style lint, generated API client
 
-- **Status:** Proposed (Phase 3 LLD). The dependencies are approved separately in the Phase 3 build plan
+- **Status:** Accepted (repository owner, 2026-11-11). The dependencies and the UI CI job are approved separately in the Phase 3 build plan
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** HIE-12, GOV-13, NEW-10, SLICE-01

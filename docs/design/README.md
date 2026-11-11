@@ -10,8 +10,9 @@ Produced by following `docs/DESIGN_PROTOCOL.md`, before implementation.
 | `TRACEABILITY.md` | Capability → phase → design section → planned tests (all 91 capabilities) | First version; awaiting review |
 | `phase-1-core-write-path/LLD.md` | Phase 1: change requests, apply, validation infrastructure, roles and scopes, control fixes | Approved |
 | `phase-2-governance/LLD.md` | Phase 2: Camunda 8 orchestration over `wf`, worklist, commit policy in shadow mode, workflow control fixes | Approved |
-| `phase-3-steward-ui/LLD.md` | Phase 3: Angular steward UI (shell, Home, workspace, add leaf, worklist, request detail); prototype in `phase-3-steward-ui/prototypes/` | Draft; awaiting review |
-| `phase-N-<name>/LLD.md` | Low-level designs for Phases 4–9 (Phase 0 was built directly; see `docs/phases/phase-0/`) | Not started |
+| `phase-3-steward-ui/LLD.md` | Phase 3: Angular steward UI (shell, Home, workspace, add leaf, worklist, request detail); prototype in `phase-3-steward-ui/prototypes/` | Approved |
+| `phase-4-data-loading-and-parity/LLD.md` | Phase 4: governed DRM loader, synthetic generator, golden framework, performance baseline | Draft; awaiting review |
+| `phase-N-<name>/LLD.md` | Low-level designs for Phases 5–9 (Phase 0 was built directly; see `docs/phases/phase-0/`) | Not started |
 | `CONSISTENCY_REVIEW.md` | Cross-phase review after all LLDs | Not started |
 
 Read in this order: `../architecture/overview.md`, `../architecture/patterns.md`, then the LLD for the phase

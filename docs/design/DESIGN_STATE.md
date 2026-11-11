@@ -1,6 +1,6 @@
 # Design state
 
-- **Current item:** Phase 3 LLD (protocol step 3)
+- **Current item:** Phase 4 LLD (protocol step 3)
 - **Status:** Awaiting review
 - **Session date:** 2026-11-11 (overview and patterns approved the same day; Phase 0 built and approved first)
 
@@ -15,12 +15,14 @@
 | adr/ADR-013 … ADR-018 | Accepted (014 and 017 with confirmations pending) | — | 2026-11-11 |
 | adr/ADR-019 … ADR-022 | Accepted (021 with Audit-Risk review pending) | — | 2026-11-11 |
 | adr/ADR-023, ADR-024 | Accepted (023 with Audit-Risk review pending) | — | 2026-11-11 |
-| adr/ADR-025 | Proposed with the Phase 3 LLD | — | 2026-11-11 |
+| adr/ADR-025 | Accepted | — | 2026-11-11 |
+| adr/ADR-026, ADR-027 | Proposed with the Phase 4 LLD (027's decisions open) | — | 2026-11-11 |
 | design/phase-0 | Not written: Phase 0 was built first by your instruction (sequence A); its plan, test report and summary are in `docs/phases/phase-0/` | — | 2026-11-11 |
 | design/phase-1-core-write-path/LLD.md | Approved 2026-11-11 (two small corrections made while writing Phase 2: validation also in `in_review`; writing guard triggers run as owner) | Medium | 2026-11-11 |
 | design/phase-2-governance/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
-| design/phase-3-steward-ui/LLD.md | Draft, awaiting review | Medium (structure); Low (visual detail until OD-02/03/04) | 2026-11-11 |
-| design/phase-4..9 LLDs | Not started | — | — |
+| design/phase-3-steward-ui/LLD.md | Approved 2026-11-11 | Medium (structure); Low (visual detail) | 2026-11-11 |
+| design/phase-4-data-loading-and-parity/LLD.md | Draft, awaiting review | Medium (design); Low (extract format unknown) | 2026-11-11 |
+| design/phase-5..9 LLDs | Not started | — | — |
 | design/phase-3-steward-ui/prototypes/landing.html | Landing-page prototype; combined design chosen (OD-27) | Prototype only: placeholder tokens, synthetic data | 2026-11-11 |
 | design/CONSISTENCY_REVIEW.md | Not started | — | — |
 
@@ -166,17 +168,20 @@ one-way kill switch, frozen approved policies and models; 35 pgTAP tests.
 - **OD-02 to OD-04** design-system details: block visual sign-off of Phase 3 (the LLD designs against the Nexus token layer and CDK, with adapters).
 - **OD-08, OD-17a, OD-18a** Audit-Risk and Security confirmations: block activation and merging, not design.
 - **OD-28** external capability working copy.
+- **OD-29 to OD-33** load-run approval, versions to migrate, masking, golden dataset storage, ADR-009 acceptance: block the Phase 4 build's load and golden parts, not the design.
 
-## Self-review (DESIGN_PROTOCOL §5) for the Phase 3 LLD
-- *Implementable without a design question?* Yes for structure, behaviour, API calls, states and tests. Visual values and
-  final component choices wait for OD-02/03/04 by design (UI_STANDARD §1); adapters isolate the swap.
-- *Existing code verified?* The UI calls only endpoints designed in Phases 1–2 plus six additions listed in §5.1. Checking
-  found that the request page needed the workflow instance id and the "before" values; both added to `GET /change-requests/{id}`.
-- *Weakens a control, crosses the layer, contradicts an Accepted ADR?* No. No business rules in the UI; edits only via the
-  tray; dev identity confined to `local`/`test`. Consistent with ADR-012 (Angular, design system, `ui/`) and UI_STANDARD.
-- *Assumptions listed?* C-1 to C-8; UI budgets and telemetry sampling added to OPEN_DECISIONS.
-- *Acceptance criteria covered?* HIE-12, GOV-13, NEW-10 and SLICE-01 S1-R2 to S1-R7 have cases; S1-R1 and SLICE-01's golden criterion are explicit Phase 4 gaps.
-- *Confidence honest?* Medium for structure; Low for visual detail, stated in §2.
+## Self-review (DESIGN_PROTOCOL §5) for the Phase 4 LLD
+- *Implementable without a design question?* Yes for the loader pipeline, load runs, generator, golden framework and perf
+  harness. The DRM extract format is unknown (E-1, E-2): only the input adapters depend on it, and both fallbacks are specified.
+- *Existing code verified?* Against V3 staging tables, `mdm.drm_property_map`, `tests/golden/README.md`,
+  `tools/drm-analysis/README.md` and the Phase 1 apply design. Found a gap in the approved Phase 1 design (no way to create
+  a hierarchy and top node through a change request; no `update_node` handler): recorded as an amendment (ADR-026), not changed silently.
+- *Weakens a control, crosses the layer, contradicts an Accepted ADR?* No. Migration goes through change requests and guards;
+  direct loading and guard-disabling bulk modes are rejected. The generator writes directly only in local/test/perf databases, enforced by a setting.
+- *Assumptions listed?* E-1 to E-6; new parameters in OPEN_DECISIONS.
+- *Acceptance criteria covered?* Loader, load runs, transforms, generator and comparators have tests; capability golden cases depend on OD-31/32.
+- *Confidence honest?* Medium for the design, Low for format-dependent parts, stated in §2.
 
 ## Next action
-Human review of `docs/design/phase-3-steward-ui/LLD.md` and ADR-025. On approval: Phase 4 LLD (data loading and parity harness), then stop.
+Human review of `docs/design/phase-4-data-loading-and-parity/LLD.md`, ADR-026 (Phase 1 amendment; OD-29 open) and ADR-027
+(OD-31, OD-32 open). On approval: Phase 5 LLD (remaining parity), then stop.
