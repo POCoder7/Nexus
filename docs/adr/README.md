@@ -26,7 +26,9 @@
 | ADR-022 | Role-and-scope entitlements, Phase 1 model | Accepted |
 | ADR-023 | Phase 2 control fixes in `wf` and the bridge | Accepted (Audit-Risk review pending) |
 | ADR-024 | Camunda 8 integration | Accepted |`n| ADR-025 | UI toolchain: tests, stories, accessibility checks, style lint, generated API client | Accepted |
-| ADR-026 | Governed migration load runs; `add_hierarchy` and `update_node` actions | Proposed (approval model open, OD-29) |
+| ADR-026 | Governed migration load runs; `add_hierarchy` and `update_node` actions | Accepted (approval model open, OD-29) |
 | ADR-027 | Golden datasets: masking and storage | Proposed (decisions open, OD-31, OD-32) |
+| ADR-028 | Sandboxes as draft requests with a trial-apply overlay | Proposed |
+| ADR-029 | Role grants as governed change actions | Proposed |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.

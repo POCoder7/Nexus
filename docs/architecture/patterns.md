@@ -36,6 +36,7 @@
 | P-25 | Repository per aggregate with explicit SQL | Adopted (exists) | 1–9 |
 | P-26 | Feature store with signals (UI state) | Adopted | 3, 5–8 |
 | P-27 | Generated API client from OpenAPI | Adopted | 3, 5–8 |
+| P-28 | Overlay by trial apply (sandbox delta) | Adopted | 5 |
 
 ---
 
@@ -442,3 +443,16 @@
 - **Alternatives:** hand-written services (drift); GraphQL codegen (no GraphQL API, ADR-015).
 - **When not to use:** —
 - **Related ADR:** ADR-015, ADR-025.
+
+## P-28 Overlay by trial apply (sandbox delta) — Adopted
+
+- **Intent:** show "the hierarchy as it would be" without a second implementation of the change rules.
+- **Problem in Nexus:** sandboxes (NEW-08) must display restructures before they are submitted; re-implementing each action's effect for reads would drift from apply.
+- **Solution:** run the Phase 1 apply handlers in a subtransaction with a capture hook that records each closed and inserted
+  row, roll back, and store the captured rows as a delta (`mdm.sandbox_delta_*`). Reads = base slice − `-` rows + `+` rows.
+  The same trial-apply technique already powers `validate_change_request` (Phase 1 §7.4).
+- **Where applied:** Phase 5 LLD §7.1; `mdm.refresh_sandbox_delta`.
+- **Trade-offs / failure modes:** refresh cost grows with sandbox size (incremental refresh above 1 000 items); the delta is a cache and is rebuilt on any doubt.
+- **Alternatives:** physical copies (P-02 rejects); hand-written overlay SQL per action (drift).
+- **When not to use:** exports and anything a downstream system consumes (F-3).
+- **Related ADR:** ADR-028.

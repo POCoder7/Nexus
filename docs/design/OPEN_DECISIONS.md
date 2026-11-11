@@ -40,6 +40,7 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-01 | Workflow engine: **Camunda** (supersedes the earlier in-house-worker recommendation). Camunda orchestrates through `WorkflowGateway`; all state changes go through guarded `wf` functions; one generic BPMN process over the `wf` models (ADR-017) | Repository owner | 2026-11-11 | Phase 2 LLD; edition OD-01b (Camunda 8), hosting fact OD-01c |
 | OD-22a | `BUSINESS_TIME_ZONE` = **`America/New_York`** (EST in winter, EDT in summer; OD-22b confirmed with daylight saving) | Repository owner | 2026-11-11 | Phase 1 and 2 |
 | OD-01b | Camunda **8**: self-managed if the platform team runs it, otherwise SaaS with process variables limited to identifiers; not Camunda 7 | Repository owner (adopted recommendation) | 2026-11-11 | Phase 2; hosting fact OD-01c |
+| — | **Phase 4 LLD approved**; ADR-026 Accepted including the Phase 1 amendment (`add_hierarchy`, `update_node`); its approval model stays open (OD-29); ADR-027 stays Proposed (OD-31, OD-32) | Repository owner | 2026-11-11 | Design track continues with Phase 5 |
 | — | **Phase 3 LLD approved**; ADR-025 Accepted (its dependencies and the UI CI job are approved in the Phase 3 build plan) | Repository owner | 2026-11-11 | Design track continues with Phase 4 |
 | — | **Phase 2 LLD approved**; ADR-023 Accepted subject to Audit-Risk review (OD-18a); ADR-024 Accepted | Repository owner | 2026-11-11 | Design track continues with Phase 3 |`n| — | **Phase 1 LLD approved**; ADR-019, ADR-020, ADR-022 Accepted; ADR-021 Accepted subject to Audit-Risk review before its migrations are merged (OD-18a) | Repository owner (adopted recommendation) | 2026-11-11 | Design track continues with Phase 2 |
 | OD-11 | Repository: **enterprise GitHub organisation, private** | Repository owner (adopted recommendation) | 2026-11-11 | Pushing still needs your explicit go-ahead and a remote created by you |
@@ -83,6 +84,7 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | `UI_TELEMETRY_SAMPLE` | 10 % | Client timing sampling (Phase 3) | Architecture |
 | `LOAD_PARALLELISM` / `LOAD_SMALL_RUN_ITEMS` | 4 hierarchies / 500 items | Migration apply (Phase 4) | Architecture / Audit-Risk |
 | `STAGE_RETENTION_DAYS` | 30 | Staging data after reconciliation | Security |
+| `SANDBOX_MAX_ITEMS` / `SANDBOX_MAX_ACTIVE_PER_USER` / `SANDBOX_INCREMENTAL_THRESHOLD` | 20 000 / 5 / 1 000 | Sandboxes (Phase 5) | Product / Architecture |
 | `TX_RETRY_MAX` | 3 | Serialization-failure retries | Architecture |
 | `IDEMPOTENCY_KEY_TTL` | 24 h | Idempotent POSTs | Architecture |
 | `OUTBOX_SAFETY_LAG` / `OUTBOX_BATCH_SIZE` / `OUTBOX_RETENTION_DAYS` / `OUTBOX_LAG_ALERT` | 2 s / 500 / 30 / 5 min | Event consumers (ADR-016) | Architecture / Platform |
@@ -109,6 +111,8 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | ADR-022 | Role-and-scope entitlements, Phase 1 model | Accepted 2026-11-11 | |
 | ADR-023 | Phase 2 control fixes in `wf` and the bridge | Accepted 2026-11-11 (Audit-Risk review pending, OD-18a) | Amends ADR-021 |
 | ADR-024 | Camunda 8 integration: generic process, outbox-driven start, message-correlated decisions | Accepted 2026-11-11 | Dependencies approved in the Phase 2 plan |`n| ADR-025 | UI toolchain | Accepted 2026-11-11 | Dependencies approved in the Phase 3 plan |
-| ADR-026 | Governed migration load runs; `add_hierarchy` and `update_node` | Proposed (Phase 4 LLD) | Approval model OD-29; amends the Phase 1 LLD |
+| ADR-026 | Governed migration load runs; `add_hierarchy` and `update_node` | Accepted 2026-11-11 (approval model open, OD-29) | Amends the Phase 1 LLD |
+| ADR-028 | Sandboxes as draft requests with a trial-apply overlay | Proposed (Phase 5 LLD) | NEW-08 |
+| ADR-029 | Role grants as governed change actions | Proposed (Phase 5 LLD) | SEC-01, SEC-02 |
 | ADR-027 | Golden datasets: masking and storage | Proposed (decisions open) | OD-31, OD-32 |
 | ADR-005 to ADR-009 | (existing) | Proposed | Unchanged by this design |

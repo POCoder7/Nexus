@@ -1,6 +1,6 @@
 # ADR-026: Governed migration load runs; `add_hierarchy` and `update_node` actions
 
-- **Status:** Proposed (Phase 4 LLD). The approval model (OD-29) is a human decision and is **not** decided here
+- **Status:** Accepted (repository owner, 2026-11-11), including the Phase 1 amendment. The approval model (OD-29) remains an Audit-Risk decision and is **not** decided here
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** PROG, HIE-01, IMP-01 (outline), ADM-04 (outline)
