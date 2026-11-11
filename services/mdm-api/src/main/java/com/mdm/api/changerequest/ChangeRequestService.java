@@ -17,6 +17,7 @@ import com.mdm.api.security.ForbiddenException;
 import com.mdm.api.security.Permission;
 import com.mdm.api.validation.ValidationReport;
 import com.mdm.api.validation.ValidationService;
+import com.mdm.api.workflow.WorkflowGateway;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,14 +42,16 @@ public class ChangeRequestService {
     private final EntitlementService entitlements;
     private final BusinessClock clock;
     private final ValidationService validation;
+    private final WorkflowGateway workflow;
 
     public ChangeRequestService(ChangeRequestRepository repository, ItemFactory items, EntitlementService entitlements,
-                                BusinessClock clock, ValidationService validation) {
+                                BusinessClock clock, ValidationService validation, WorkflowGateway workflow) {
         this.repository = repository;
         this.items = items;
         this.entitlements = entitlements;
         this.clock = clock;
         this.validation = validation;
+        this.workflow = workflow;
     }
 
     @Transactional
@@ -142,9 +145,9 @@ public class ChangeRequestService {
         ETags.check(expected, cr.rowVersion());
         if (cr.governedByWorkflow()) {
             // a governed request is withdrawn through its workflow; the bridge carries the outcome to the request
-            UUID instance = repository.openRootInstance(id).orElseThrow(() -> new RuleException("change_request.not_open",
+            UUID instance = workflow.openRootInstance(id).orElseThrow(() -> new RuleException("change_request.not_open",
                     "This request's workflow is already closed."));
-            repository.closeInstanceWithdrawn(instance, actor.userId());
+            workflow.withdraw(instance, actor);
         } else {
             repository.withdraw(id, actor.userId());   // the function re-checks requester, status and workflow ownership
         }
@@ -255,7 +258,7 @@ public class ChangeRequestService {
         if (cr.workflowModelCode() != null) {
             // same transaction (LLD §3.2): the instance, its stages and the instance_started event; the bridge marks the
             // request governed and in review
-            repository.startInstance(id, cr.workflowModelCode(), actor.userId());
+            workflow.startInstance(id, cr.workflowModelCode(), actor);
         }
         return new SubmitOutcome(repository.find(id).orElseThrow(), report);
     }

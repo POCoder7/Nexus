@@ -101,23 +101,6 @@ public class ChangeRequestRepository {
                 """).param("cr", requestId).query(Boolean.class).single();
     }
 
-    public UUID startInstance(UUID requestId, String modelCode, UUID submitter) {
-        return jdbc.sql("SELECT wf.start_instance(:cr, :model, :actor)")
-                .param("cr", requestId).param("model", modelCode).param("actor", submitter).query(UUID.class).single();
-    }
-
-    /** The open root workflow instance of a governed request, if any. */
-    public Optional<UUID> openRootInstance(UUID requestId) {
-        return jdbc.sql("""
-                SELECT instance_id FROM wf.workflow_instance
-                WHERE change_request_id = :cr AND parent_instance_id IS NULL AND status IN ('draft', 'in_flight', 'pushed_back')
-                """).param("cr", requestId).query(UUID.class).optional();
-    }
-
-    public void closeInstanceWithdrawn(UUID instanceId, UUID actor) {
-        jdbc.sql("SELECT wf.close_instance(:i, 'withdrawn', :actor, NULL)").param("i", instanceId).param("actor", actor)
-                .query((rs, i) -> 0).single();
-    }
 
     public Optional<ChangeRequestView> find(UUID id) {
         return jdbc.sql(SELECT_REQUEST + " WHERE cr.change_request_id = :id").param("id", id).query(requestMapper).optional();

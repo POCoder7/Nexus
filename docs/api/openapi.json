@@ -160,12 +160,53 @@
         },
         "type" : "object"
       },
+      "DecisionBody" : {
+        "properties" : {
+          "comment" : {
+            "type" : "string"
+          },
+          "decision" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "DecisionRequest" : {
         "properties" : {
           "decision" : {
             "type" : "string"
           },
           "note" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "DecisionResult" : {
+        "properties" : {
+          "stageOutcome" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "DecisionView" : {
+        "properties" : {
+          "comment" : {
+            "type" : "string"
+          },
+          "decidedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "decidedBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "decision" : {
+            "type" : "string"
+          },
+          "groupCode" : {
             "type" : "string"
           }
         },
@@ -240,6 +281,57 @@
             "type" : "string"
           },
           "topNodeName" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "InstanceView" : {
+        "properties" : {
+          "changeRequestId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "closedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "currentSeq" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "instanceId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "modelCode" : {
+            "type" : "string"
+          },
+          "modelVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "policyEvaluations" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PolicyEvaluationView"
+            },
+            "type" : "array"
+          },
+          "stages" : {
+            "items" : {
+              "$ref" : "#/components/schemas/StageView"
+            },
+            "type" : "array"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "submittedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "submittedBy" : {
+            "format" : "uuid",
             "type" : "string"
           }
         },
@@ -417,6 +509,33 @@
         },
         "type" : "object"
       },
+      "PolicyEvaluationView" : {
+        "properties" : {
+          "eligible" : {
+            "type" : "boolean"
+          },
+          "evaluatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "failedChecks" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "mode" : {
+            "type" : "string"
+          },
+          "outcome" : {
+            "type" : "string"
+          },
+          "policyCode" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "PropertyValue" : {
         "properties" : {
           "category" : {
@@ -443,6 +562,56 @@
           },
           "value" : {
             "$ref" : "#/components/schemas/JsonNode"
+          }
+        },
+        "type" : "object"
+      },
+      "StageView" : {
+        "properties" : {
+          "claimExpiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "claimedBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "decisions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DecisionView"
+            },
+            "type" : "array"
+          },
+          "dueAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "included" : {
+            "type" : "boolean"
+          },
+          "instanceStageId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "iteration" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "seq" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "youCanAct" : {
+            "type" : "boolean"
           }
         },
         "type" : "object"
@@ -1153,6 +1322,156 @@
           }
         },
         "tags" : [ "node-controller" ]
+      }
+    },
+    "/api/v1/workflow/instances/{instanceId}" : {
+      "get" : {
+        "operationId" : "getWorkflowInstance",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "instanceId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InstanceView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
+      }
+    },
+    "/api/v1/workflow/stages/{stageId}/claim" : {
+      "delete" : {
+        "operationId" : "unclaimStage",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "stageId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
+      },
+      "post" : {
+        "operationId" : "claimStage",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "stageId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "additionalProperties" : {
+                  "type" : "object"
+                },
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
+      }
+    },
+    "/api/v1/workflow/stages/{stageId}/decision" : {
+      "post" : {
+        "operationId" : "decideStage",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "stageId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DecisionBody"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DecisionResult"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
+      }
+    },
+    "/api/v1/workflow/stages/{stageId}/items" : {
+      "post" : {
+        "operationId" : "addEnrichmentItem",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "stageId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ItemCommand"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ItemView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
       }
     }
   },

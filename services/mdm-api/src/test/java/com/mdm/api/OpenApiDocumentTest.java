@@ -37,6 +37,11 @@ class OpenApiDocumentTest extends PostgresIntegrationTest {
                 operation.path("parameters").forEach(p -> assertThat(p.path("name").asText())
                         .isNotIn("actor", "userId", "login", "displayName", "kind"))));
 
+        // operation ids name the generated client's methods (ADR-025): a clash makes springdoc rename one ("decide_1")
+        new ObjectMapper().readTree(served).path("paths").forEach(path -> path.forEach(operation ->
+                assertThat(operation.path("operationId").asText()).as("operation ids must be unique")
+                        .doesNotMatch(".*_\\d+$")));
+
         if (Boolean.getBoolean("openapi.update")) {
             Files.createDirectories(COMMITTED.getParent());
             Files.writeString(COMMITTED, normalised, StandardCharsets.UTF_8);

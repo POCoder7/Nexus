@@ -319,6 +319,7 @@ governance configuration and gets the same four-eyes rule as policies.
 | `POST /admin/commit-policies`, `…/{id}/submit`, `…/{id}/approve`, `…/kill-switch` | GOV-12 lifecycle over the V6 functions | POLICY_ADMIN (propose, submit); member of `POLICY_APPROVERS` (approve); owner group or approvers (kill switch) | `Idempotency-Key` | 403 maker-checker; 422 activation not allowed (OD-08) |
 
 The decision response explains refusals in words (UI_STANDARD §6): `{"type":"urn:nexus:problem:forbidden","code":"sod.violation","detail":"You approved an earlier stage of this request, so you cannot approve this one."}`.
+*Built in 2-8b:* refusals are explained by `wf.why_cannot_act(stage, user)`, which repeats `wf.can_act`'s checks in order and returns the first that fails (`human_only`, `wf.instance_not_open`, `wf.stage_not_open`, `wf.claimed_by_other`, `maker_checker.own_request`, `sod.violation`, `wf.out_of_scope`, `wf.not_group_member`); it is read only after a guard has refused (`N1010`, `N1015`, `N1016`), so stage calls run without a surrounding transaction. A conflicting decision (`N2201`) is 422, not 409 as in the table above: ADR-020 maps every `N2` code to 422. Enrichment cannot add nodes or hierarchies (their identity is allocated only in a draft; 422 `enrichment.action_not_supported`). The role pre-check is DECIDE for approve/commit stages and PROPOSE for enrich. The instance view adds `youCanAct` per stage (`wf.can_act` for the viewer). The API reaches `wf` only through `WorkflowGateway` (`SqlWorkflowGateway`).
 
 OpenAPI fragment:
 ```yaml

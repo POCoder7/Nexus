@@ -411,3 +411,50 @@ GRANT EXECUTE ON FUNCTION wf.advance_instance(uuid), wf.complete_stage(uuid) TO 
 ALTER FUNCTION wf.start_instance(uuid, text, uuid) OWNER TO nexus_wf;
 REVOKE EXECUTE ON FUNCTION wf.start_instance(uuid, text, uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION wf.start_instance(uuid, text, uuid) TO nexus_api, nexus_wf;
+
+-- -----------------------------------------------------------------------------
+-- Why can't this person act on this stage? (2-8b, LLD §5.1, UI_STANDARD §6: refusals explained in words.)
+-- The same checks as wf.can_act, in the same order, returning the first that fails. Used only to explain a refusal the
+-- guards have already made; it never grants anything.
+-- -----------------------------------------------------------------------------
+CREATE FUNCTION wf.why_cannot_act(p_stage uuid, p_user uuid)
+RETURNS TABLE (code text, message text) LANGUAGE plpgsql STABLE SET search_path = wf, mdm, public AS $$
+DECLARE
+  u   mdm.app_user%ROWTYPE;
+  ist wf.instance_stage%ROWTYPE;
+  ws  wf.workflow_stage%ROWTYPE;
+  i   wf.workflow_instance%ROWTYPE;
+  cr  mdm.change_request%ROWTYPE;
+BEGIN
+  SELECT * INTO u   FROM mdm.app_user WHERE user_id = p_user;
+  SELECT * INTO ist FROM wf.instance_stage WHERE instance_stage_id = p_stage;
+  SELECT * INTO ws  FROM wf.workflow_stage WHERE stage_id = ist.stage_id;
+  SELECT * INTO i   FROM wf.workflow_instance WHERE instance_id = ist.instance_id;
+  SELECT * INTO cr  FROM mdm.change_request WHERE change_request_id = i.change_request_id;
+  IF NOT coalesce(u.is_active, false) OR u.kind <> 'human' THEN
+    RETURN QUERY SELECT 'human_only', 'Only active people can act on workflow stages.'; RETURN;
+  END IF;
+  IF i.status IS DISTINCT FROM 'in_flight' THEN
+    RETURN QUERY SELECT 'wf.instance_not_open', 'This request is no longer in progress.'; RETURN;
+  END IF;
+  IF ist.status NOT IN ('active', 'claimed') THEN
+    RETURN QUERY SELECT 'wf.stage_not_open', 'This stage is not open for decisions.'; RETURN;
+  END IF;
+  IF ist.claimed_by IS NOT NULL AND ist.claimed_by <> p_user AND (ist.claim_expires_at IS NULL OR ist.claim_expires_at >= now()) THEN
+    RETURN QUERY SELECT 'wf.claimed_by_other', 'Someone else has claimed this stage.'; RETURN;
+  END IF;
+  IF ws.stage_type IN ('approve', 'commit') AND (cr.requester_id = p_user OR i.submitted_by = p_user) THEN
+    RETURN QUERY SELECT 'maker_checker.own_request', 'You requested or submitted this change, so you cannot approve or commit it.'; RETURN;
+  END IF;
+  IF wf.sod_violation(p_stage, p_user) THEN
+    RETURN QUERY SELECT 'sod.violation', 'You approved an earlier stage of this request, so you cannot approve this one.'; RETURN;
+  END IF;
+  IF NOT wf.items_in_scope(p_stage) THEN
+    RETURN QUERY SELECT 'wf.out_of_scope', 'This request changes nodes outside the part of the hierarchy this stage covers.'; RETURN;
+  END IF;
+  IF NOT wf.can_act(p_stage, p_user) THEN
+    RETURN QUERY SELECT 'wf.not_group_member', 'You are not in a group that still has to decide this stage, or it is not your group''s turn.'; RETURN;
+  END IF;
+END $$;
+REVOKE EXECUTE ON FUNCTION wf.why_cannot_act(uuid, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION wf.why_cannot_act(uuid, uuid), wf.can_act(uuid, uuid) TO nexus_api;
