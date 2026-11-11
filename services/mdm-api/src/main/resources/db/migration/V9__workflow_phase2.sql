@@ -404,3 +404,10 @@ REVOKE EXECUTE ON FUNCTION wf.load_model(jsonb, uuid), wf.activate_model(uuid, u
                            wf.advance_instance(uuid), wf.complete_stage(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION wf.load_model(jsonb, uuid), wf.activate_model(uuid, uuid) TO nexus_api;
 GRANT EXECUTE ON FUNCTION wf.advance_instance(uuid), wf.complete_stage(uuid) TO nexus_wf;   -- the worker's steps
+
+-- -----------------------------------------------------------------------------
+-- Submit with a workflow (2-8a, LLD §3.2): the API starts the instance in the submit transaction.
+-- -----------------------------------------------------------------------------
+ALTER FUNCTION wf.start_instance(uuid, text, uuid) OWNER TO nexus_wf;
+REVOKE EXECUTE ON FUNCTION wf.start_instance(uuid, text, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION wf.start_instance(uuid, text, uuid) TO nexus_api, nexus_wf;

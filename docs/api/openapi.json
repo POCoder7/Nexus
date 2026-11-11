@@ -53,9 +53,15 @@
             "format" : "date",
             "type" : "string"
           },
+          "governedByWorkflow" : {
+            "type" : "boolean"
+          },
           "id" : {
             "format" : "uuid",
             "type" : "string"
+          },
+          "isUrgent" : {
+            "type" : "boolean"
           },
           "itemCount" : {
             "format" : "int32",
@@ -92,6 +98,9 @@
             "type" : "string"
           },
           "versionName" : {
+            "type" : "string"
+          },
+          "workflowModelCode" : {
             "type" : "string"
           }
         },
@@ -130,6 +139,9 @@
             "format" : "date",
             "type" : "string"
           },
+          "isUrgent" : {
+            "type" : "boolean"
+          },
           "rationale" : {
             "type" : "string"
           },
@@ -140,6 +152,9 @@
             "type" : "string"
           },
           "versionName" : {
+            "type" : "string"
+          },
+          "workflowModelCode" : {
             "type" : "string"
           }
         },
@@ -438,6 +453,9 @@
             "format" : "date",
             "type" : "string"
           },
+          "isUrgent" : {
+            "type" : "boolean"
+          },
           "rationale" : {
             "type" : "string"
           },
@@ -445,6 +463,9 @@
             "type" : "string"
           },
           "title" : {
+            "type" : "string"
+          },
+          "workflowModelCode" : {
             "type" : "string"
           }
         },

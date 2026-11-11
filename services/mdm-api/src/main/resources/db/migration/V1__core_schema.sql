@@ -154,6 +154,10 @@ CREATE TABLE change_request (
   apply_error       text,                                -- why apply failed, when status = 'apply_failed'
   -- Where the request came from; fixes its item limit at apply (CR-04). Never changes.
   origin            text NOT NULL DEFAULT 'user' CHECK (origin IN ('user', 'sandbox', 'load', 'ai')),
+  -- Phase 2 (LLD §4.1): the workflow model the requester chose (opaque to mdm, like decision_policy_ref; checked by
+  -- wf.start_instance) and the GOV-13 urgent flag. Both editable while draft only.
+  workflow_model_code text,
+  is_urgent         boolean NOT NULL DEFAULT false,
   CHECK (requester_kind <> 'ai_agent' OR (ai_model IS NOT NULL AND ai_confidence IS NOT NULL)),
   CHECK (decision_basis IS DISTINCT FROM 'approved_policy' OR decision_policy_ref IS NOT NULL),
   CHECK (decision_policy_ref IS NULL OR decision_basis = 'approved_policy')
@@ -241,10 +245,10 @@ CREATE FUNCTION trg_cr_frozen_content() RETURNS trigger
 LANGUAGE plpgsql SET search_path = mdm, public AS $$
 BEGIN
   IF OLD.status <> 'draft'
-     AND (NEW.title, NEW.rationale, NEW.risk_tier, NEW.effective_from, NEW.version_id, NEW.requester_id,
+     AND (NEW.title, NEW.rationale, NEW.risk_tier, NEW.effective_from, NEW.version_id, NEW.requester_id, NEW.workflow_model_code, NEW.is_urgent,
           NEW.requester_kind, NEW.ai_model, NEW.ai_confidence, NEW.origin, NEW.created_at)
          IS DISTINCT FROM
-         (OLD.title, OLD.rationale, OLD.risk_tier, OLD.effective_from, OLD.version_id, OLD.requester_id,
+         (OLD.title, OLD.rationale, OLD.risk_tier, OLD.effective_from, OLD.version_id, OLD.requester_id, OLD.workflow_model_code, OLD.is_urgent,
           OLD.requester_kind, OLD.ai_model, OLD.ai_confidence, OLD.origin, OLD.created_at) THEN
     RAISE EXCEPTION 'Change request % is % and its content can no longer change', OLD.change_request_id, OLD.status
       USING ERRCODE = 'N2102', HINT = 'change_request.not_draft';

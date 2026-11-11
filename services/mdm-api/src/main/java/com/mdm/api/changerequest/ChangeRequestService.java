@@ -66,8 +66,12 @@ public class ChangeRequestService {
         UUID versionId = repository.versionId(body.versionName())
                 .orElseThrow(() -> ItemValidationException.field("versionName", "unknown version " + body.versionName()));
         String risk = riskTier(body.riskTier(), "medium");
+        String model = blankToNull(body.workflowModelCode());
+        if (model != null && !repository.activeModelExists(model)) {
+            throw new RuleException("workflow.unknown_model", "There is no active workflow model " + model + ".");
+        }
         UUID id = repository.insert(versionId, body.title().trim(), body.rationale(), risk, actor.userId(), actor.kind(),
-                body.effectiveFrom() == null ? clock.today() : body.effectiveFrom());
+                body.effectiveFrom() == null ? clock.today() : body.effectiveFrom(), model, Boolean.TRUE.equals(body.isUrgent()));
         return repository.find(id).orElseThrow();
     }
 
@@ -88,8 +92,12 @@ public class ChangeRequestService {
         if (body.title() != null && body.title().isBlank()) {
             throw ItemValidationException.field("title", "must not be blank");
         }
+        String model = blankToNull(body.workflowModelCode());
+        if (model != null && !repository.activeModelExists(model)) {
+            throw new RuleException("workflow.unknown_model", "There is no active workflow model " + model + ".");
+        }
         repository.updateDraft(cr.id(), body.title() == null ? null : body.title().trim(), body.rationale(),
-                body.riskTier() == null ? null : riskTier(body.riskTier(), null), body.effectiveFrom());
+                body.riskTier() == null ? null : riskTier(body.riskTier(), null), body.effectiveFrom(), model, body.isUrgent());
         return repository.find(id).orElseThrow();
     }
 
@@ -132,7 +140,14 @@ public class ChangeRequestService {
         ChangeRequestView cr = lockVisible(actor, id);
         requireRequester(actor, cr);
         ETags.check(expected, cr.rowVersion());
-        repository.withdraw(id, actor.userId());   // the function re-checks requester, status and workflow ownership
+        if (cr.governedByWorkflow()) {
+            // a governed request is withdrawn through its workflow; the bridge carries the outcome to the request
+            UUID instance = repository.openRootInstance(id).orElseThrow(() -> new RuleException("change_request.not_open",
+                    "This request's workflow is already closed."));
+            repository.closeInstanceWithdrawn(instance, actor.userId());
+        } else {
+            repository.withdraw(id, actor.userId());   // the function re-checks requester, status and workflow ownership
+        }
         return repository.find(id).orElseThrow();
     }
 
@@ -232,7 +247,16 @@ public class ChangeRequestService {
         if (report.hasErrors()) {
             return new SubmitOutcome(null, report);
         }
+        if (cr.workflowModelCode() == null && repository.requiresWorkflow(id)) {
+            throw new RuleException("change_request.workflow_required",
+                    "This request changes a hierarchy that requires a workflow. Choose a workflow model before submitting.");
+        }
         repository.submit(id, actor.userId());   // the function re-checks requester, status, items and workflow ownership
+        if (cr.workflowModelCode() != null) {
+            // same transaction (LLD §3.2): the instance, its stages and the instance_started event; the bridge marks the
+            // request governed and in review
+            repository.startInstance(id, cr.workflowModelCode(), actor.userId());
+        }
         return new SubmitOutcome(repository.find(id).orElseThrow(), report);
     }
 
@@ -307,6 +331,10 @@ public class ChangeRequestService {
         return value;
     }
 
+
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s.trim();
+    }
     private static NotFoundException notFound(UUID id) {
         return new NotFoundException("Change request " + id + " not found");
     }

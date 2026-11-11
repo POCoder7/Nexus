@@ -653,13 +653,29 @@ END $$;
 -- =============================================================================
 
 -- Start a request on the active version of a model.
+-- SECURITY DEFINER, owned by nexus_wf (V9): the API starts the instance in the submit transaction (LLD §3.2) without
+-- write access to wf. Only the requester submits, only a request not yet decided, and only with the model it chose.
 CREATE FUNCTION wf.start_instance(p_change_request_id uuid, p_model_code text, p_submitter uuid)
-RETURNS uuid LANGUAGE plpgsql SET search_path = wf, mdm, public AS $$
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = wf, mdm, public AS $$
 DECLARE
   m          wf.workflow_model%ROWTYPE;
+  cr         mdm.change_request%ROWTYPE;
   v_instance uuid;
   v_submit   uuid;
 BEGIN
+  SELECT * INTO cr FROM mdm.change_request WHERE change_request_id = p_change_request_id;
+  IF cr.status IS NULL OR cr.status NOT IN ('draft', 'submitted') THEN
+    RAISE EXCEPTION 'Change request % is % and cannot start a workflow', p_change_request_id, coalesce(cr.status::text, 'missing')
+      USING ERRCODE = 'N2101', HINT = 'change_request.status_transition';
+  END IF;
+  IF cr.requester_id IS DISTINCT FROM p_submitter THEN
+    RAISE EXCEPTION 'Only the requester can submit change request %', p_change_request_id
+      USING ERRCODE = 'N1025', HINT = 'change_request.not_requester';
+  END IF;
+  IF cr.workflow_model_code IS NOT NULL AND cr.workflow_model_code IS DISTINCT FROM p_model_code THEN
+    RAISE EXCEPTION 'Change request % chose workflow model %, not %', p_change_request_id, cr.workflow_model_code, p_model_code
+      USING ERRCODE = 'N2236', HINT = 'wf.model_mismatch';
+  END IF;
   SELECT * INTO m FROM wf.workflow_model WHERE model_code = p_model_code AND status = 'active';
   IF NOT FOUND THEN
     RAISE EXCEPTION 'No active workflow model %', p_model_code USING ERRCODE = 'N2210', HINT = 'wf.no_active_model';

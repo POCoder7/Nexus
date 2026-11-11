@@ -26,7 +26,7 @@ public class ChangeRequestRepository {
                    cr.effective_from, cr.origin, cr.created_at, cr.submitted_at, cr.decided_by, cr.decided_at,
                    cr.decision_note, cr.decision_basis::text AS decision_basis, cr.applied_at, cr.apply_error,
                    (SELECT count(*) FROM mdm.change_item ci WHERE ci.change_request_id = cr.change_request_id) AS item_count,
-                   cr.row_version
+                   cr.row_version, cr.workflow_model_code, cr.is_urgent, cr.governed_by_workflow
             FROM mdm.change_request cr
             JOIN mdm.version v ON v.version_id = cr.version_id
             """;
@@ -46,7 +46,8 @@ public class ChangeRequestRepository {
                 rs.getString("origin"), instant(rs.getTimestamp("created_at")), instant(rs.getTimestamp("submitted_at")),
                 rs.getObject("decided_by", UUID.class), instant(rs.getTimestamp("decided_at")), rs.getString("decision_note"),
                 rs.getString("decision_basis"), instant(rs.getTimestamp("applied_at")), rs.getString("apply_error"),
-                rs.getInt("item_count"), rs.getInt("row_version"));
+                rs.getInt("item_count"), rs.getInt("row_version"), rs.getString("workflow_model_code"),
+                rs.getBoolean("is_urgent"), rs.getBoolean("governed_by_workflow"));
         this.itemMapper = (rs, i) -> new ItemView(
                 rs.getObject("change_item_id", UUID.class), rs.getInt("seq"), rs.getString("action"),
                 rs.getString("hierarchy_code"), rs.getObject("node_id", UUID.class),
@@ -72,17 +73,50 @@ public class ChangeRequestRepository {
     }
 
     public UUID insert(UUID versionId, String title, String rationale, String riskTier, UUID requesterId,
-                       String requesterKind, LocalDate effectiveFrom) {
+                       String requesterKind, LocalDate effectiveFrom, String workflowModelCode, boolean urgent) {
         return jdbc.sql("""
                 INSERT INTO mdm.change_request (version_id, title, rationale, risk_tier, requester_id, requester_kind,
-                                                effective_from, origin)
+                                                effective_from, origin, workflow_model_code, is_urgent)
                 VALUES (:version, :title, :rationale, CAST(:risk AS mdm.risk_tier), :requester,
-                        CAST(:kind AS mdm.requester_kind), :from, 'user')
+                        CAST(:kind AS mdm.requester_kind), :from, 'user', :model, :urgent)
                 RETURNING change_request_id
                 """)
                 .param("version", versionId).param("title", title).param("rationale", rationale).param("risk", riskTier)
                 .param("requester", requesterId).param("kind", requesterKind).param("from", effectiveFrom)
+                .param("model", workflowModelCode).param("urgent", urgent)
                 .query(UUID.class).single();
+    }
+
+    /** An active workflow model with this code exists (wf is readable by the API; it never writes it). */
+    public boolean activeModelExists(String modelCode) {
+        return jdbc.sql("SELECT EXISTS (SELECT 1 FROM wf.workflow_model WHERE model_code = :c AND status = 'active')")
+                .param("c", modelCode).query(Boolean.class).single();
+    }
+
+    /** Any item of the request is in a hierarchy that requires a workflow (Phase 2 B-3). */
+    public boolean requiresWorkflow(UUID requestId) {
+        return jdbc.sql("""
+                SELECT EXISTS (SELECT 1 FROM mdm.change_item ci JOIN mdm.hierarchy h ON h.hierarchy_id = ci.hierarchy_id
+                               WHERE ci.change_request_id = :cr AND h.requires_workflow)
+                """).param("cr", requestId).query(Boolean.class).single();
+    }
+
+    public UUID startInstance(UUID requestId, String modelCode, UUID submitter) {
+        return jdbc.sql("SELECT wf.start_instance(:cr, :model, :actor)")
+                .param("cr", requestId).param("model", modelCode).param("actor", submitter).query(UUID.class).single();
+    }
+
+    /** The open root workflow instance of a governed request, if any. */
+    public Optional<UUID> openRootInstance(UUID requestId) {
+        return jdbc.sql("""
+                SELECT instance_id FROM wf.workflow_instance
+                WHERE change_request_id = :cr AND parent_instance_id IS NULL AND status IN ('draft', 'in_flight', 'pushed_back')
+                """).param("cr", requestId).query(UUID.class).optional();
+    }
+
+    public void closeInstanceWithdrawn(UUID instanceId, UUID actor) {
+        jdbc.sql("SELECT wf.close_instance(:i, 'withdrawn', :actor, NULL)").param("i", instanceId).param("actor", actor)
+                .query((rs, i) -> 0).single();
     }
 
     public Optional<ChangeRequestView> find(UUID id) {
@@ -131,15 +165,19 @@ public class ChangeRequestRepository {
                 .query((rs, i) -> 0).single();
     }
 
-    public void updateDraft(UUID id, String title, String rationale, String riskTier, LocalDate effectiveFrom) {
+    public void updateDraft(UUID id, String title, String rationale, String riskTier, LocalDate effectiveFrom,
+                            String workflowModelCode, Boolean urgent) {
         jdbc.sql("""
                 UPDATE mdm.change_request
                 SET title = coalesce(:title, title), rationale = coalesce(:rationale, rationale),
                     risk_tier = coalesce(CAST(:risk AS mdm.risk_tier), risk_tier),
-                    effective_from = coalesce(CAST(:from AS date), effective_from)
+                    effective_from = coalesce(CAST(:from AS date), effective_from),
+                    workflow_model_code = coalesce(CAST(:model AS text), workflow_model_code),
+                    is_urgent = coalesce(CAST(:urgent AS boolean), is_urgent)
                 WHERE change_request_id = :id
                 """)
                 .param("title", title).param("rationale", rationale).param("risk", riskTier).param("from", effectiveFrom)
+                .param("model", workflowModelCode).param("urgent", urgent)
                 .param("id", id).update();
     }
 

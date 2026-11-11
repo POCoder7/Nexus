@@ -120,6 +120,7 @@ If the request has a `workflowModelCode`: validate (Phase 1), `mdm.submit_change
 `WorkflowGateway.startInstance` in the **same transaction**. `wf.start_instance` writes the instance, items, stages,
 the `submit` action and the `instance_started` outbox event; the bridge trigger sets `governed_by_workflow = true` and
 status `in_review`. If a hierarchy of any item has `requires_workflow` and no model is given → 422 `workflow-required`.
+*Built in 2-8a:* `wf.start_instance` is owner-run as `nexus_wf` and callable by the API; it now also checks that the request is a draft or submitted (`N2101`), that the submitter is the requester (`N1025`) and that the model is the one the request chose (`N2236`). The model code is checked as an active model when it is set (422 `workflow.unknown_model`); `workflow_model_code` and `is_urgent` are frozen after draft like the rest of the content. A governed request is withdrawn by closing its open root instance (the bridge carries the outcome); 2-8 is built in three parts (2-8a submit and withdraw; 2-8b decisions, claims, enrichment, instance view; 2-8c admin endpoints).
 
 ### 3.3 Engine replaceability (ADR-035, accepted with the Phase 2 plan, 2026-11-11)
 The repository owner asked that Camunda stay replaceable. The worker is therefore split into engine-neutral ports and

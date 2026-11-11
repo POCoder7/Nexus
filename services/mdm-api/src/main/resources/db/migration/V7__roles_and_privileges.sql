@@ -42,7 +42,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA mdm, wf, wf_bridge
 -- nexus_api: drafts only
 -- -----------------------------------------------------------------------------
 GRANT INSERT ON mdm.change_request TO nexus_api;
-GRANT UPDATE (title, rationale, risk_tier, effective_from) ON mdm.change_request TO nexus_api;  -- draft-only by trigger
+GRANT UPDATE (title, rationale, risk_tier, effective_from, workflow_model_code, is_urgent) ON mdm.change_request TO nexus_api;  -- draft-only by trigger
 GRANT INSERT, DELETE ON mdm.change_item TO nexus_api;                                          -- draft-only by trigger
 
 -- -----------------------------------------------------------------------------
