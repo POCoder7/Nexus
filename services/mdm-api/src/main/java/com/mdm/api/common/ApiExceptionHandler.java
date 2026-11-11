@@ -34,6 +34,13 @@ public class ApiExceptionHandler {
         return withCorrelation(Problems.of(HttpStatus.NOT_FOUND, Problems.NOT_FOUND, ex.getMessage()), request);
     }
 
+    @ExceptionHandler(com.mdm.api.security.ForbiddenException.class)
+    public ProblemDetail forbidden(com.mdm.api.security.ForbiddenException ex, HttpServletRequest request) {
+        ProblemDetail p = Problems.of(HttpStatus.FORBIDDEN, Problems.FORBIDDEN, ex.getMessage());
+        p.setProperty("code", ex.code());
+        return withCorrelation(p, request);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail badRequest(IllegalArgumentException ex, HttpServletRequest request) {
         return withCorrelation(Problems.of(HttpStatus.BAD_REQUEST, Problems.INVALID_REQUEST, ex.getMessage()), request);

@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Runs the real Flyway migrations against PostgreSQL in a container, then exercises the read API with the
  * application's least-privilege login (see {@link PostgresIntegrationTest}). Requires a running container runtime.
+ * Requests are made as a synthetic viewer of TEST (Phase 1: every request needs an actor and READ on the hierarchy).
  */
 class HierarchyApiTest extends PostgresIntegrationTest {
 
@@ -23,6 +24,8 @@ class HierarchyApiTest extends PostgresIntegrationTest {
     static final UUID CHILD_A = UUID.fromString("00000000-0000-0000-0000-000000000102");
     static final UUID CHILD_B = UUID.fromString("00000000-0000-0000-0000-000000000103");
     static final UUID GRANDCHILD = UUID.fromString("00000000-0000-0000-0000-000000000104");
+
+    static final String VIEWER = "t_viewer";
 
     @Autowired
     MockMvc mvc;
@@ -34,6 +37,7 @@ class HierarchyApiTest extends PostgresIntegrationTest {
         Integer exists = jdbc.sql("SELECT count(*) FROM mdm.hierarchy WHERE hierarchy_code = 'TEST'")
                 .query(Integer.class).single();
         if (exists > 0) {
+            grant(VIEWER, "VIEWER", "TEST", null);
             return;
         }
         jdbc.sql("""
@@ -58,18 +62,19 @@ class HierarchyApiTest extends PostgresIntegrationTest {
                              (CAST(:a AS uuid),   CAST(:g AS uuid), 1)) AS v(parent, child, sort)
                 WHERE h.hierarchy_code = 'TEST'
                 """).param("top", TOP).param("a", CHILD_A).param("b", CHILD_B).param("g", GRANDCHILD).update();
+        grant(VIEWER, "VIEWER", "TEST", null);
     }
 
     @Test
     void listsHierarchiesWithTopNode() throws Exception {
-        mvc.perform(get("/api/v1/hierarchies"))
+        mvc.perform(get("/api/v1/hierarchies").with(asUser(VIEWER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.code == 'TEST')].topNodeName").value(hasItem("Top")));
     }
 
     @Test
     void returnsChildrenInSortOrderWithChildFlags() throws Exception {
-        mvc.perform(get("/api/v1/hierarchies/TEST/children").param("parentId", TOP.toString()))
+        mvc.perform(get("/api/v1/hierarchies/TEST/children").param("parentId", TOP.toString()).with(asUser(VIEWER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].name").value("Child A"))
@@ -81,7 +86,7 @@ class HierarchyApiTest extends PostgresIntegrationTest {
     @Test
     void pagesChildren() throws Exception {
         mvc.perform(get("/api/v1/hierarchies/TEST/children")
-                        .param("parentId", TOP.toString()).param("limit", "1").param("offset", "1"))
+                        .param("parentId", TOP.toString()).param("limit", "1").param("offset", "1").with(asUser(VIEWER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].name").value("Child B"));
@@ -90,13 +95,13 @@ class HierarchyApiTest extends PostgresIntegrationTest {
     @Test
     void rejectsOversizedPages() throws Exception {
         mvc.perform(get("/api/v1/hierarchies/TEST/children")
-                        .param("parentId", TOP.toString()).param("limit", "100000"))
+                        .param("parentId", TOP.toString()).param("limit", "100000").with(asUser(VIEWER)))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void returnsNodeDetail() throws Exception {
-        mvc.perform(get("/api/v1/nodes/" + CHILD_A).param("hierarchy", "TEST"))
+        mvc.perform(get("/api/v1/nodes/" + CHILD_A).param("hierarchy", "TEST").with(asUser(VIEWER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Child A"))
                 .andExpect(jsonPath("$.kind").value("legal_entity"));
@@ -104,7 +109,7 @@ class HierarchyApiTest extends PostgresIntegrationTest {
 
     @Test
     void unknownNodeIs404() throws Exception {
-        mvc.perform(get("/api/v1/nodes/" + UUID.randomUUID()))
+        mvc.perform(get("/api/v1/nodes/" + UUID.randomUUID()).with(asUser(VIEWER)))
                 .andExpect(status().isNotFound());
     }
 }

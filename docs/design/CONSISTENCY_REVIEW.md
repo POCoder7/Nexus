@@ -49,6 +49,9 @@
 | `N1006` | decision without a decider (V1) | `maker_checker.decider_required` |
 | `N1007` | policy-based rejection (V1) | `policy.approvals_only` |
 | `N1008` | policy-based approval of a non-low-risk request (V1) | `policy.low_risk_only` |
+| `N1009` | role granted to a non-human user (V8) | `roles.human_only` |
+| `N1005` | requester kind does not match the user record (V1, Phase 1) | `requester_kind_mismatch` |
+| `N2101`, `N2102` | invalid request status transition; request (or its items) no longer a draft (V1, Phase 1) | `change_request.status_transition`, `change_request.not_draft` |
 | `N1015` | decider not a member of the deciding group (V4) | `wf.not_group_member` |
 | `N1016` | user cannot act on the stage (V4) | `wf.cannot_act` |
 | `N1017` | actor kind does not match the user record (V4, V6) | `wf.actor_kind_mismatch` |

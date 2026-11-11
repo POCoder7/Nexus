@@ -22,6 +22,24 @@ public class NodeRepository {
         this.mapper = mapper;
     }
 
+    /** Hierarchies the node belongs to on {@code asOf} (as top node or through any placement), current belief. */
+    public List<UUID> hierarchiesContaining(UUID nodeId, LocalDate asOf) {
+        return jdbc.sql("""
+                SELECT h.hierarchy_id FROM mdm.hierarchy h WHERE h.top_node_id = :node
+                UNION
+                SELECT r.hierarchy_id FROM mdm.hierarchy_relationship r
+                WHERE r.child_node_id = :node AND r.valid_period @> CAST(:asOf AS date) AND upper_inf(r.recorded_period)
+                """)
+                .param("node", nodeId)
+                .param("asOf", asOf)
+                .query(UUID.class)
+                .list();
+    }
+
+    public boolean isInHierarchy(UUID nodeId, UUID hierarchyId, LocalDate asOf) {
+        return hierarchiesContaining(nodeId, asOf).contains(hierarchyId);
+    }
+
     public Optional<NodeDetail> find(UUID nodeId, String hierarchyCode, LocalDate asOf) {
         return jdbc.sql("""
                 SELECT n.node_id, n.node_kind::text AS node_kind, a.node_name, a.description,

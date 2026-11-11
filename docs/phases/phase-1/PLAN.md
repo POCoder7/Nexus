@@ -52,6 +52,10 @@ AUD-01 history query API. Listed in the LLD §15 as outlines.
 | 1-11 | Performance tests (tagged `perf`, excluded from the default build) + small synthetic generator | S | HIE-01, PRP-01 | perf: children page at 50 000 siblings, node detail, submit/apply 50 items |
 | 1-12 | Records: `data-model.md` (new objects, error-code registry), changelog, test report, summary, build state | S | PROG | review |
 
+**Change of order while building (2026-11-11):** `mdm.system_setting` and `BusinessClock` moved from 1-5 into 1-4,
+because entitlement checks need the business date; the idempotency table is created in V8 (1-4) and used in 1-7.
+pgTAP files are numbered `03_error_codes`, `04_change_request_controls`, `05_roles_and_privileges`, `06_entitlements`, …
+
 ## Tests (summary)
 pgTAP grows from 35 to an estimated 110–130 assertions across new files `03_change_request_controls.sql`,
 `04_roles_and_privileges.sql`, `05_apply.sql`, `06_validation.sql`, `07_entitlements.sql` (one file per area, `BEGIN … ROLLBACK`).

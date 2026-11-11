@@ -1,8 +1,8 @@
 # Build state
 
 - **Current phase:** 1 — Core write path
-- **Step in loop:** Plan (awaiting approval) — `docs/phases/phase-1/PLAN.md`
-- **Baseline:** db-test **pass** 35/35 · mvnw verify **pass** 6/6 · UI tests n/a (as of 2026-11-11, commit `d808b01`)
+- **Step in loop:** Build — branch `feature/HIE-02-phase-1-core-write-path`
+- **Baseline:** db-test **pass** 81/81 · mvnw verify **pass** 20/20 (after 1-3, 2026-11-11)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -13,7 +13,10 @@
 ## Current phase progress
 | Increment | Capability | Status | Tests | Notes |
 |---|---|---|---|---|
-| 1-1 … 1-12 | HIE-01, HIE-02, PRP-01, SEC-01, SEC-02, NEW-01, PROG | Planned | per plan | Plan awaiting approval |
+| 1-1 Error codes + Problem Details | PROG | Done `95091fc` | pgTAP 03 (10), JUnit 11 | 68 guards coded; registry extended |
+| 1-2 Change-request controls | PROG, HIE-02 | Done `f92fe1a` | pgTAP 04 (19) | + delete-only-drafts guard (LLD updated); 01 fixture submits first |
+| 1-3 Roles and privileges | PROG (D-04) | Done `5925522` | pgTAP 05 (17), JUnit 3 | audit trigger and bridge as definer; app runs as nexus_api login |
+| 1-4 … 1-12 | HIE-01, HIE-02, PRP-01, SEC-01, SEC-02, NEW-01 | Planned | per plan | |
 ## Decisions awaiting human review
 | ADR | Title | Why it needs review |
 |---|---|---|
@@ -23,7 +26,7 @@
 
 
 ## Open questions for the human
-1. Approve the Phase 1 plan (`docs/phases/phase-1/PLAN.md`) and its branch/merge approach.
+1. (none blocking) Phase 1 plan approved 2026-11-11; building.
 2. OD-11: create the GitHub remote when ready; CI runs only after a push you approve.
 3. OD-18a: Audit-Risk review of ADR-021 before the Phase 1 branch is merged to `main`.
 
@@ -37,4 +40,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Wait for approval of the Phase 1 plan; then build increments 1-1 to 1-12 on `feature/HIE-02-phase-1-core-write-path`, asking before each commit.
+Increment 1-4 (entitlements, actor resolution, `GET /me`), then 1-5 … 1-12, asking before each commit.

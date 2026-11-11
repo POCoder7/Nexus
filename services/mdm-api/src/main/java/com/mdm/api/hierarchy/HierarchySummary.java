@@ -8,5 +8,6 @@ public record HierarchySummary(
         String purpose,
         String group,
         UUID topNodeId,
-        String topNodeName) {
+        String topNodeName,
+        UUID hierarchyId) {
 }

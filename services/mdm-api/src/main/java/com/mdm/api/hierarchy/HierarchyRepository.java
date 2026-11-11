@@ -19,7 +19,7 @@ public class HierarchyRepository {
 
     public List<HierarchySummary> findActive(LocalDate asOf) {
         return jdbc.sql("""
-                SELECT h.hierarchy_code, h.hierarchy_name, h.purpose, h.hierarchy_group,
+                SELECT h.hierarchy_id, h.hierarchy_code, h.hierarchy_name, h.purpose, h.hierarchy_group,
                        h.top_node_id, a.node_name AS top_node_name
                 FROM mdm.hierarchy h
                 LEFT JOIN mdm.node_attr a
@@ -36,12 +36,20 @@ public class HierarchyRepository {
                         rs.getString("purpose"),
                         rs.getString("hierarchy_group"),
                         rs.getObject("top_node_id", UUID.class),
-                        rs.getString("top_node_name")))
+                        rs.getString("top_node_name"),
+                        rs.getObject("hierarchy_id", UUID.class)))
                 .list();
     }
 
     public Optional<HierarchySummary> findByCode(String code, LocalDate asOf) {
         return findActive(asOf).stream().filter(h -> h.code().equals(code)).findFirst();
+    }
+
+    public Optional<UUID> findIdByCode(String code) {
+        return jdbc.sql("SELECT hierarchy_id FROM mdm.hierarchy WHERE hierarchy_code = :code AND is_active")
+                .param("code", code)
+                .query(UUID.class)
+                .optional();
     }
 
     /**
