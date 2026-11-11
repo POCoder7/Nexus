@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Rebuilds a throwaway test database, applies all migrations in order, runs the pgTAP tests.
 set -euo pipefail
+# Git Bash on Windows rewrites arguments such as /workspace/... into Windows paths before
+# passing them to docker; this stops it. No effect on Linux or macOS.
+export MSYS_NO_PATHCONV=1
 cd "$(dirname "$0")/.."
 
 docker compose up -d --build db
