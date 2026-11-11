@@ -56,8 +56,8 @@ public class InProcessWorkflowEngine implements WorkflowEngine {
 
     @Override
     public void publish(EngineMessage message) {
-        if (!delivered.add(message.messageId())) {
-            return;   // seen before
+        if (delivered.contains(message.messageId())) {
+            return;   // handled before; a delivery that failed is not marked, so the relay's retry is handled
         }
         switch (message.type()) {
             case STAGE_DECIDED -> {
@@ -73,6 +73,7 @@ public class InProcessWorkflowEngine implements WorkflowEngine {
             }
             case REQUEST_WITHDRAWN -> running.remove(message.correlationKey());
         }
+        delivered.add(message.messageId());
     }
 
     @Override
@@ -80,11 +81,26 @@ public class InProcessWorkflowEngine implements WorkflowEngine {
         return running.contains(instanceId);
     }
 
+    /**
+     * What a worker restart does to this driver: it forgets which processes it was running (the database keeps
+     * everything else). The reconciler then starts them again and each resumes from the database.
+     */
+    public void restart() {
+        running.clear();
+        delivered.clear();
+    }
+
     private void drive(UUID instanceId) {
         for (int i = 0; i < MAX_STEPS; i++) {
             StepResult r = steps.nextStage(instanceId);
             switch (r.action()) {
                 case StepResult.ACTIVATED, StepResult.WAIT -> {
+                    return;
+                }
+                case StepResult.DECIDED_APPROVED -> steps.completeStage(r.instanceStageId());   // then the next stage
+                case StepResult.DECIDED_REJECTED -> {
+                    steps.closeRejected(r.instanceStageId());
+                    running.remove(instanceId);
                     return;
                 }
                 case StepResult.EVALUATE_POLICY -> {

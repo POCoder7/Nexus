@@ -10,7 +10,11 @@ import java.util.UUID;
  */
 public interface WorkflowSteps {
 
-    /** {@code wf.advance_instance}: activate the next stage, wait, ask for the policy evaluation, or report nothing left. */
+    /**
+     * {@code wf.advance_instance}: activate the next stage, wait, ask for the policy evaluation, or report nothing left.
+     * When the active stage already has an outcome, reports it ({@code decided_approved} / {@code decided_rejected}), so a
+     * process recreated after a loss resumes from the database instead of waiting for a message it will never get.
+     */
     StepResult nextStage(UUID instanceId);
 
     /** {@code wf.complete_stage}: completes an approved stage (refused otherwise). */
@@ -36,5 +40,8 @@ public interface WorkflowSteps {
         public static final String WAIT = "wait";
         public static final String EVALUATE_POLICY = "evaluate_policy";
         public static final String NONE = "none";
+        /** The active stage was decided while no process was listening (lost process, missed message): act on it now. */
+        public static final String DECIDED_APPROVED = "decided_approved";
+        public static final String DECIDED_REJECTED = "decided_rejected";
     }
 }

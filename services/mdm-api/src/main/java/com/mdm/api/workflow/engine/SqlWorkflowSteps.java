@@ -39,6 +39,13 @@ public class SqlWorkflowSteps implements WorkflowSteps {
                 .query((rs, n) -> new StepResult(rs.getString("action"), rs.getObject("instance_stage_id", UUID.class),
                         rs.getString("stage_type"), rs.getTimestamp("due_at") == null ? null : rs.getTimestamp("due_at").toInstant()))
                 .single();
+        if ((StepResult.WAIT.equals(r.action()) || StepResult.ACTIVATED.equals(r.action())) && r.instanceStageId() != null) {
+            String outcome = jdbc.sql("SELECT wf.stage_outcome(:s)").param("s", r.instanceStageId()).query(String.class).single();
+            if ("approved".equals(outcome) || "rejected".equals(outcome)) {
+                r = new StepResult("approved".equals(outcome) ? StepResult.DECIDED_APPROVED : StepResult.DECIDED_REJECTED,
+                        r.instanceStageId(), r.stageType(), r.dueAt());
+            }
+        }
         log.info("workflow.next_stage instanceId={} action={} stageId={}", instanceId, r.action(), r.instanceStageId());
         return r;
     }

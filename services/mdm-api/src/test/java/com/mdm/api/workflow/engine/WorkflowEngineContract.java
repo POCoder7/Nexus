@@ -41,6 +41,12 @@ public abstract class WorkflowEngineContract extends PostgresIntegrationTest {
     @Autowired
     protected WorkflowEngine engine;
 
+    @Autowired
+    protected EngineReconciler reconciler;
+
+    /** Makes the engine lose its process for the instance (engine reset, process deleted, worker restart). */
+    protected abstract void loseProcess(UUID instanceId) throws Exception;
+
     /** Lets the engine work until the request has settled (no more relay events, nothing left in flight to move). */
     protected abstract void drain() throws Exception;
 
@@ -175,6 +181,28 @@ public abstract class WorkflowEngineContract extends PostgresIntegrationTest {
                 .param("i", instance).query(Integer.class).single()).isEqualTo(1);
     }
 
+
+    @Test
+    void aProcessLostWhileItsStageWasDecidedIsRecreatedAndResumes() throws Exception {
+        String cr = submit("CT_ADD", updateLeaf());
+        drain();
+        UUID instance = instance(cr);
+        loseProcess(instance);
+        decide(APPROVER, activeStage(cr), "approve");   // recorded; no process hears about it
+        skipPendingEvents();                             // the message is lost with the process
+        assertThat(engine.isRunning(instance)).isFalse();
+        assertThat(reconciler.reconcile()).isPositive();
+        drain();
+        assertThat(currentStage(cr)).isEqualTo("commit/active");   // resumed from the database: the decided stage completed
+        decide(COMMITTER, activeStage(cr), "approve");
+        drain();
+        assertThat(outcome(cr)).isEqualTo("applied/committed");
+    }
+
+    protected void skipPendingEvents() {
+        ownerJdbc().sql("UPDATE wf.outbox_consumer SET last_event_id = (SELECT coalesce(max(event_id), 0) FROM wf.event_outbox) WHERE consumer_code = :c")
+                .param("c", OutboxRelay.CONSUMER).update();
+    }
     // ------------------------------------------------------------------ helpers
 
     private static void model(JdbcClient jdbc, String code, String middleType, String middleGroup, String middleTask) {
@@ -195,12 +223,12 @@ public abstract class WorkflowEngineContract extends PostgresIntegrationTest {
                 .param("a", ensureUser("ct_policy_approver", "human")).param("m", model).update();
     }
 
-    private String updateLeaf() {
+    protected String updateLeaf() {
         return "{\"action\":\"update_node\",\"hierarchyCode\":\"CT_H\",\"nodeId\":\"" + LEAF + "\",\"payload\":{\"description\":\"CT "
                 + UUID.randomUUID() + "\"}}";
     }
 
-    private String submit(String model, String item) throws Exception {
+    protected String submit(String model, String item) throws Exception {
         MvcResult r = mvc.perform(post("/api/v1/change-requests").with(asUser(STEWARD)).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"versionName\":\"CT working\",\"title\":\"CT " + model + "\",\"workflowModelCode\":\"" + model + "\"}"))
                 .andExpect(status().isCreated()).andReturn();
@@ -212,7 +240,7 @@ public abstract class WorkflowEngineContract extends PostgresIntegrationTest {
         return id;
     }
 
-    private void decide(String login, UUID stage, String decision) throws Exception {
+    protected void decide(String login, UUID stage, String decision) throws Exception {
         mvc.perform(post("/api/v1/workflow/stages/" + stage + "/decision").with(asUser(login)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"decision\":\"" + decision + "\"}")).andExpect(status().isOk());
     }
@@ -222,12 +250,12 @@ public abstract class WorkflowEngineContract extends PostgresIntegrationTest {
                 .param("cr", cr).query(UUID.class).single();
     }
 
-    private UUID activeStage(String cr) {
+    protected UUID activeStage(String cr) {
         return ownerJdbc().sql("SELECT instance_stage_id FROM wf.instance_stage WHERE instance_id = :i AND status IN ('active', 'claimed')")
                 .param("i", instance(cr)).query(UUID.class).single();
     }
 
-    private String currentStage(String cr) throws Exception {
+    protected String currentStage(String cr) throws Exception {
         JsonNode view = mapper.readTree(mvc.perform(get("/api/v1/workflow/instances/" + instance(cr)).with(asUser(STEWARD)))
                 .andReturn().getResponse().getContentAsString());
         for (JsonNode s : view.path("stages")) {
@@ -238,7 +266,7 @@ public abstract class WorkflowEngineContract extends PostgresIntegrationTest {
         return "none";
     }
 
-    private String outcome(String cr) {
+    protected String outcome(String cr) {
         return ownerJdbc().sql("""
                 SELECT cr.status::text || '/' || i.status::text FROM mdm.change_request cr
                 JOIN wf.workflow_instance i ON i.change_request_id = cr.change_request_id AND i.parent_instance_id IS NULL
@@ -246,7 +274,7 @@ public abstract class WorkflowEngineContract extends PostgresIntegrationTest {
                 """).param("cr", cr).query(String.class).single();
     }
 
-    private long offset() {
+    protected long offset() {
         return ownerJdbc().sql("SELECT last_event_id FROM wf.outbox_consumer WHERE consumer_code = :c").param("c", OutboxRelay.CONSUMER)
                 .query(Long.class).single();
     }

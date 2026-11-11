@@ -26,6 +26,18 @@ class CamundaEngineContractTest extends WorkflowEngineContract {
         engine.deploy();
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    io.camunda.zeebe.client.ZeebeClient client;
+
+    /** Cancels the Camunda process and forgets its key, as an engine reset would. */
+    @Override
+    protected void loseProcess(java.util.UUID instanceId) {
+        String ref = ownerJdbc().sql("SELECT engine_ref FROM wf.workflow_instance WHERE instance_id = :i").param("i", instanceId)
+                .query(String.class).single();
+        client.newCancelInstanceCommand(Long.parseLong(ref)).send().join();
+        ownerJdbc().sql("UPDATE wf.workflow_instance SET engine_ref = NULL WHERE instance_id = :i").param("i", instanceId).update();
+    }
+
     @Override
     protected void drain() throws Exception {
         String last = null;

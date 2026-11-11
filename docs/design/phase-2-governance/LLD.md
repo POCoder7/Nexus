@@ -448,6 +448,7 @@ sequenceDiagram
 | Camunda unavailable | Relay retries; decisions still recorded; stages do not advance | Alert on outbox lag; resumes on recovery |
 | Worker crash mid-job | Job times out in Camunda and is retried | Functions are idempotent |
 | Process instance lost / engine reset | DB state intact | `EngineReconciler` (hourly and on demand): for every `in_flight` instance without a live process, create one; the generic process resumes from DB state (next-stage reports `wait` for an active stage) |
+*Built in 2-11:* `EngineReconciler` (worker: 30 s after start, then hourly) starts the process again for every in-flight instance the engine is not running. To resume correctly when the decision was made while no process listened, the next-stage step reports an active stage that already has an outcome as `decided_approved` / `decided_rejected`, and both drivers (and the BPMN) act on it as on a stage-decided message. The in-process driver marks a message as handled only after it succeeded (found by the resilience test: a failed delivery was otherwise skipped on retry). The contract suite gains the lost-process case; the in-process suite a failing step (decision kept, relay stops at the event, resumes when fixed).
 | Guard rejects a job's call (e.g. model changed) | Job fails with an incident | Incident visible in Camunda Operate; alert; no data change |
 | Apply fails after commit | Request `apply_failed` (Phase 1) | Steward recreates; workflow history kept |
 
