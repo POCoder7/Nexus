@@ -39,7 +39,7 @@
 | 2-6 Bridge: D-06 attribution, clearance, governed flag, enrichment, `requires_workflow` | PROG, GOV-02 | Done `b30010f` | pgTAP 18 (16) | draft-only guard split into an invoker check and an owner-run version bump (LLD noted); N2107 |
 | 2-7 Stage progression, model activation by a second admin, model loader | GOV-01, GOV-02 | Done `72bf7d0` | pgTAP 19 (19), JUnit 2 | fixtures in 16–18 and the concurrency test name an activator (setup only); N2234, N2235 |
 | 2-8a Submit with a workflow model, urgent flag, governed withdraw | GOV-02 | Done `33fcb1e` | JUnit 3 | 2-8 split into a/b/c (size); `start_instance` owner-run with requester and model checks (N2236); OpenAPI regenerated |
-| 2-8b Stage decisions, claims, enrichment, instance view, refusals in words | GOV-02 | Done (this commit) | JUnit 3 | `wf.why_cannot_act`; `WorkflowGateway`; N2201 is 422 per ADR-020 (LLD table corrected in a note); OpenAPI operation ids kept unique (test added) |
+| 2-8b Stage decisions, claims, enrichment, instance view, refusals in words | GOV-02 | Done `9308ee5` + fix (this commit) | JUnit 3 | `wf.why_cannot_act`; `WorkflowGateway`; N2201 is 422 per ADR-020 (LLD table corrected in a note); OpenAPI operation ids kept unique (test added) |
 | 2-8c … 2-12 | GOV-01, GOV-12, GOV-13 | Planned | per plan | |
 
 ## Decisions awaiting human review

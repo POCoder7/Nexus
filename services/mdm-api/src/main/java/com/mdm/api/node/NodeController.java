@@ -36,7 +36,7 @@ public class NodeController {
      * An unknown hierarchy code is a 404, not a silent omission of local properties (D-19).
      */
     @GetMapping("/{nodeId}")
-    public NodeDetail get(
+    public NodeDetail getNode(
             Actor actor,
             @PathVariable UUID nodeId,
             @RequestParam(required = false) String hierarchy,

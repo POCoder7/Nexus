@@ -672,7 +672,7 @@
   "paths" : {
     "/api/v1/change-requests" : {
       "get" : {
-        "operationId" : "list",
+        "operationId" : "listChangeRequests",
         "parameters" : [ {
           "in" : "query",
           "name" : "mine",
@@ -720,7 +720,7 @@
         "tags" : [ "change-request-controller" ]
       },
       "post" : {
-        "operationId" : "create",
+        "operationId" : "createChangeRequest",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -748,7 +748,7 @@
     },
     "/api/v1/change-requests/{id}" : {
       "get" : {
-        "operationId" : "get",
+        "operationId" : "getChangeRequest",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -773,7 +773,7 @@
         "tags" : [ "change-request-controller" ]
       },
       "patch" : {
-        "operationId" : "update",
+        "operationId" : "updateChangeRequest",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -817,7 +817,7 @@
     },
     "/api/v1/change-requests/{id}/decision" : {
       "post" : {
-        "operationId" : "decide",
+        "operationId" : "decideChangeRequest",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -860,7 +860,7 @@
     },
     "/api/v1/change-requests/{id}/items" : {
       "get" : {
-        "operationId" : "items",
+        "operationId" : "listChangeRequestItems",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -901,7 +901,7 @@
         "tags" : [ "change-request-controller" ]
       },
       "post" : {
-        "operationId" : "addItem",
+        "operationId" : "addChangeRequestItem",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -945,7 +945,7 @@
     },
     "/api/v1/change-requests/{id}/items/{itemId}" : {
       "delete" : {
-        "operationId" : "deleteItem",
+        "operationId" : "deleteChangeRequestItem",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -980,7 +980,7 @@
     },
     "/api/v1/change-requests/{id}/submit" : {
       "post" : {
-        "operationId" : "submit",
+        "operationId" : "submitChangeRequest",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -1026,7 +1026,7 @@
     },
     "/api/v1/change-requests/{id}/validate" : {
       "post" : {
-        "operationId" : "validate",
+        "operationId" : "validateChangeRequest",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -1053,7 +1053,7 @@
     },
     "/api/v1/change-requests/{id}/withdraw" : {
       "post" : {
-        "operationId" : "withdraw",
+        "operationId" : "withdrawChangeRequest",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -1099,7 +1099,7 @@
     },
     "/api/v1/hierarchies" : {
       "get" : {
-        "operationId" : "list_1",
+        "operationId" : "listHierarchies",
         "parameters" : [ {
           "in" : "query",
           "name" : "asOf",
@@ -1150,7 +1150,7 @@
     },
     "/api/v1/hierarchies/{code}" : {
       "get" : {
-        "operationId" : "get_2",
+        "operationId" : "getHierarchy",
         "parameters" : [ {
           "in" : "path",
           "name" : "code",
@@ -1192,7 +1192,7 @@
     },
     "/api/v1/hierarchies/{code}/children" : {
       "get" : {
-        "operationId" : "children",
+        "operationId" : "listChildren",
         "parameters" : [ {
           "in" : "path",
           "name" : "code",
@@ -1258,7 +1258,7 @@
     },
     "/api/v1/me" : {
       "get" : {
-        "operationId" : "me",
+        "operationId" : "getMe",
         "responses" : {
           "200" : {
             "content" : {
@@ -1276,7 +1276,7 @@
     },
     "/api/v1/nodes/{nodeId}" : {
       "get" : {
-        "operationId" : "get_1",
+        "operationId" : "getNode",
         "parameters" : [ {
           "in" : "path",
           "name" : "nodeId",

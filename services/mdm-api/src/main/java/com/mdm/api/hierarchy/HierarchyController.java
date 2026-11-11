@@ -34,7 +34,7 @@ public class HierarchyController {
 
     /** Hierarchies the actor may read (SEC-02), ordered by sort sequence then code. */
     @GetMapping
-    public Page<HierarchySummary> list(
+    public Page<HierarchySummary> listHierarchies(
             Actor actor,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant recordedAsOf,
@@ -47,7 +47,7 @@ public class HierarchyController {
     }
 
     @GetMapping("/{code}")
-    public HierarchySummary get(
+    public HierarchySummary getHierarchy(
             Actor actor,
             @PathVariable String code,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf,
@@ -57,7 +57,7 @@ public class HierarchyController {
     }
 
     @GetMapping("/{code}/children")
-    public Page<ChildNode> children(
+    public Page<ChildNode> listChildren(
             Actor actor,
             @PathVariable String code,
             @RequestParam UUID parentId,

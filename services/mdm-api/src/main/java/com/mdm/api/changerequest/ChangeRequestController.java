@@ -41,7 +41,7 @@ public class ChangeRequestController {
     }
 
     @PostMapping
-    public ResponseEntity<ChangeRequestView> create(Actor actor, @RequestBody CreateRequest body) {
+    public ResponseEntity<ChangeRequestView> createChangeRequest(Actor actor, @RequestBody CreateRequest body) {
         ChangeRequestView cr = service.create(actor, body);
         return ResponseEntity.created(URI.create("/api/v1/change-requests/" + cr.id()))
                 .eTag(ETags.of(cr.rowVersion())).body(cr);
@@ -52,7 +52,7 @@ public class ChangeRequestController {
      * requests (default status submitted) the caller may decide, oldest first.
      */
     @GetMapping
-    public Page<ChangeRequestView> list(Actor actor,
+    public Page<ChangeRequestView> listChangeRequests(Actor actor,
                                         @RequestParam(defaultValue = "true") boolean mine,
                                         @RequestParam(required = false) String status,
                                         @RequestParam(defaultValue = "50") int limit,
@@ -68,13 +68,13 @@ public class ChangeRequestController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ChangeRequestView> get(Actor actor, @PathVariable UUID id) {
+    public ResponseEntity<ChangeRequestView> getChangeRequest(Actor actor, @PathVariable UUID id) {
         ChangeRequestView cr = service.get(actor, id);
         return ResponseEntity.ok().eTag(ETags.of(cr.rowVersion())).body(cr);
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<ChangeRequestView> update(Actor actor, @PathVariable UUID id,
+    public ResponseEntity<ChangeRequestView> updateChangeRequest(Actor actor, @PathVariable UUID id,
                                                     @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
                                                     @RequestBody UpdateRequest body) {
         ChangeRequestView cr = service.update(actor, id, ifMatch, body);
@@ -82,7 +82,7 @@ public class ChangeRequestController {
     }
 
     @PostMapping("/{id}/items")
-    public ResponseEntity<ItemView> addItem(Actor actor, @PathVariable UUID id,
+    public ResponseEntity<ItemView> addChangeRequestItem(Actor actor, @PathVariable UUID id,
                                             @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
                                             @RequestBody ItemCommand body) {
         var added = service.addItem(actor, id, ifMatch, body);
@@ -92,7 +92,7 @@ public class ChangeRequestController {
     }
 
     @GetMapping("/{id}/items")
-    public Page<ItemView> items(Actor actor, @PathVariable UUID id,
+    public Page<ItemView> listChangeRequestItems(Actor actor, @PathVariable UUID id,
                                 @RequestParam(defaultValue = "200") int limit,
                                 @RequestParam(required = false) String cursor) {
         cursors.checkLimit(limit);
@@ -102,7 +102,7 @@ public class ChangeRequestController {
     }
 
     @DeleteMapping("/{id}/items/{itemId}")
-    public ResponseEntity<Void> deleteItem(Actor actor, @PathVariable UUID id, @PathVariable UUID itemId,
+    public ResponseEntity<Void> deleteChangeRequestItem(Actor actor, @PathVariable UUID id, @PathVariable UUID itemId,
                                            @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
         int version = service.deleteItem(actor, id, itemId, ifMatch);
         return ResponseEntity.noContent().eTag(ETags.of(version)).build();
@@ -110,13 +110,13 @@ public class ChangeRequestController {
 
     /** Trial validation: nothing changes except that the findings are stored with the request. */
     @PostMapping("/{id}/validate")
-    public ValidationReport validate(Actor actor, @PathVariable UUID id) {
+    public ValidationReport validateChangeRequest(Actor actor, @PathVariable UUID id) {
         return service.validate(actor, id);
     }
 
     /** Validate and submit. 200 with the submitted request, or 422 with the findings (the request stays a draft). */
     @PostMapping("/{id}/submit")
-    public ResponseEntity<?> submit(Actor actor, @PathVariable UUID id,
+    public ResponseEntity<?> submitChangeRequest(Actor actor, @PathVariable UUID id,
                                     @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
                                     @RequestBody(required = false) Map<String, Object> ignored) {
         ChangeRequestService.SubmitOutcome outcome = service.submit(actor, id, ifMatch);
@@ -136,7 +136,7 @@ public class ChangeRequestController {
      * the outcome ({@code applied} or {@code apply_failed} with its reason). A rejection ends the request.
      */
     @PostMapping("/{id}/decision")
-    public ResponseEntity<ChangeRequestView> decide(Actor actor, @PathVariable UUID id,
+    public ResponseEntity<ChangeRequestView> decideChangeRequest(Actor actor, @PathVariable UUID id,
                                                     @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
                                                     @RequestBody(required = false) ChangeRequestDtos.DecisionRequest body) {
         ChangeRequestView decided = service.decide(actor, id, ifMatch, body);
@@ -148,7 +148,7 @@ public class ChangeRequestController {
     }
 
     @PostMapping("/{id}/withdraw")
-    public ResponseEntity<ChangeRequestView> withdraw(Actor actor, @PathVariable UUID id,
+    public ResponseEntity<ChangeRequestView> withdrawChangeRequest(Actor actor, @PathVariable UUID id,
                                                       @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
                                                       @RequestBody(required = false) Map<String, Object> ignored) {
         ChangeRequestView cr = service.withdraw(actor, id, ifMatch);

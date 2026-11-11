@@ -25,7 +25,7 @@ public class MeController {
     }
 
     @GetMapping
-    public MeView me(Actor actor) {
+    public MeView getMe(Actor actor) {
         return new MeView(actor, clock.today(), clock.zone().getId(), entitlements.grants(actor));
     }
 }
