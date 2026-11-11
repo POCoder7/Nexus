@@ -5,7 +5,10 @@ Nexus is an AI-enabled master data management (MDM) platform replacing a legacy 
 product (Oracle DRM/DRG). It manages hierarchies, nodes, properties, versions, governance workflows,
 and a legal-entity ownership graph for beneficial-ownership (UBO) analysis.
 
-Read first: `README.md`, `docs/data-model.md`, `docs/adr/`, and the spec for the task in `docs/specs/`.
+Read first: `README.md`, `docs/capabilities.md`, `docs/data-model.md`, `docs/adr/`, and the spec for the task in `docs/specs/`.
+For the phased build, follow `docs/BUILD_PROTOCOL.md`; `docs/BUILD_STATE.md` records where the build stands.
+For design work, follow `docs/DESIGN_PROTOCOL.md`. Before building a phase, read its approved
+`docs/design/phase-N-*/LLD.md`. UI work follows `docs/design/UI_STANDARD.md` (Angular, ADR-012).
 
 ## Layout
 - `services/mdm-api/` — Java 21 / Spring Boot 3 service (Maven). Flyway migrations live in
@@ -14,6 +17,12 @@ Read first: `README.md`, `docs/data-model.md`, `docs/adr/`, and the spec for the
 - `db/tests/` — pgTAP tests for database rules. `db/Dockerfile` — PostgreSQL 16 + pgTAP.
 - `scripts/` — `db-test.sh` / `db-test.ps1` (fresh DB, all migrations, pgTAP), `check-setup.*`.
 - `docs/specs/` — specs per capability; `docs/adr/` — architecture decisions.
+- `docs/capabilities.md` — capability catalogue; every story and change maps to an ID here.
+- `docs/BUILD_PROTOCOL.md` — the phase-by-phase build loop; `docs/BUILD_STATE.md` — current progress (update before stopping).
+- `docs/DESIGN_PROTOCOL.md` — how the low-level designs are produced; `docs/design/` — the designs, UI standard,
+  traceability and open decisions; `docs/architecture/` — overview and pattern catalogue.
+- `ui/` — Angular front end (from Phase 3). Design-system packages come from the internal registry and are never committed.
+- `.knowledge/` (git-ignored, may be absent) — private reference material. Read-only: never edit, copy from, quote in commits, or stage it.
 - `tests/golden/` — parity tests against outputs captured from the legacy system (masked data only).
 
 ## Commands
@@ -41,6 +50,7 @@ Read first: `README.md`, `docs/data-model.md`, `docs/adr/`, and the spec for the
    in the branch name, commit message and PR.
 8. **Ask first** before: `git push`, changing CI, touching credentials or `.env`, adding dependencies,
    or anything outside the local machine.
+9. **Private material stays private.** Never stage, commit or summarise into tracked files anything from `.knowledge/`.
 
 ## Conventions
 - Java: constructor injection, records for DTOs, `JdbcClient` with explicit SQL and row mappers,

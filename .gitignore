@@ -23,3 +23,9 @@ data/
 .DS_Store
 Thumbs.db
 *.log
+
+# Private reference material for local use only - never commit
+.knowledge/
+
+# Personal Claude Code overrides
+.claude/settings.local.json

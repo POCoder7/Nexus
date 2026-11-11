@@ -12,7 +12,24 @@ for beneficial-ownership analysis, and AI assistance under human approval.
    and open http://localhost:8080/api/v1/hierarchies
 
 Full setup: [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md) · Working rules: [CLAUDE.md](CLAUDE.md) ·
-Contributing: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) · Data model: [docs/data-model.md](docs/data-model.md)
+Contributing: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) · Data model: [docs/data-model.md](docs/data-model.md) ·
+Capabilities: [docs/capabilities.md](docs/capabilities.md)
+
+## Documentation map
+| Document | Purpose |
+|---|---|
+| [CLAUDE.md](CLAUDE.md) | Non-negotiable working rules for AI agents and humans |
+| [docs/capabilities.md](docs/capabilities.md) | What must be built: 91 capabilities with IDs, decisions and acceptance criteria |
+| [docs/DESIGN_PROTOCOL.md](docs/DESIGN_PROTOCOL.md) | How the low-level design per phase is produced (do this first) |
+| [docs/BUILD_PROTOCOL.md](docs/BUILD_PROTOCOL.md) | The phase-by-phase build loop: plan, build, test, document, approve |
+| [docs/BUILD_STATE.md](docs/BUILD_STATE.md) | Where the build currently stands |
+| [docs/design/UI_STANDARD.md](docs/design/UI_STANDARD.md) | Binding UI standard (Angular on the organisation's design system) |
+| [docs/design/](docs/design/) | Low-level designs per phase, traceability, open decisions |
+| [docs/architecture/](docs/architecture/) | Architecture overview and pattern catalogue |
+| [docs/adr/](docs/adr/) | Architecture decision records |
+| [docs/specs/](docs/specs/) | Specifications per capability |
+| [docs/data-model.md](docs/data-model.md) | Schema design and legacy-product mapping |
+| [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md) · [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Environment setup and the contribution flow |
 
 ## Repository layout
 | Path | Contents |
