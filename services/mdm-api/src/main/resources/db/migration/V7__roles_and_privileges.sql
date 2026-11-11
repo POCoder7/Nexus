@@ -114,3 +114,12 @@ GRANT EXECUTE ON FUNCTION mdm.validate_change_request(uuid, date) TO nexus_api;
 ALTER FUNCTION mdm.submit_change_request(uuid, uuid) OWNER TO nexus_decider;
 REVOKE EXECUTE ON FUNCTION mdm.submit_change_request(uuid, uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION mdm.submit_change_request(uuid, uuid) TO nexus_api;
+
+-- Decision (1-10): the only path by which the API records a decision; its basis is always human_review (D-04).
+ALTER FUNCTION mdm.decide_change_request(uuid, uuid, text, text) OWNER TO nexus_decider;
+REVOKE EXECUTE ON FUNCTION mdm.decide_change_request(uuid, uuid, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION mdm.decide_change_request(uuid, uuid, text, text) TO nexus_api;
+
+ALTER FUNCTION mdm.record_apply_failure(uuid, text) OWNER TO nexus_apply;
+REVOKE EXECUTE ON FUNCTION mdm.record_apply_failure(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION mdm.record_apply_failure(uuid, text) TO nexus_api;

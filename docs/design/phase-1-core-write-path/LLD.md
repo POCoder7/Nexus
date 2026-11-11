@@ -506,6 +506,7 @@ check (`expected`) fails cleanly with `N3001` instead of overwriting.
 | Apply | Stale base, cycle created by another request in the meantime, duplicate name | Caught inside the function: request → `apply_failed` with reason; facts unchanged; no event |
 | Apply | Serialization failure / deadlock | Retried up to `TX_RETRY_MAX`; then `apply_failed` with `retry-later` reason and an alert |
 | API crash between decide and apply | Request stays `approved` | `ApplyService` sweeps `approved` requests older than 1 minute on startup and every minute (idempotent: apply checks status first) |
+*Built in 1-10:* recording `apply_failed` after the retries needs a status write the API role does not have, so it goes through a new owner-run function `mdm.record_apply_failure(cr, reason)` (owner `nexus_apply`; only `approved` → `apply_failed`, facts untouched, reason prefixed `retry-later:`). The sweeper (`ApplySweeper`, `mdm.apply.sweep.*`, on by default, off in tests) applies up to 100 requests approved over a minute ago per run, as their decider. The review queue (`GET /change-requests?mine=false`) lists other people's requests in a status (default `submitted`), oldest first, filtered to those whose every item the caller may decide; `decide_change_request` refuses anything but `submitted` (core mode; `in_review` belongs to the workflow) and an invalid decision (`22023`, also checked by the API as a 400).
 
 ## 7. Algorithms
 

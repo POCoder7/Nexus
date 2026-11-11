@@ -85,6 +85,7 @@ public abstract class PostgresIntegrationTest {
         registry.add("spring.flyway.user", POSTGRES::getUsername);
         registry.add("spring.flyway.password", POSTGRES::getPassword);
         registry.add("spring.flyway.locations", () -> "classpath:db/migration,classpath:db/testroles");
+        registry.add("mdm.apply.sweep.enabled", () -> "false");   // tests call the sweeper directly when they need it
     }
 
     /** Owner connection for test setup only. Never use it for the behaviour under test. */

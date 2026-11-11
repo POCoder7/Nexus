@@ -1,5 +1,6 @@
 package com.mdm.api.changerequest;
 
+import com.mdm.api.apply.ApplyService;
 import com.mdm.api.changerequest.ChangeRequestDtos.ChangeRequestView;
 import com.mdm.api.changerequest.ChangeRequestDtos.CreateRequest;
 import com.mdm.api.changerequest.ChangeRequestDtos.ItemCommand;
@@ -30,10 +31,12 @@ import java.util.UUID;
 public class ChangeRequestController {
 
     private final ChangeRequestService service;
+    private final ApplyService apply;
     private final Cursors cursors;
 
-    public ChangeRequestController(ChangeRequestService service, Cursors cursors) {
+    public ChangeRequestController(ChangeRequestService service, ApplyService apply, Cursors cursors) {
         this.service = service;
+        this.apply = apply;
         this.cursors = cursors;
     }
 
@@ -45,8 +48,8 @@ public class ChangeRequestController {
     }
 
     /**
-     * The caller's own requests. Other people's requests (the review queue) need DECIDE in scope and arrive with
-     * decisions in increment 1-8.
+     * {@code mine=true}: the caller's own requests, newest first. {@code mine=false}: the review queue, other people's
+     * requests (default status submitted) the caller may decide, oldest first.
      */
     @GetMapping
     public Page<ChangeRequestView> list(Actor actor,
@@ -54,13 +57,13 @@ public class ChangeRequestController {
                                         @RequestParam(required = false) String status,
                                         @RequestParam(defaultValue = "50") int limit,
                                         @RequestParam(required = false) String cursor) {
-        if (!mine) {
-            throw new IllegalArgumentException("Only mine=true is available until the review queue is built");
-        }
         cursors.checkLimit(limit);
         List<String> after = cursors.decode(cursor, 2);
-        List<ChangeRequestView> rows = service.mine(actor, status,
-                after == null ? null : Instant.parse(after.get(0)), after == null ? null : UUID.fromString(after.get(1)), limit);
+        Instant afterCreated = after == null ? null : Instant.parse(after.get(0));
+        UUID afterId = after == null ? null : UUID.fromString(after.get(1));
+        List<ChangeRequestView> rows = mine
+                ? service.mine(actor, status, afterCreated, afterId, limit)
+                : service.queue(actor, status, afterCreated, afterId, limit);
         return Page.of(rows, limit, cr -> cursors.encode(cr.createdAt().toString(), cr.id().toString()));
     }
 
@@ -126,6 +129,22 @@ public class ChangeRequestController {
             return ResponseEntity.unprocessableEntity().contentType(MediaType.APPLICATION_PROBLEM_JSON).body(p);
         }
         return ResponseEntity.ok().eTag(ETags.of(outcome.request().rowVersion())).body(outcome.request());
+    }
+
+    /**
+     * Approve or reject (core mode). An approval is applied straight after the decision commits; the response carries
+     * the outcome ({@code applied} or {@code apply_failed} with its reason). A rejection ends the request.
+     */
+    @PostMapping("/{id}/decision")
+    public ResponseEntity<ChangeRequestView> decide(Actor actor, @PathVariable UUID id,
+                                                    @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+                                                    @RequestBody(required = false) ChangeRequestDtos.DecisionRequest body) {
+        ChangeRequestView decided = service.decide(actor, id, ifMatch, body);
+        if ("approved".equals(decided.status())) {
+            apply.apply(actor.userId(), id);
+        }
+        ChangeRequestView cr = service.get(actor, id);
+        return ResponseEntity.ok().eTag(ETags.of(cr.rowVersion())).body(cr);
     }
 
     @PostMapping("/{id}/withdraw")

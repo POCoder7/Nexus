@@ -110,6 +110,27 @@ public class ChangeRequestRepository {
                 .query(requestMapper).list();
     }
 
+    /** Other people's requests in a status, oldest first (the review queue); entitlements are filtered by the caller. */
+    public List<ChangeRequestView> queue(UUID notRequester, String status, Instant afterCreated, UUID afterId, int limit) {
+        return jdbc.sql(SELECT_REQUEST + """
+                WHERE cr.requester_id <> :me AND cr.status::text = :status
+                  AND (CAST(:afterCreated AS timestamptz) IS NULL
+                       OR (cr.created_at, cr.change_request_id) > (CAST(:afterCreated AS timestamptz), CAST(:afterId AS uuid)))
+                ORDER BY cr.created_at, cr.change_request_id
+                LIMIT :limit
+                """)
+                .param("me", notRequester).param("status", status)
+                .param("afterCreated", afterCreated == null ? null : Timestamp.from(afterCreated)).param("afterId", afterId)
+                .param("limit", limit)
+                .query(requestMapper).list();
+    }
+
+    public void decide(UUID requestId, UUID deciderId, String decision, String note) {
+        jdbc.sql("SELECT mdm.decide_change_request(:cr, :decider, :decision, :note)")
+                .param("cr", requestId).param("decider", deciderId).param("decision", decision).param("note", note)
+                .query((rs, i) -> 0).single();
+    }
+
     public void updateDraft(UUID id, String title, String rationale, String riskTier, LocalDate effectiveFrom) {
         jdbc.sql("""
                 UPDATE mdm.change_request

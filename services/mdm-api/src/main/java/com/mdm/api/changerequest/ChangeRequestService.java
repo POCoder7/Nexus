@@ -136,6 +136,68 @@ public class ChangeRequestService {
         return repository.find(id).orElseThrow();
     }
 
+    /**
+     * The review queue: other people's requests in {@code status} (default submitted) that the actor may decide, i.e.
+     * with DECIDE on every item's scope. Keyset over candidates, filtered here; a page keeps reading until it is full.
+     */
+    @Transactional(readOnly = true)
+    public List<ChangeRequestView> queue(Actor actor, String status, Instant afterCreated, UUID afterId, int limit) {
+        List<ChangeRequestView> result = new java.util.ArrayList<>();
+        Instant cursorAt = afterCreated;
+        UUID cursorId = afterId;
+        int batch = Math.max(limit + 1, 50);
+        while (result.size() <= limit) {
+            List<ChangeRequestView> candidates = repository.queue(actor.userId(), status == null ? "submitted" : status,
+                    cursorAt, cursorId, batch);
+            for (ChangeRequestView cr : candidates) {
+                if (mayDecide(actor, cr.id())) {
+                    result.add(cr);
+                    if (result.size() > limit) {
+                        break;
+                    }
+                }
+            }
+            if (candidates.size() < batch) {
+                break;
+            }
+            ChangeRequestView last = candidates.get(candidates.size() - 1);
+            cursorAt = last.createdAt();
+            cursorId = last.id();
+        }
+        return result;
+    }
+
+    /**
+     * Core-mode decision (LLD §6.2, transaction 1): DECIDE on every item's scope, ETag under the lock; the database
+     * function records it with basis human_review and the maker-checker trigger refuses self-decisions and non-humans.
+     * Apply runs afterwards in its own transaction, so the decision stands even if apply fails.
+     */
+    @Transactional
+    public ChangeRequestView decide(Actor actor, UUID id, String ifMatch, ChangeRequestDtos.DecisionRequest body) {
+        int expected = ETags.require(ifMatch);
+        if (body == null || !("approve".equals(body.decision()) || "reject".equals(body.decision()))) {
+            throw ItemValidationException.field("decision", "must be approve or reject");
+        }
+        ChangeRequestView cr = lockVisible(actor, id);
+        for (UUID[] scope : repository.itemScopes(id)) {
+            entitlements.require(actor, Permission.DECIDE, scope[0], scope[1]);
+        }
+        ETags.check(expected, cr.rowVersion());
+        repository.decide(id, actor.userId(), body.decision(), body.note());
+        return repository.find(id).orElseThrow();
+    }
+
+    private boolean mayDecide(Actor actor, UUID id) {
+        try {
+            for (UUID[] scope : repository.itemScopes(id)) {
+                entitlements.require(actor, Permission.DECIDE, scope[0], scope[1]);
+            }
+            return true;
+        } catch (ForbiddenException e) {
+            return false;
+        }
+    }
+
     /** Outcome of a submit: the submitted request, or the report that refused it (the request stays a draft). */
     public record SubmitOutcome(ChangeRequestView request, ValidationReport report) {
         public boolean refused() {

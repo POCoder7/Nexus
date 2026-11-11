@@ -33,6 +33,10 @@ public final class ChangeRequestDtos {
                            String propertyCode, JsonNode payload, Instant createdAt) {
     }
 
+    /** Core-mode decision: {@code approve} or {@code reject}, with an optional note. */
+    public record DecisionRequest(String decision, String note) {
+    }
+
     /** An item together with the request's new ETag after adding it. */
     public record AddedItem(ItemView item, int rowVersion) {
     }

@@ -1430,3 +1430,44 @@ BEGIN
   END IF;
   UPDATE mdm.change_request SET status = 'submitted', submitted_at = now() WHERE change_request_id = p_change_request_id;
 END $$;
+
+-- Core-mode decision (Phase 1 LLD §4.7). The basis is always human_review: policy-based approvals exist only through
+-- the bridge (D-04). trg_cr_maker_checker still decides who may decide (N1001 self-decision, N1002 not human).
+CREATE FUNCTION decide_change_request(p_change_request_id uuid, p_decider uuid, p_decision text, p_note text)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
+DECLARE r mdm.change_request%ROWTYPE;
+BEGIN
+  IF p_decision NOT IN ('approve', 'reject') OR p_decision IS NULL THEN
+    RAISE EXCEPTION 'Decision must be approve or reject, not %', coalesce(p_decision, 'nothing')
+      USING ERRCODE = '22023', HINT = 'decision.invalid';
+  END IF;
+  SELECT * INTO r FROM mdm.change_request WHERE change_request_id = p_change_request_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Change request % not found', p_change_request_id USING ERRCODE = 'N2102', HINT = 'change_request.not_found';
+  END IF;
+  IF r.governed_by_workflow THEN
+    RAISE EXCEPTION 'Change request % is governed by a workflow; it is decided there', p_change_request_id
+      USING ERRCODE = 'N2104', HINT = 'change_request.governed';
+  END IF;
+  IF r.status <> 'submitted' THEN
+    RAISE EXCEPTION 'Change request % is % and cannot be decided', p_change_request_id, r.status
+      USING ERRCODE = 'N2101', HINT = 'change_request.status_transition';
+  END IF;
+  UPDATE mdm.change_request
+  SET status = CASE p_decision WHEN 'approve' THEN 'approved'::cr_status ELSE 'rejected'::cr_status END,
+      decided_by = p_decider, decided_at = now(), decision_note = p_note, decision_basis = 'human_review'
+  WHERE change_request_id = p_change_request_id;
+END $$;
+
+-- An approved request whose apply kept failing for technical reasons (serialization, deadlock) after the retries
+-- (LLD §6.4) is recorded as apply_failed, so it does not stay approved for ever. Facts are not touched.
+CREATE FUNCTION record_apply_failure(p_change_request_id uuid, p_reason text)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
+BEGIN
+  UPDATE mdm.change_request SET status = 'apply_failed', apply_error = 'retry-later: ' || coalesce(p_reason, 'unknown')
+  WHERE change_request_id = p_change_request_id AND status = 'approved';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Change request % is not approved', p_change_request_id
+      USING ERRCODE = 'N2101', HINT = 'change_request.status_transition';
+  END IF;
+END $$;
