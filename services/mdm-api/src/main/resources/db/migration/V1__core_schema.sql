@@ -329,7 +329,9 @@ CREATE TABLE hierarchy_relationship (
   EXCLUDE USING gist (hierarchy_id WITH =, parent_node_id WITH =, child_node_id WITH =, valid_period WITH &&)
     WHERE (upper_inf(recorded_period))
 );
-CREATE INDEX ON hierarchy_relationship (hierarchy_id, parent_node_id) WHERE upper_inf(recorded_period);
+-- Children pages are keyset-paged by (sort_order, name, child id) (ADR-015); the index serves the parent lookup
+-- in sort order (the name comes from node_attr, so it cannot be in this index).
+CREATE INDEX ON hierarchy_relationship (hierarchy_id, parent_node_id, sort_order, child_node_id) WHERE upper_inf(recorded_period);
 CREATE INDEX ON hierarchy_relationship (hierarchy_id, child_node_id)  WHERE upper_inf(recorded_period);
 
 -- Rejects cycles, top-node re-parenting, and shared nodes where the hierarchy disallows them.

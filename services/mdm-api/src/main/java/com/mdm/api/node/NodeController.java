@@ -2,12 +2,14 @@ package com.mdm.api.node;
 
 import com.mdm.api.common.BusinessClock;
 import com.mdm.api.common.NotFoundException;
+import com.mdm.api.common.Slice;
 import com.mdm.api.hierarchy.HierarchyRepository;
 import com.mdm.api.security.Actor;
 import com.mdm.api.security.EntitlementService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -38,8 +40,10 @@ public class NodeController {
             Actor actor,
             @PathVariable UUID nodeId,
             @RequestParam(required = false) String hierarchy,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf) {
-        LocalDate day = asOf == null ? clock.today() : asOf;
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant recordedAsOf) {
+        Slice slice = Slice.of(asOf, recordedAsOf, clock);
+        LocalDate day = slice.asOf();
         if (hierarchy != null) {
             UUID hierarchyId = hierarchies.findIdByCode(hierarchy)
                     .filter(id -> entitlements.canRead(actor, id))
@@ -51,7 +55,7 @@ public class NodeController {
                 && entitlements.readableHierarchies(actor).isPresent()) {
             throw nodeNotFound(nodeId);
         }
-        return repository.find(nodeId, hierarchy, day).orElseThrow(() -> nodeNotFound(nodeId));
+        return repository.find(nodeId, hierarchy, slice).orElseThrow(() -> nodeNotFound(nodeId));
     }
 
     private static NotFoundException nodeNotFound(UUID nodeId) {

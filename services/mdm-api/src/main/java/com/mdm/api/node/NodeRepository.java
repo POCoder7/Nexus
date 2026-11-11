@@ -3,6 +3,7 @@ package com.mdm.api.node;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mdm.api.common.Slice;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -40,7 +41,7 @@ public class NodeRepository {
         return hierarchiesContaining(nodeId, asOf).contains(hierarchyId);
     }
 
-    public Optional<NodeDetail> find(UUID nodeId, String hierarchyCode, LocalDate asOf) {
+    public Optional<NodeDetail> find(UUID nodeId, String hierarchyCode, Slice slice) {
         return jdbc.sql("""
                 SELECT n.node_id, n.node_kind::text AS node_kind, a.node_name, a.description,
                        coalesce(a.is_active, false) AS is_active,
@@ -49,11 +50,12 @@ public class NodeRepository {
                 LEFT JOIN mdm.node_attr a
                        ON a.node_id = n.node_id
                       AND a.valid_period @> CAST(:asOf AS date)
-                      AND upper_inf(a.recorded_period)
+                      AND %s
                 WHERE n.node_id = :id
-                """)
+                """.formatted(slice.recorded("a")))
                 .param("id", nodeId)
-                .param("asOf", asOf)
+                .param("asOf", slice.asOf())
+                .param("rec", slice.recBind())
                 .query((rs, i) -> new NodeDetail(
                         rs.getObject("node_id", UUID.class),
                         rs.getString("node_kind"),
@@ -61,16 +63,16 @@ public class NodeRepository {
                         rs.getString("description"),
                         rs.getBoolean("is_active"),
                         rs.getBoolean("allows_children"),
-                        properties(nodeId, hierarchyCode, asOf)))
+                        properties(nodeId, hierarchyCode, slice)))
                 .optional();
     }
 
     /** Resolves every property through mdm.property_value_asof (stored -> inherited -> default). */
-    private List<PropertyValue> properties(UUID nodeId, String hierarchyCode, LocalDate asOf) {
+    private List<PropertyValue> properties(UUID nodeId, String hierarchyCode, Slice slice) {
         return jdbc.sql("""
                 SELECT pd.property_code, pd.label, pd.data_type::text AS data_type, pd.scope::text AS scope,
                        mdm.property_value_asof(CAST(:id AS uuid), pd.property_id, h.hierarchy_id,
-                                               CAST(:asOf AS date), now())::text AS value
+                                               CAST(:asOf AS date), coalesce(CAST(:rec AS timestamptz), now()))::text AS value
                 FROM mdm.property_definition pd
                 LEFT JOIN mdm.hierarchy h ON h.hierarchy_code = CAST(:code AS text)
                 WHERE pd.scope = 'global' OR h.hierarchy_id IS NOT NULL
@@ -78,7 +80,8 @@ public class NodeRepository {
                 """)
                 .param("id", nodeId)
                 .param("code", hierarchyCode)
-                .param("asOf", asOf)
+                .param("asOf", slice.asOf())
+                .param("rec", slice.recBind())
                 .query((rs, i) -> new PropertyValue(
                         rs.getString("property_code"),
                         rs.getString("label"),

@@ -61,16 +61,16 @@ class EntitlementApiTest extends PostgresIntegrationTest {
     void aGlobalViewerSeesEveryHierarchy() throws Exception {
         mvc.perform(get("/api/v1/hierarchies").with(asUser("e_viewer_all")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].code").value(hasItem("ENT_A")))
-                .andExpect(jsonPath("$[*].code").value(hasItem("ENT_B")));
+                .andExpect(jsonPath("$.items[*].code").value(hasItem("ENT_A")))
+                .andExpect(jsonPath("$.items[*].code").value(hasItem("ENT_B")));
     }
 
     @Test
     void aScopedViewerSeesOnlyTheirHierarchy() throws Exception {
         mvc.perform(get("/api/v1/hierarchies").with(asUser("e_viewer_b")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].code").value(hasItem("ENT_B")))
-                .andExpect(jsonPath("$[*].code").value(not(hasItem("ENT_A"))));
+                .andExpect(jsonPath("$.items[*].code").value(hasItem("ENT_B")))
+                .andExpect(jsonPath("$.items[*].code").value(not(hasItem("ENT_A"))));
         mvc.perform(get("/api/v1/hierarchies/ENT_A").with(asUser("e_viewer_b")))
                 .andExpect(status().isNotFound());
         mvc.perform(get("/api/v1/hierarchies/ENT_A/children").param("parentId", TOP_A.toString()).with(asUser("e_viewer_b")))
@@ -85,7 +85,7 @@ class EntitlementApiTest extends PostgresIntegrationTest {
     void aUserWithoutRolesSeesNothing() throws Exception {
         mvc.perform(get("/api/v1/hierarchies").with(asUser("e_no_roles")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.items.length()").value(0));
     }
 
     @Test

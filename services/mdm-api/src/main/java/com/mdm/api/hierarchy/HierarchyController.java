@@ -1,19 +1,20 @@
 package com.mdm.api.hierarchy;
 
 import com.mdm.api.common.BusinessClock;
+import com.mdm.api.common.Cursors;
 import com.mdm.api.common.NotFoundException;
+import com.mdm.api.common.Page;
+import com.mdm.api.common.Slice;
 import com.mdm.api.security.Actor;
 import com.mdm.api.security.EntitlementService;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
+/** HIE-01 reads and lazy tree loading, at any business date and recorded time (NEW-01), keyset-paged (ADR-015). */
 @RestController
 @RequestMapping("/api/v1/hierarchies")
 public class HierarchyController {
@@ -21,54 +22,54 @@ public class HierarchyController {
     private final HierarchyRepository repository;
     private final EntitlementService entitlements;
     private final BusinessClock clock;
-    private final int maxPageSize;
+    private final Cursors cursors;
 
     public HierarchyController(HierarchyRepository repository, EntitlementService entitlements, BusinessClock clock,
-                               @Value("${mdm.api.max-page-size:1000}") int maxPageSize) {
+                               Cursors cursors) {
         this.repository = repository;
         this.entitlements = entitlements;
         this.clock = clock;
-        this.maxPageSize = maxPageSize;
+        this.cursors = cursors;
     }
 
-    /** Hierarchies the actor may read (SEC-02). */
+    /** Hierarchies the actor may read (SEC-02), ordered by sort sequence then code. */
     @GetMapping
-    public List<HierarchySummary> list(
+    public Page<HierarchySummary> list(
             Actor actor,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf) {
-        Optional<Set<UUID>> readable = entitlements.readableHierarchies(actor);
-        return repository.findActive(asOf == null ? clock.today() : asOf).stream()
-                .filter(h -> readable.map(ids -> ids.contains(h.hierarchyId())).orElse(true))
-                .toList();
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant recordedAsOf,
+            @RequestParam(defaultValue = "200") int limit,
+            @RequestParam(required = false) String cursor) {
+        cursors.checkLimit(limit);
+        Slice slice = Slice.of(asOf, recordedAsOf, clock);
+        return Page.of(repository.findPage(slice, entitlements.readableHierarchies(actor), cursors.decode(cursor, 2), limit),
+                limit, h -> cursors.encode(String.valueOf(h.sortKey()), h.code()));
     }
 
     @GetMapping("/{code}")
     public HierarchySummary get(
             Actor actor,
             @PathVariable String code,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf) {
-        UUID id = readableHierarchyId(actor, code);
-        return repository.findByCode(code, asOf == null ? clock.today() : asOf)
-                .filter(h -> h.hierarchyId().equals(id))
-                .orElseThrow(() -> notFound(code));
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant recordedAsOf) {
+        readableHierarchyId(actor, code);
+        return repository.findByCode(code, Slice.of(asOf, recordedAsOf, clock)).orElseThrow(() -> notFound(code));
     }
 
     @GetMapping("/{code}/children")
-    public List<ChildNode> children(
+    public Page<ChildNode> children(
             Actor actor,
             @PathVariable String code,
             @RequestParam UUID parentId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant recordedAsOf,
             @RequestParam(defaultValue = "200") int limit,
-            @RequestParam(defaultValue = "0") int offset) {
-        if (limit < 1 || limit > maxPageSize) {
-            throw new IllegalArgumentException("limit must be between 1 and " + maxPageSize);
-        }
-        if (offset < 0) {
-            throw new IllegalArgumentException("offset must be >= 0");
-        }
+            @RequestParam(required = false) String cursor) {
+        cursors.checkLimit(limit);
         readableHierarchyId(actor, code);
-        return repository.findChildren(code, parentId, asOf == null ? clock.today() : asOf, limit, offset);
+        Slice slice = Slice.of(asOf, recordedAsOf, clock);
+        return Page.of(repository.findChildren(code, parentId, slice, cursors.decode(cursor, 3), limit), limit,
+                c -> cursors.encode(c.sortOrder().toPlainString(), c.name() == null ? "" : c.name(), c.nodeId().toString()));
     }
 
     /** The hierarchy's id if it exists and the actor may read it; otherwise 404, so existence is not revealed. */

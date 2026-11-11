@@ -7,6 +7,8 @@ spring:
     password: ${MDM_DB_PASSWORD:nexus}
     hikari:
       maximum-pool-size: ${MDM_DB_POOL_SIZE:20}
+      # Recorded time is UTC everywhere (ADR-018); business dates are computed by BusinessClock, never by the session.
+      connection-init-sql: SET TIME ZONE 'UTC'
   flyway:
     enabled: true
     locations: classpath:db/migration

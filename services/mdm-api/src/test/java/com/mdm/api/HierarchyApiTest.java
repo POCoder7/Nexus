@@ -69,27 +69,33 @@ class HierarchyApiTest extends PostgresIntegrationTest {
     void listsHierarchiesWithTopNode() throws Exception {
         mvc.perform(get("/api/v1/hierarchies").with(asUser(VIEWER)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.code == 'TEST')].topNodeName").value(hasItem("Top")));
+                .andExpect(jsonPath("$.items[?(@.code == 'TEST')].topNodeName").value(hasItem("Top")));
     }
 
     @Test
     void returnsChildrenInSortOrderWithChildFlags() throws Exception {
         mvc.perform(get("/api/v1/hierarchies/TEST/children").param("parentId", TOP.toString()).with(asUser(VIEWER)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].name").value("Child A"))
-                .andExpect(jsonPath("$[0].hasChildren").value(true))
-                .andExpect(jsonPath("$[1].name").value("Child B"))
-                .andExpect(jsonPath("$[1].hasChildren").value(false));
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].name").value("Child A"))
+                .andExpect(jsonPath("$.items[0].hasChildren").value(true))
+                .andExpect(jsonPath("$.items[1].name").value("Child B"))
+                .andExpect(jsonPath("$.items[1].hasChildren").value(false));
     }
 
     @Test
     void pagesChildren() throws Exception {
-        mvc.perform(get("/api/v1/hierarchies/TEST/children")
-                        .param("parentId", TOP.toString()).param("limit", "1").param("offset", "1").with(asUser(VIEWER)))
+        // ADR-015: keyset cursor instead of offset. Same assertion as before: the second page of size 1 is Child B.
+        String body = mvc.perform(get("/api/v1/hierarchies/TEST/children")
+                        .param("parentId", TOP.toString()).param("limit", "1").with(asUser(VIEWER)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].name").value("Child B"));
+                .andReturn().getResponse().getContentAsString();
+        String cursor = com.jayway.jsonpath.JsonPath.read(body, "$.nextCursor");
+        mvc.perform(get("/api/v1/hierarchies/TEST/children")
+                        .param("parentId", TOP.toString()).param("limit", "1").param("cursor", cursor).with(asUser(VIEWER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].name").value("Child B"));
     }
 
     @Test
