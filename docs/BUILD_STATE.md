@@ -30,7 +30,8 @@
 
 
 ## Open questions for the human
-1. Review `docs/design/CONSISTENCY_REVIEW.md` (design step 4). All nine LLDs approved 2026-11-11 (Phase 7 build deferred).
+1. Review the wiring of the design into `BUILD_PROTOCOL.md` and `CLAUDE.md` (design step 5). Design track otherwise complete.
+3. OD-44: what counts as a shared environment (needed before the Phase 4 build; affects whether "edit Vn" stays allowed).
 2. OD-11 decided (enterprise GitHub organisation, private): create the remote and say when to push; CI runs only after that.
 
 ## Scope changes
@@ -43,5 +44,5 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Step B (design track) in progress: see `docs/design/DESIGN_STATE.md`. The Phase 1 build starts only after the
-design track is complete and its LLD is approved (sequence B before C).
+After approval of the wiring: **Phase 1 — Core write path**, Step 1 (Orient) and Step 2 (Plan) per `docs/BUILD_PROTOCOL.md`,
+following `docs/design/phase-1-core-write-path/LLD.md`; then stop for plan approval.

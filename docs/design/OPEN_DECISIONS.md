@@ -53,6 +53,7 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-31 | Masking: **rank-preserving pseudonyms** for names and codes, one tool for extracts and DRM outputs | Repository owner (adopted recommendation) | 2026-11-11 | Confirmation pending (OD-31a) |
 | OD-32 | Golden datasets in an **internal artefact store**; only synthetic self-tests in git | Repository owner (adopted recommendation) | 2026-11-11 | Confirmation pending (OD-32a) |
 | OD-33 | **ADR-009 accepted** (golden testing as the parity standard) | Repository owner (adopted recommendation) | 2026-11-11 | Phase 4, 5, 8 |
+| — | **Consistency review approved** (CR-01 to CR-13); OD-44 stays open | Repository owner | 2026-11-11 | Design step 5 (wiring) |
 | — | **Phase 9 LLD approved**; ADR-033 Accepted (IdP OD-06 open), ADR-034 Accepted | Repository owner | 2026-11-11 | Design step 4 (consistency review) |
 | — | **Phase 8 LLD approved**; ADR-032 Accepted (OD-39, OD-40 open) | Repository owner | 2026-11-11 | Design track continues with Phase 9 |
 | OD-38 | **Phase 7 (AI assistance): design approved, implementation deferred.** The build sequence skips Phase 7 (Phase 6 → Phase 8); AI features stay hidden; ADR-031 stands for when it is resumed | Repository owner | 2026-11-11 | Build phases; `BUILD_PROTOCOL.md` phase table updated in design step 5; OD-07, OD-36, OD-37 no longer block anything until resumed |

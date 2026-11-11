@@ -7,8 +7,10 @@ and a legal-entity ownership graph for beneficial-ownership (UBO) analysis.
 
 Read first: `README.md`, `docs/capabilities.md`, `docs/data-model.md`, `docs/adr/`, and the spec for the task in `docs/specs/`.
 For the phased build, follow `docs/BUILD_PROTOCOL.md`; `docs/BUILD_STATE.md` records where the build stands.
-For design work, follow `docs/DESIGN_PROTOCOL.md`. Before building a phase, read its approved
-`docs/design/phase-N-*/LLD.md`. UI work follows `docs/design/UI_STANDARD.md` (Angular, ADR-012).
+For design work, follow `docs/DESIGN_PROTOCOL.md`. Before building a phase, read `docs/architecture/` (overview,
+patterns), its approved `docs/design/phase-N-*/LLD.md`, `docs/design/CONSISTENCY_REVIEW.md` and `docs/design/OPEN_DECISIONS.md`.
+**Each phase plan must follow its LLD; any deviation requires updating the LLD and writing an ADR first.**
+UI work follows `docs/design/UI_STANDARD.md` (Angular, ADR-012). Phase 7 (AI) is designed but deferred (OD-38).
 
 ## Layout
 - `services/mdm-api/` — Java 21 / Spring Boot 3 service (Maven). Flyway migrations live in

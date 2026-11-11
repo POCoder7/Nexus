@@ -1,6 +1,6 @@
 # Design state
 
-- **Current item:** Consistency review (protocol step 4)
+- **Current item:** Wiring into build (protocol step 5) — **design track complete**
 - **Status:** Awaiting review
 - **Session date:** 2026-11-11 (overview and patterns approved the same day; Phase 0 built and approved first)
 
@@ -32,7 +32,8 @@
 | design/phase-7-ai-assistance/LLD.md | Approved 2026-11-11; **build deferred (OD-38)** | Medium | 2026-11-11 |
 | design/phase-8-exports-and-reconciliation/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
 | design/phase-9-hardening/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
-| design/CONSISTENCY_REVIEW.md | Done; 13 findings fixed (CR-01 to CR-13); awaiting review | — | 2026-11-11 |
+| design/CONSISTENCY_REVIEW.md | Approved 2026-11-11; 13 findings fixed (CR-01 to CR-13) | — | 2026-11-11 |
+| Wiring (`BUILD_PROTOCOL.md` §1–§3, `CLAUDE.md` read-first) | Done; awaiting review | — | 2026-11-11 |
 | design/phase-3-steward-ui/prototypes/landing.html | Landing-page prototype; combined design chosen (OD-27) | Prototype only: placeholder tokens, synthetic data | 2026-11-11 |
 
 ## What exists (verified against the files on 2026-11-11)
@@ -183,13 +184,15 @@ one-way kill switch, frozen approved policies and models; 35 pgTAP tests.
 - **OD-39, OD-40** DRM file access for reconciliation; who may accept a parity difference (Phase 8 build).
 - **OD-06, OD-41, OD-42, OD-43** identity provider; recovery objectives and SLO; security tooling; penetration test (Phase 9 build).
 
-## Self-review (DESIGN_PROTOCOL §5) for the consistency review
-- *Every statement verified?* Findings come from searches across all LLDs and from following each cross-phase call to its definition; each fix was applied with an exact-match edit (a non-matching edit stops the script).
-- *Weakens a control?* No. CR-08 and CR-10 strengthen controls (hard limit for identity links; maker-checker on workflow group membership). CR-05 makes a refusal explicit instead of a silent conflict.
-- *Contradicts an Accepted ADR or CLAUDE.md?* CR-07 aligns the designs with CLAUDE.md rule 6; CR-10 extends ADR-023's intent (membership history) to governance; recorded in the review.
-- *Assumptions listed?* OD-44 added.
-- *Remaining issues honest?* Section 6 of the review lists what is left and who owns it.
+## Wiring done (protocol step 5)
+- `docs/BUILD_PROTOCOL.md` §1: the design (`docs/design/`, `docs/architecture/`, consistency review), `OPEN_DECISIONS.md`
+  and `TRACEABILITY.md` added as sources of truth, with the rule: each phase plan follows its LLD; any deviation needs the LLD updated and an ADR first.
+  Capability decisions in `OPEN_DECISIONS.md` apply where the catalogue still shows `—` (OD-28).
+- §2: build order 0–6, 8, 9; Phase 7 deferred (OD-38); phase table rebuilt from `TRACEABILITY.md` (OD-14), with decided and pending capabilities per phase; infrastructure rule.
+- §3: Orient reads the LLD, its consistency findings and open decisions, and checks for a shared environment (OD-44, CR-07); Plan starts from the LLD's §1, §13, §16.
+- `CLAUDE.md` "Read first": `docs/architecture/`, the LLD, the consistency review and open decisions; the LLD rule; Phase 7 deferred.
+- **Not changed (proposed only):** wording for `mdm_stage` in CLAUDE.md rule 3, because it changes a non-negotiable rule.
 
 ## Next action
-Human review of `docs/design/CONSISTENCY_REVIEW.md`. On approval: protocol step 5, wiring the design into
-`docs/BUILD_PROTOCOL.md` and `CLAUDE.md` (phase table per OD-14 and OD-38; LLD rule; `mdm_stage` wording), then stop and report.
+Human review of the wiring. Then the design track is closed and your sequence moves to C: **Phase 1 build** —
+`docs/BUILD_PROTOCOL.md` Step 1 (Orient) and Step 2 (Plan) for Phase 1, then stop for approval.
