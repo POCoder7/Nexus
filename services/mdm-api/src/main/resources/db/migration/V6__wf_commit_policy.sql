@@ -382,6 +382,15 @@ BEGIN
     RAISE EXCEPTION 'Policy commits must be recorded by a system actor' USING ERRCODE = 'N1024', HINT = 'policy.system_actor_required';
   END IF;
   PERFORM 1 FROM wf.workflow_instance WHERE instance_id = p_instance_id FOR UPDATE;
+  -- D-14: serialise evaluations per policy, so the daily cap holds when requests are evaluated at the same moment.
+  -- Taken after the instance lock (same order everywhere, so no deadlock) and before counting today's auto-commits;
+  -- the evaluation below starts a new snapshot, so it sees evaluations committed while this one waited.
+  PERFORM 1 FROM wf.commit_policy cp
+  JOIN wf.policy_scope ps     ON ps.policy_id = cp.policy_id
+  JOIN wf.workflow_model m    ON m.model_code = ps.model_code
+  JOIN wf.workflow_instance i ON i.model_id = m.model_id
+  WHERE i.instance_id = p_instance_id AND cp.status = 'approved'
+  FOR UPDATE OF cp;
 
   SELECT * INTO e FROM wf.evaluate_commit_policy(p_instance_id, p_validated_at);
   v_outcome := CASE

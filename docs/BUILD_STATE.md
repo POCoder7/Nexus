@@ -2,7 +2,7 @@
 
 - **Current phase:** 2 — Governance
 - **Step in loop:** Build — branch `feature/GOV-02-phase-2-governance` (from the Phase 1 branch)
-- **Baseline:** db-test **pass** 276/276 · mvnw verify **pass** 78/78 (after 2-4, 2026-11-11)
+- **Baseline:** db-test **pass** 276/276 · mvnw verify **pass** 79/79 (after 2-5, 2026-11-11)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -34,8 +34,9 @@
 | 2-1 Business-day functions, `wf` day boundaries, activation guard | PROG, GOV-12 | Done `19f92c9` | pgTAP 14 (11) | `system_setting` moved V8 → V1; guard in `trg_policy_guard`, `N2225` |
 | 2-2 Bitemporal membership, `wf.is_member`, governed changes, config audit | PROG | Done `2409c90` | pgTAP 15 (21) | new V9; only definer functions write membership; D-15 fixed; codes N1026, N2230–N2233 |
 | 2-3 Claims (D-12), close rules (D-13), `record_stage_decision` | PROG, GOV-02 | Done `6f7de5b` | pgTAP 16 (24) | functions owned by `nexus_wf`, callable by the API; SoD and human-only proven |
-| 2-4 Scope by ancestor walk at the effective date (D-10, D-11) | PROG | Done (this commit) | pgTAP 17 (9) | old vs new equal on 28 cases; old rule kept only in the test |
-| 2-5 … 2-12 | GOV-01, GOV-02, GOV-12, GOV-13, PROG | Planned | per plan | |
+| 2-4 Scope by ancestor walk at the effective date (D-10, D-11) | PROG | Done `fefe066` | pgTAP 17 (9) | old vs new equal on 28 cases; old rule kept only in the test |
+| 2-5 Policy row lock for the daily cap (D-14) | GOV-12 | Done (this commit) | JUnit 1 (two connections) | activation guard already in 2-1 |
+| 2-6 … 2-12 | GOV-01, GOV-02, GOV-12, GOV-13, PROG | Planned | per plan | |
 
 ## Decisions awaiting human review
 | ADR | Title | Why it needs review |
@@ -66,4 +67,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Increment 2-5 (policy row lock for the daily cap, D-14; concurrency test), then 2-6 … 2-12, asking before each commit. Performance tests deferred to the end of the build.
+Increment 2-6 (bridge: decider attribution D-06, clearance, `governed_by_workflow`, enrichment items, `requires_workflow`), then 2-7 … 2-12, asking before each commit. Performance tests deferred to the end of the build.

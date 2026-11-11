@@ -224,6 +224,7 @@ Both lock the instance row (`FOR UPDATE`) and are idempotent.
 ### 4.6 Commit policy fixes (D-14, ADR-018 days) — edit V6
 - `wf.apply_commit_policy` takes `SELECT … FROM wf.commit_policy WHERE policy_id = e.policy_id FOR UPDATE` before
   counting the day's auto-commits (serialises evaluations per policy; fine at `CHANGE_REQUESTS_PER_DAY`).
+*Built in 2-5:* the lock is taken on every approved policy scoped to the instance's model, after the instance lock (one lock order, no deadlock); `CommitPolicyConcurrencyTest` runs two evaluations on two connections at cap − 1: the second waits on the lock and is routed to a human with 'daily auto-commit limit reached'. The active policy exists only in that test database (setting switched on for the approval and removed straight after).
 - Day boundaries in `evaluate_commit_policy`, `sample_auto_commits`, `v_commit_policy_daily` and `review_due` use
   `mdm.business_today()` / `mdm.business_day_start()` instead of `current_date` / `date_trunc('day', now())`.
 - `wf.approve_commit_policy` refuses `mode = 'active'` unless `mdm.system_setting('policy_activation_allowed') = 'true'`,
