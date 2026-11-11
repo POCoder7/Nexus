@@ -1,43 +1,44 @@
 # Build state
 
 - **Current phase:** 0 — Foundation
-- **Step in loop:** Plan (awaiting approval) — `docs/phases/phase-0/PLAN.md`
-- **Baseline:** db-test **pass** 35/35 (PowerShell; Bash with `MSYS_NO_PATHCONV=1`) · mvn verify **fail** — `HierarchyApiTest` cannot reach Docker (Testcontainers 1.20.x vs Docker Engine 29; pin removed in working tree) · UI tests n/a (as of 2026-11-11)
-- **Last commit:** `0c192e7` PROG: pin Testcontainers 1.21.4 for Docker Engine 29 (the working tree reverts this pin, uncommitted)
+- **Step in loop:** Awaiting approval to proceed (gate passed locally; see `docs/phases/phase-0/TEST_REPORT.md`)
+- **Baseline:** db-test **pass** 35/35 (PowerShell and Bash) · mvnw verify **pass** 6/6 (Windows and Bash) · UI tests n/a (as of 2026-11-11)
+- **Last commit:** see `git log -1` (P0-7 records commit, after `cf3fe35` PROG: make db-test.sh work in Git Bash on Windows)
 
 ## Completed phases
 | Phase | Gate result | Summary | Date |
 |---|---|---|---|
+| 0 — Foundation | Pass locally; CI on GitHub not yet run (gap) | `docs/phases/phase-0/SUMMARY.md` | 2026-11-11 (awaiting approval) |
 
 ## Current phase progress
 | Increment | Capability | Status | Tests | Notes |
 |---|---|---|---|---|
-| P0-1 Commit documentation baseline | PROG | Planned | `git status` | Needs approval to commit |
-| P0-2 Testcontainers vs Docker Engine 29 | PROG | Planned | mvn verify 6/6 | Needs OD-23 decision |
-| P0-3 Maven wrapper | PROG | Planned | mvnw verify 6/6 | |
-| P0-4 Executable bit on `scripts/*.sh` | PROG | Planned | `git ls-files -s` | CI `db-tests` would fail today |
-| P0-5 Wrapper in CI | PROG | Planned | local Bash run | CI change needs approval |
-| P0-6 Git Bash path fix in `db-test.sh` | PROG | Optional | Bash db-test 35/35 | |
-| P0-7 Records (README, data-model, setup guide, CHANGELOG, test report, summary) | PROG | Planned | review | |
+| P0-1 Documentation baseline | PROG | Done (`5ae1707`, `e53847b`) | `git status` clean | Duplicates deleted (OD-24) |
+| P0-2 Testcontainers pin | PROG | Done (pin restored; matches `0c192e7`) | mvn verify 6/6 | OD-23 option A |
+| P0-3 Maven wrapper | PROG | Done (`09c7cd9`) | mvnw verify 6/6 | Also `*.cmd` CRLF rule |
+| P0-4 Executable scripts | PROG | Done (`2595c9f`) | `100755` | |
+| P0-5 Wrapper in CI | PROG | Done (`48847eb`) | Bash run 6/6 | Approved CI change |
+| P0-6 Git Bash path fix | PROG | Done (`cf3fe35`) | Bash db-test 35/35 | |
+| P0-7 Records | PROG | Done (this commit) | review | |
 
 ## Decisions awaiting human review
 | ADR | Title | Why it needs review |
 |---|---|---|
 | ADR-005 | Policy-governed straight-through commit | Needs Audit/Risk sign-off before any policy is activated |
 | ADR-006 to ADR-009 | Bitemporal model, ownership graph, AI proposes/humans approve, golden testing | Proposed; awaiting team confirmation |
-| ADR-013 to ADR-018 | Modular monolith, DB roles, API conventions, outbox, workflow engine (open), time handling | Proposed during the design orient step; see `docs/design/OPEN_DECISIONS.md` |
+| ADR-013 to ADR-018 | Modular monolith, DB roles, API conventions, outbox, workflow engine (open), time handling | Proposed in the design track; see `docs/design/OPEN_DECISIONS.md` |
 
 ## Open questions for the human
-1. OD-23: fix Testcontainers by restoring the 1.21.4 pin (recommended), upgrading Spring Boot, or a laptop-only setting?
-2. Approve the CI change in P0-5 (use `./mvnw` in the `api` job)?
-3. Include optional P0-6 (Git Bash path fix)?
-4. OD-24: delete the duplicate draft ADR-012 and `knowledge/capabilities.md` before committing?
+1. Approve the Phase 0 gate (with the CI-on-GitHub gap) and proceed to step B, the design track?
+2. Should `CLAUDE.md` "Commands" switch to the Maven wrapper? (Not edited; your rules file.)
+3. OD-11: where will the repository live, so CI can run on GitHub?
 
 ## Known gaps, stubs and technical debt
-- CI has never run (no remote; OD-11). "CI workflow valid" can only be checked locally until a push is approved.
-- `scripts/*.sh` committed without the executable bit.
+- CI has never run on GitHub (no remote; OD-11).
 - Mockito dynamic-agent warning in tests (future JDKs will block it).
-- Control gaps in the schema recorded as D-04 to D-07, D-12 to D-15, D-29, D-33 in `docs/design/DESIGN_STATE.md` (OD-18); not in Phase 0 scope.
+- `scripts/check-setup.*` still requires a local `mvn`.
+- Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Wait for approval of `docs/phases/phase-0/PLAN.md` and answers to the four questions; then build P0-1 to P0-7 in order, asking before each commit.
+Wait for approval of the Phase 0 gate. Then step B: review of the architecture overview and pattern catalogue
+(`docs/design/DESIGN_STATE.md` next action), followed by the Phase 1 LLD.

@@ -101,7 +101,9 @@ SET LOCAL mdm.change_request_id = '<cr uuid>';
 
 ## Known gaps and next steps
 
-- **Not yet run against a live database.** `scripts/db-test` and the pgTAP suites in `db/tests` are the first check.
+- **Runs on PostgreSQL 16** (verified 2026-11-11): `scripts/db-test` applies V1–V6 to a fresh database and the 35 pgTAP
+  tests in `db/tests` pass. Several guards still have no tests, and some controls described above are not yet enforced
+  in the schema; both are listed in `docs/design/DESIGN_STATE.md` (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33) for a human decision (OD-18).
 - Compare, difference, transaction-log and version exports belong in the export service; only hierarchy and generation exports are in SQL.
 - Derived properties are evaluated in SQL only for the `sql` engine. CEL and Python run in the rules service.
 - Cross-holdings (cycles) are flagged and excluded from totals. Exact treatment needs a matrix solve in the ownership service.

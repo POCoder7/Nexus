@@ -7,9 +7,10 @@ for beneficial-ownership analysis, and AI assistance under human approval.
 ## Quick start
 1. Check your toolchain: `scripts\check-setup.ps1` (Windows) or `scripts/check-setup.sh`
 2. Run the database tests: `scripts\db-test.ps1` or `scripts/db-test.sh`
-3. Build and test the API: `mvn -B -f services/mdm-api/pom.xml verify`
-4. Run the API locally: `docker compose up -d db`, then `mvn -f services/mdm-api/pom.xml spring-boot:run`
-   and open http://localhost:8080/api/v1/hierarchies
+3. Build and test the API with the Maven wrapper (no local Maven needed): `cd services/mdm-api`, then
+   `.\mvnw.cmd -B verify` (Windows) or `./mvnw -B verify`
+4. Run the API locally: `docker compose up -d db`, then from `services/mdm-api` run `./mvnw spring-boot:run`
+   (`.\mvnw.cmd` on Windows) and open http://localhost:8080/api/v1/hierarchies
 
 Full setup: [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md) · Working rules: [CLAUDE.md](CLAUDE.md) ·
 Contributing: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) · Data model: [docs/data-model.md](docs/data-model.md) ·
@@ -43,5 +44,5 @@ Capabilities: [docs/capabilities.md](docs/capabilities.md)
 | `scripts` | Setup checks and database test runners |
 
 ## Status
-Sprint 0. The schema and code have **not yet been run against a live database** — making
-`scripts/db-test` and `mvn verify` pass is the first task.
+Phase 0 (foundation). Migrations V1–V6 apply on a fresh PostgreSQL 16 database and all 35 pgTAP tests pass;
+the API builds and its 6 tests pass (verified 2026-11-11). Current progress: [docs/BUILD_STATE.md](docs/BUILD_STATE.md).

@@ -62,6 +62,10 @@ Testcontainers 1.21.4 pin (commit `0c192e7`); see D-01.
 
 ## Differences found between code/schema and documents
 
+> **Resolved in Phase 0 (2026-11-11):** D-01 (baseline and build state now current; Testcontainers pin restored),
+> D-02 / D-03 (data model and README updated), D-24 (Maven wrapper committed), D-25 / D-26 (duplicates deleted, OD-24).
+> The entries below are kept as found.
+
 Controls (each needs a human decision before any guard changes; see OD-18):
 - **D-04** `docs/data-model.md` says "restrict write access on `change_request` to the bridge role so the policy
   reference can't be forged". There are no roles, `GRANT`s or row-level security in V1–V6. Any session can set
