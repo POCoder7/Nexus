@@ -210,6 +210,7 @@ wf.close_instance changes:
   'withdrawn' allowed only for the requester or submitter, human or system_feed (N1012)
   'committed' unchanged (Commit stage approved; all included stages complete); actor = the committing decider
 ```
+*Built in 2-3:* `record_stage_decision`, `claim_stage`, `unclaim_stage` and `close_instance` are `SECURITY DEFINER` owned by `nexus_wf` (ownership set in V9) and callable by `nexus_api`, because the API role has no write access to `wf`. Stage decisions are human only (`N1002`); `push_back` is refused as an invalid decision until GOV-09 (`22023`). An enrich-stage approval is recorded as the `enrich` action. Claiming sets the stage to `claimed` with `claim_expires_at` from the stage's `claim_duration`; the claimant or a workflow administrator unclaims (`N1010` otherwise). The rejecting decider is the one who recorded a `reject` on the current stage.
 
 ### 4.5 Stage progression (new, V9) — the operations the engine calls
 ```sql

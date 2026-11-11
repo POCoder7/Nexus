@@ -178,3 +178,17 @@ REVOKE EXECUTE ON FUNCTION wf.propose_membership_change(uuid, uuid, text, date, 
                            wf.decide_membership_change(uuid, uuid, boolean) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION wf.propose_membership_change(uuid, uuid, text, date, text, uuid),
                           wf.decide_membership_change(uuid, uuid, boolean) TO nexus_api;
+
+-- -----------------------------------------------------------------------------
+-- Stage decisions, claims and closing (2-3, D-12, D-13): owner-run as nexus_wf (which writes wf), callable by the API
+-- (decisions, claims, withdraw) and the worker (close), never directly by anyone else.
+-- -----------------------------------------------------------------------------
+ALTER FUNCTION wf.record_stage_decision(uuid, uuid, text, text) OWNER TO nexus_wf;
+ALTER FUNCTION wf.claim_stage(uuid, uuid) OWNER TO nexus_wf;
+ALTER FUNCTION wf.unclaim_stage(uuid, uuid) OWNER TO nexus_wf;
+ALTER FUNCTION wf.close_instance(uuid, wf.instance_status, uuid, text) OWNER TO nexus_wf;
+REVOKE EXECUTE ON FUNCTION wf.record_stage_decision(uuid, uuid, text, text), wf.claim_stage(uuid, uuid),
+                           wf.unclaim_stage(uuid, uuid), wf.close_instance(uuid, wf.instance_status, uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION wf.record_stage_decision(uuid, uuid, text, text), wf.claim_stage(uuid, uuid),
+                          wf.unclaim_stage(uuid, uuid), wf.close_instance(uuid, wf.instance_status, uuid, text) TO nexus_api;
+GRANT EXECUTE ON FUNCTION wf.close_instance(uuid, wf.instance_status, uuid, text) TO nexus_wf;

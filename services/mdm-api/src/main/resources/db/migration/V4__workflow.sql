@@ -729,15 +729,44 @@ BEGIN
 END $$;
 
 -- Close an instance. Committing requires an approved commit stage and all included stages complete.
+-- Closing an instance is the final workflow decision, so each outcome has its own authority (D-13):
+--   committed  the Commit stage is approved and every included stage is complete (unchanged)
+--   rejected   the current stage's outcome is 'rejected', and the actor is the human who recorded that rejection
+--   withdrawn  the actor is the requester or the submitter, human or system feed (never an AI on someone's behalf)
+-- SECURITY DEFINER, owned by nexus_wf (V9): the API withdraws through it without write access to wf.
 CREATE FUNCTION wf.close_instance(p_instance_id uuid, p_outcome wf.instance_status,
                                   p_actor_id uuid, p_comment text DEFAULT NULL)
-RETURNS void LANGUAGE plpgsql SET search_path = wf, mdm, public AS $$
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = wf, mdm, public AS $$
 DECLARE
   v_commit_stage uuid;
+  v_current      uuid;
   k              mdm.requester_kind;
+  i              wf.workflow_instance%ROWTYPE;
 BEGIN
   IF p_outcome NOT IN ('committed', 'rejected', 'withdrawn') THEN
     RAISE EXCEPTION 'Outcome must be committed, rejected or withdrawn' USING ERRCODE = 'N2212', HINT = 'wf.bad_outcome';
+  END IF;
+  SELECT * INTO i FROM wf.workflow_instance WHERE instance_id = p_instance_id FOR UPDATE;
+  SELECT kind INTO k FROM mdm.app_user WHERE user_id = p_actor_id;
+
+  IF p_outcome = 'rejected' THEN
+    SELECT ist.instance_stage_id INTO v_current FROM wf.instance_stage ist
+    WHERE ist.instance_id = p_instance_id AND ist.seq = i.current_seq
+    ORDER BY ist.iteration DESC LIMIT 1;
+    IF wf.stage_outcome(v_current) IS DISTINCT FROM 'rejected'
+       OR NOT EXISTS (SELECT 1 FROM wf.stage_group_decision d
+                      WHERE d.instance_stage_id = v_current AND d.decision = 'reject' AND d.decided_by = p_actor_id) THEN
+      RAISE EXCEPTION 'Only the person who rejected the current stage can close the request as rejected'
+        USING ERRCODE = 'N1011', HINT = 'wf.reject_not_allowed';
+    END IF;
+    v_commit_stage := v_current;   -- the action is recorded against the rejected stage
+  ELSIF p_outcome = 'withdrawn' THEN
+    IF k NOT IN ('human', 'system_feed')
+       OR (p_actor_id IS DISTINCT FROM i.submitted_by
+           AND p_actor_id IS DISTINCT FROM (SELECT requester_id FROM mdm.change_request WHERE change_request_id = i.change_request_id)) THEN
+      RAISE EXCEPTION 'Only the requester or the submitter can withdraw this request'
+        USING ERRCODE = 'N1012', HINT = 'wf.withdraw_not_allowed';
+    END IF;
   END IF;
 
   IF p_outcome = 'committed' THEN
@@ -767,7 +796,6 @@ BEGIN
     RAISE EXCEPTION 'Instance % is not open', p_instance_id USING ERRCODE = 'N2215', HINT = 'wf.instance_not_open';
   END IF;
 
-  SELECT kind INTO k FROM mdm.app_user WHERE user_id = p_actor_id;
   INSERT INTO wf.instance_action (instance_id, instance_stage_id, actor_id, actor_kind, action, comment)
   VALUES (p_instance_id, v_commit_stage, p_actor_id, k,
           CASE p_outcome WHEN 'committed' THEN 'commit' WHEN 'rejected' THEN 'reject' ELSE 'withdraw' END::wf.wf_action,
@@ -775,6 +803,120 @@ BEGIN
 
   INSERT INTO wf.event_outbox (event_type, instance_id, payload)
   VALUES ('instance_closed', p_instance_id, jsonb_build_object('outcome', p_outcome, 'actor_id', p_actor_id));
+END $$;
+
+-- -----------------------------------------------------------------------------
+-- Claims (D-12): a claim reserves a stage for one person, so it must be a person who could act on it anyway.
+-- -----------------------------------------------------------------------------
+CREATE FUNCTION wf.trg_claim_guard() RETURNS trigger
+LANGUAGE plpgsql SET search_path = wf, mdm, public AS $$
+BEGIN
+  IF NEW.claimed_by IS NOT NULL AND NEW.claimed_by IS DISTINCT FROM OLD.claimed_by THEN
+    -- can_act reads the stored row (OLD): a live claim by someone else makes it false, so a claim cannot be taken over
+    IF (SELECT kind FROM mdm.app_user WHERE user_id = NEW.claimed_by) IS DISTINCT FROM 'human'
+       OR NOT wf.can_act(NEW.instance_stage_id, NEW.claimed_by) THEN
+      RAISE EXCEPTION 'User % cannot claim this stage (claims are for people who can act on it)', NEW.claimed_by
+        USING ERRCODE = 'N1010', HINT = 'wf.claim_not_allowed';
+    END IF;
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER instance_stage_claim_guard BEFORE UPDATE OF claimed_by ON wf.instance_stage
+  FOR EACH ROW EXECUTE FUNCTION wf.trg_claim_guard();
+
+CREATE FUNCTION wf.claim_stage(p_stage uuid, p_user uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = wf, mdm, public AS $$
+DECLARE s wf.instance_stage%ROWTYPE;
+BEGIN
+  SELECT * INTO s FROM wf.instance_stage WHERE instance_stage_id = p_stage FOR UPDATE;
+  IF s.claimed_by = p_user AND (s.claim_expires_at IS NULL OR s.claim_expires_at >= now()) THEN
+    RETURN;                                                       -- already claimed by this user
+  END IF;
+  UPDATE wf.instance_stage ist
+  SET claimed_by = p_user, claimed_at = now(), status = 'claimed',
+      claim_expires_at = now() + (SELECT ws.claim_duration FROM wf.workflow_stage ws WHERE ws.stage_id = ist.stage_id)
+  WHERE ist.instance_stage_id = p_stage;
+  INSERT INTO wf.instance_action (instance_id, instance_stage_id, actor_id, actor_kind, action)
+  SELECT s.instance_id, p_stage, p_user, 'human', 'claim';
+END $$;
+
+-- The claimant releases a claim; a workflow administrator may release anyone's (claim expiry is GOV-07).
+CREATE FUNCTION wf.unclaim_stage(p_stage uuid, p_user uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = wf, mdm, public AS $$
+DECLARE s wf.instance_stage%ROWTYPE; k mdm.requester_kind;
+BEGIN
+  SELECT * INTO s FROM wf.instance_stage WHERE instance_stage_id = p_stage FOR UPDATE;
+  IF s.claimed_by IS NULL THEN
+    RETURN;
+  END IF;
+  IF s.claimed_by IS DISTINCT FROM p_user AND NOT wf.is_workflow_admin(p_user) THEN
+    RAISE EXCEPTION 'Only the claimant or a workflow administrator can release this claim'
+      USING ERRCODE = 'N1010', HINT = 'wf.claim_not_allowed';
+  END IF;
+  SELECT kind INTO k FROM mdm.app_user WHERE user_id = p_user;
+  UPDATE wf.instance_stage SET claimed_by = NULL, claimed_at = NULL, claim_expires_at = NULL, status = 'active'
+  WHERE instance_stage_id = p_stage;
+  INSERT INTO wf.instance_action (instance_id, instance_stage_id, actor_id, actor_kind, action)
+  VALUES (s.instance_id, p_stage, p_user, k, 'unclaim');
+END $$;
+
+-- -----------------------------------------------------------------------------
+-- A person's decision on a stage (LLD §4.4). Picks the group the person decides for (the lowest-seq group they
+-- belong to that has not decided), writes the decision (trg_decision_guard checks membership and can_act), the
+-- history action and an outbox event, and returns the stage outcome. Idempotent: repeating the same decision returns
+-- the outcome; a different decision on the same stage is refused (N2201).
+-- On a Commit stage an approval writes no action here: wf.close_instance writes the single 'commit' action.
+-- -----------------------------------------------------------------------------
+CREATE FUNCTION wf.record_stage_decision(p_stage uuid, p_user uuid, p_decision text, p_comment text)
+RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = wf, mdm, public AS $$
+DECLARE
+  s       wf.instance_stage%ROWTYPE;
+  v_type  wf.stage_type;
+  v_prior text;
+  v_group uuid;
+  v_out   text;
+BEGIN
+  IF p_decision IS NULL OR p_decision NOT IN ('approve', 'reject') THEN   -- push_back is GOV-09 (outline)
+    RAISE EXCEPTION 'Decision must be approve or reject' USING ERRCODE = '22023', HINT = 'decision.invalid';
+  END IF;
+  IF (SELECT kind FROM mdm.app_user WHERE user_id = p_user) IS DISTINCT FROM 'human' THEN
+    RAISE EXCEPTION 'Only people decide workflow stages' USING ERRCODE = 'N1002', HINT = 'human_only';
+  END IF;
+  SELECT * INTO s FROM wf.instance_stage WHERE instance_stage_id = p_stage FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Stage % not found', p_stage USING ERRCODE = 'N1016', HINT = 'wf.cannot_act';
+  END IF;
+  SELECT stage_type INTO v_type FROM wf.workflow_stage WHERE stage_id = s.stage_id;
+
+  SELECT d.decision INTO v_prior FROM wf.stage_group_decision d
+  WHERE d.instance_stage_id = p_stage AND d.decided_by = p_user LIMIT 1;
+  IF v_prior IS NOT NULL THEN
+    IF v_prior = p_decision THEN
+      RETURN wf.stage_outcome(p_stage);
+    END IF;
+    RAISE EXCEPTION 'You already decided % on this stage', v_prior USING ERRCODE = 'N2201', HINT = 'wf.conflicting_decision';
+  END IF;
+
+  SELECT sg.group_id INTO v_group FROM wf.stage_group sg
+  WHERE sg.stage_id = s.stage_id AND wf.is_member(sg.group_id, p_user, mdm.business_today())
+    AND NOT EXISTS (SELECT 1 FROM wf.stage_group_decision d WHERE d.instance_stage_id = p_stage AND d.group_id = sg.group_id)
+  ORDER BY sg.seq LIMIT 1;
+  IF v_group IS NULL THEN
+    RAISE EXCEPTION 'You are not in a group that still has to decide this stage' USING ERRCODE = 'N1015', HINT = 'wf.not_group_member';
+  END IF;
+
+  INSERT INTO wf.stage_group_decision (instance_stage_id, group_id, decided_by, decision, comment)
+  VALUES (p_stage, v_group, p_user, p_decision, p_comment);
+  IF NOT (v_type = 'commit' AND p_decision = 'approve') THEN
+    INSERT INTO wf.instance_action (instance_id, instance_stage_id, actor_id, actor_kind, action, comment)
+    VALUES (s.instance_id, p_stage, p_user, 'human',
+            CASE WHEN p_decision = 'reject' THEN 'reject' WHEN v_type = 'enrich' THEN 'enrich' ELSE 'approve' END::wf.wf_action,
+            p_comment);
+  END IF;
+  v_out := wf.stage_outcome(p_stage);
+  INSERT INTO wf.event_outbox (event_type, instance_id, payload)
+  VALUES ('stage_decision_recorded', s.instance_id, jsonb_build_object('instance_stage_id', p_stage, 'outcome', v_out));
+  RETURN v_out;
 END $$;
 
 -- =============================================================================
