@@ -38,9 +38,9 @@
 
 ## Open questions for the human
 1. **Phase 1 gate: approve, or ask for changes.** Review first: guards and migrations changed in V1, V5–V8 (ADR-021 Audit-Risk review, OD-18a), the LLD *Built in …* notes, and the explicit gaps in `docs/phases/phase-1/TEST_REPORT.md`.
-4. Approve adding springdoc (OpenAPI generation) as a dependency? (CLAUDE.md rule 8; BUILD_PROTOCOL step 6 asks for it once the API exists.)
 2. OD-11: create the GitHub remote when ready; CI runs only after a push you approve.
 3. OD-18a: Audit-Risk review of ADR-021 before the Phase 1 branch is merged to `main`.
+4. Approve adding springdoc (OpenAPI generation) as a dependency? (CLAUDE.md rule 8; BUILD_PROTOCOL step 6 asks for it once the API exists.)
 
 ## Scope changes
 - **Performance testing deferred to the end of the build** by the repository owner on 2026-11-11: Phase 1 increment 1-11 is not run; its tests and generator are kept (`./mvnw -B verify -Dperf`). Phase 1 gate reports the LLD §10 targets as "not measured".
