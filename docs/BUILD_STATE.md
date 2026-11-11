@@ -25,11 +25,12 @@
 | ADR | Title | Why it needs review |
 |---|---|---|
 | ADR-005 | Policy-governed straight-through commit | Needs Audit/Risk sign-off before any policy is activated |
-| ADR-006 to ADR-009 | Bitemporal model, ownership graph, AI proposes/humans approve, golden testing | Proposed; awaiting team confirmation |
-| ADR-013 to ADR-018 | Modular monolith, DB roles, API conventions, outbox, workflow engine (open), time handling | Proposed in the design track; see `docs/design/OPEN_DECISIONS.md` |
+| ADR-006 to ADR-008 | Bitemporal model, ownership graph, AI proposes/humans approve | Proposed; awaiting team confirmation |
+| ADR-013 to ADR-031 | Design-track decisions | Accepted by the owner; confirmations pending for ADR-014, 021, 023, 026, 027 (Security / Audit-Risk), see `docs/design/OPEN_DECISIONS.md` |
+| ADR-032 | Governed export profiles, streaming runs, reconciliation review | Proposed with the Phase 8 LLD |
 
 ## Open questions for the human
-1. Review the Phase 1 LLD and ADR-019 to ADR-022 (design track). Overview, patterns and ADR-013 to ADR-018 were approved 2026-11-11.
+1. Review the Phase 8 LLD and ADR-032 (design track). Phase 1–7 LLDs approved 2026-11-11 (Phase 7 build deferred).
 2. OD-11 decided (enterprise GitHub organisation, private): create the remote and say when to push; CI runs only after that.
 
 ## Scope changes
