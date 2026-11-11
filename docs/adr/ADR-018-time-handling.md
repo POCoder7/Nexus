@@ -1,6 +1,7 @@
 # ADR-018: Time handling — business dates in a configured business time zone, UTC recorded time
 
-- **Status:** Accepted (repository owner, 2026-11-11). The zone value is still open (OD-22a)
+- **Status:** Accepted (repository owner, 2026-11-11). Zone: US Eastern, recorded as `America/New_York` (observes
+  daylight saving: EST UTC−5 in winter, EDT UTC−4 in summer). Pending confirmation that a fixed UTC−5 was not intended (OD-22b)
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** VER-03, NEW-01, GOV-07, GOV-12

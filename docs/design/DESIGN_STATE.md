@@ -158,8 +158,8 @@ one-way kill switch, frozen approved policies and models; 35 pgTAP tests.
 
 ## Decisions blocking design (see OPEN_DECISIONS.md)
 - **OD-09** remaining capability decisions: the rest of Phases 1–2 (HIE-06, PRP-02, PRP-03, VAL-01–03, AUD-01, AUD-02, GOV-03–09) are outline only until decided. Blocks detail in the Phase 2 LLD most.
-- **OD-22a** value of `BUSINESS_TIME_ZONE`: Phase 1 is designed with it as a required setting.
-- **OD-01a** whether Temporal or Camunda is already run by the platform team: affects the Phase 2 engine adapter only.
+- **OD-22b** confirm `America/New_York` (EST/EDT) rather than a fixed UTC−5; zone recorded 2026-11-11 from "EST".
+- **OD-01b** Camunda edition and hosting (owner chose Camunda, ADR-017): blocks the Phase 2 LLD deployment and test-engine sections.
 - **OD-17a / OD-18a** Security and Audit-Risk confirmations: block merging the Phase 1 fix migrations and the first shared environment, not the design.
 - **OD-28** the external capability working copy must receive the OD-13 decisions.
 - OD-02 to OD-07: Phase 3 and later.

@@ -51,7 +51,7 @@ semantics, which are pending decision (VAL-01–03).
 | A-5 | New nodes get their identity (`mdm.node` row) when the `add_node` item is drafted, so later items and the Phase 2 workflow functions can refer to `node_id`. A withdrawn request leaves an identity with no attributes, which belongs to no slice | Accepted cost; HIE-04 orphan logic must count only nodes with `node_attr` rows |
 | A-6 | Validation rules authored in `mdm.validation_rule` are changed only by migration in Phase 1 (no rule-editing API) | Needed because rule SQL runs with the apply role's privileges (D-39); revisit in Phase 5 (VAL-04) |
 | A-7 | Role grants are changed only by migration or SQL by a `SYSTEM_ADMIN` in Phase 1; no grant-editing API | A governed grant API is Phase 5 (SEC-01 full) |
-| A-8 | `BUSINESS_TIME_ZONE` is configured in every non-local environment (OD-22a) | The API refuses to start without it outside `local`/`test` |
+| A-8 | `BUSINESS_TIME_ZONE` = `America/New_York` (OD-22a, DST confirmation OD-22b), configured as `mdm.business-time-zone` in every profile | If a fixed UTC−5 is meant, the setting becomes `-05:00`; no code change |
 | A-9 | `MAX_ITEMS_PER_CHANGE_REQUEST` = 5 000; `P95_SUBMIT_MS` / `P95_APPLY_MS` = 2 000 for ≤ 50 items | Benchmarks in §10 |
 
 **Human decisions this phase waits on:** OD-22a (zone value) before the build's time tests can be final; OD-18a (Audit-Risk
@@ -687,7 +687,7 @@ Performance data generated (Phase 1 generator is a test utility; the full genera
 | PROG D-29 | Every applied row traceable | P: every row written by apply has `change_request_id`, audit rows carry actor and request | pgTAP |
 | PROG D-36 | Delete exists and needs a human | C: commit policy with `delete_node` rejected by CHECK | pgTAP |
 | PROG ADR-015 | Paging, ETag, idempotency | P: replay with same key → same response; N: same key, different body → 422; N: stale `If-Match` → 412 | JUnit |
-| PROG ADR-018 | Business today | P: with a fixed `Clock` at 23:30 UTC and zone UTC+2, `asOf` default is the next day | JUnit |
+| PROG ADR-018 | Business today in `America/New_York` | P: fixed `Clock` at 12 Jan 2027 03:30 UTC → default `asOf` 11 Jan 2027 (EST, UTC−5); P: 12 Jul 2027 03:30 UTC → 11 Jul 2027 (EDT, UTC−4); B: 12 Jul 2027 04:00 UTC → 12 Jul 2027; B: the March and November DST change days | JUnit |
 | PROG stale base | No silent overwrite | N: two requests set the same property; second apply → `apply_failed`, data = first | pgTAP + JUnit |
 | Performance | §10 | Tagged perf tests, results in the Phase 1 test report | JUnit (perf) |
 

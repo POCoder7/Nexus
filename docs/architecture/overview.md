@@ -69,7 +69,8 @@ flowchart TB
   subgraph nexus[Nexus]
     ui[Steward UI<br/>Angular on the design system<br/>ui/ · planned Phase 3]
     api[mdm-api<br/>Java 21 / Spring Boot 3<br/>services/mdm-api · exists, read-only today]
-    worker[Workflow worker<br/>process manager driving wf.*<br/>engine open: OD-01 · planned Phase 2]
+    worker[Workflow worker<br/>Camunda job workers calling wf.*<br/>ADR-017 · planned Phase 2]
+    camunda[Camunda engine<br/>edition open: OD-01b]
     aisvc[AI services<br/>Python, behind an internal API<br/>planned Phase 7]
     db[(PostgreSQL 16<br/>mdm · wf · wf_bridge · mdm_stage<br/>exists)]
     obj[(Object storage<br/>evidence documents, export files<br/>open: OD-16)]
@@ -77,6 +78,7 @@ flowchart TB
   ui -->|HTTPS JSON /api/v1| api
   api -->|JDBC, explicit SQL| db
   worker -->|JDBC: wf operations, outbox| db
+  worker <-->|jobs, messages, timers| camunda
   api -->|internal HTTPS| aisvc
   aisvc -->|provider adapter| ext_ai[AI provider · OD-07]
   api --> obj
@@ -404,7 +406,8 @@ transaction, and the Phase 1 LLD proposes a guard that rejects fact inserts with
 | API conventions | Keyset paging, Problem Details, ETags, idempotency keys, path versioning | Proposed | ADR-015 |
 | Events | Transactional outboxes with per-consumer offsets | Proposed | ADR-016 |
 | Time | Business dates in a configured business time zone; UTC recorded time | Proposed | ADR-018 |
-| Workflow orchestration | Temporal · Camunda · in-house worker | Open | ADR-017, OD-01 |
+| Workflow orchestration | Camunda (one generic BPMN process over `wf` models; guarded `wf` functions); edition and hosting open | Decided (edition open) | ADR-017, OD-01b |
+| Business time zone | `America/New_York` | Decided (confirm DST, OD-22b) | ADR-018 |
 | Identity provider | Corporate SSO (OIDC recommended) | Open | OD-06 |
 | AI model and provider | — | Open | OD-07 |
 | Hosting platform and environments | — | Open | OD-15 |
