@@ -53,13 +53,30 @@ CREATE TABLE wf.user_group (
   is_active   boolean NOT NULL DEFAULT true
 );
 
+-- Group membership decides who may approve requests and policies, so its history must be reconstructable (D-33):
+-- bitemporal like the core facts, by business date (ADR-018). Rows are never updated or deleted; a membership ends by
+-- closing its recorded_period and re-stating the period it was true. Changes go through governed membership changes
+-- (V9, CR-10); only the owner writes directly (bootstrap, tests).
 CREATE TABLE wf.user_group_member (
-  group_id   uuid NOT NULL REFERENCES wf.user_group,
-  user_id    uuid NOT NULL REFERENCES mdm.app_user,
-  valid_from date NOT NULL DEFAULT current_date,
-  valid_to   date,
-  PRIMARY KEY (group_id, user_id)
+  group_id        uuid NOT NULL REFERENCES wf.user_group,
+  user_id         uuid NOT NULL REFERENCES mdm.app_user,
+  valid_period    daterange NOT NULL DEFAULT daterange(mdm.business_today(), NULL),
+  recorded_period tstzrange NOT NULL DEFAULT tstzrange(now(), NULL),
+  granted_by      uuid REFERENCES mdm.app_user,
+  change_id       uuid,                                 -- the governed change that wrote the row (V9); NULL for bootstrap rows
+  EXCLUDE USING gist (group_id WITH =, user_id WITH =, valid_period WITH &&) WHERE (upper_inf(recorded_period))
 );
+CREATE INDEX ON wf.user_group_member (user_id) WHERE upper_inf(recorded_period);
+CREATE TRIGGER user_group_member_guard BEFORE UPDATE OR DELETE ON wf.user_group_member
+  FOR EACH ROW EXECUTE FUNCTION mdm.trg_bitemporal_guard();   -- raises only; writes nothing in mdm
+
+-- The one membership test (D-15): every check of who belongs to a group uses it, on the business day it concerns.
+CREATE FUNCTION wf.is_member(p_group uuid, p_user uuid, p_on date)
+RETURNS boolean LANGUAGE sql STABLE SET search_path = wf, mdm, public AS $$
+  SELECT EXISTS (SELECT 1 FROM wf.user_group_member m
+                 WHERE m.group_id = p_group AND m.user_id = p_user
+                   AND m.valid_period @> p_on AND upper_inf(m.recorded_period))
+$$;
 
 -- What a participant may do in a stage: allowed actions and editable properties.
 CREATE TABLE wf.workflow_task (
@@ -403,10 +420,8 @@ SELECT coalesce((
      AND EXISTS (
        SELECT 1
        FROM wf.stage_group sg
-       JOIN wf.user_group_member m
-         ON m.group_id = sg.group_id AND m.user_id = p_user_id
-        AND m.valid_from <= current_date AND (m.valid_to IS NULL OR m.valid_to >= current_date)
        WHERE sg.stage_id = ist.stage_id
+         AND wf.is_member(sg.group_id, p_user_id, mdm.business_today())
          AND NOT EXISTS (SELECT 1 FROM wf.stage_group_decision d
                          WHERE d.instance_stage_id = ist.instance_stage_id AND d.group_id = sg.group_id)
          AND (ws.approval_method <> 'sequential_groups' OR sg.seq = (
@@ -447,10 +462,7 @@ $$;
 CREATE FUNCTION wf.trg_decision_guard() RETURNS trigger
 LANGUAGE plpgsql SET search_path = wf, mdm, public AS $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM wf.user_group_member m
-                 WHERE m.group_id = NEW.group_id AND m.user_id = NEW.decided_by
-                   AND m.valid_from <= current_date
-                   AND (m.valid_to IS NULL OR m.valid_to >= current_date)) THEN
+  IF NOT wf.is_member(NEW.group_id, NEW.decided_by, mdm.business_today()) THEN
     RAISE EXCEPTION 'User % is not a member of the deciding group', NEW.decided_by USING ERRCODE = 'N1015', HINT = 'wf.not_group_member';
   END IF;
   IF NOT wf.can_act(NEW.instance_stage_id, NEW.decided_by) THEN

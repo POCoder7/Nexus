@@ -147,10 +147,8 @@ BEGIN
       IF NEW.approved_by = NEW.proposed_by THEN
         RAISE EXCEPTION 'Maker-checker violation: the proposer cannot approve their own policy' USING ERRCODE = 'N1001', HINT = 'maker_checker.self_decision';
       END IF;
-      IF NOT EXISTS (SELECT 1 FROM wf.user_group_member m JOIN wf.user_group g ON g.group_id = m.group_id
-                     WHERE g.group_code = 'POLICY_APPROVERS' AND m.user_id = NEW.approved_by
-                       AND m.valid_from <= current_date
-                       AND (m.valid_to IS NULL OR m.valid_to >= current_date)) THEN
+      IF NOT wf.is_member((SELECT group_id FROM wf.user_group WHERE group_code = 'POLICY_APPROVERS'),
+                          NEW.approved_by, mdm.business_today()) THEN
         RAISE EXCEPTION 'Approver is not in POLICY_APPROVERS' USING ERRCODE = 'N1020', HINT = 'policy.not_approver';
       END IF;
       IF EXISTS (SELECT 1 FROM wf.policy_scope s1
@@ -235,10 +233,10 @@ BEGIN
   SELECT p.policy_id INTO v_policy
   FROM wf.commit_policy p
   WHERE p.policy_code = p_policy_code AND p.status = 'approved'
-    AND EXISTS (SELECT 1 FROM wf.user_group_member m JOIN wf.user_group g ON g.group_id = m.group_id
-                WHERE m.user_id = p_actor
-                  AND (g.group_id = p.owner_group_id OR g.group_code = 'POLICY_APPROVERS')
-                  AND (m.valid_to IS NULL OR m.valid_to >= current_date));
+    -- D-15: membership on the business day, start date included (this check used to ignore valid_from)
+    AND (wf.is_member(p.owner_group_id, p_actor, mdm.business_today())
+         OR wf.is_member((SELECT group_id FROM wf.user_group WHERE group_code = 'POLICY_APPROVERS'),
+                         p_actor, mdm.business_today()));
   IF v_policy IS NULL THEN
     RAISE EXCEPTION 'No approved policy % that user % may stop', p_policy_code, p_actor USING ERRCODE = 'N1023', HINT = 'policy.kill_switch_not_allowed';
   END IF;

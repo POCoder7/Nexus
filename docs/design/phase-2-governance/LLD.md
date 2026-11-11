@@ -183,6 +183,7 @@ policies, so it gets the same four-eyes rule as role grants (ADR-029): `wf.membe
 op add|end, valid_from, proposed_by, approved_by, status)`; a `WORKFLOW_ADMIN` proposes, a different one approves
 (`POLICY_APPROVERS` changes need an approver who is in `POLICY_APPROVERS`), and only `wf.apply_membership_change` (definer, `nexus_wf`) writes `wf.user_group_member`. The pgTAP fixture in `02_workflow_invariants.sql`
 inserts `(group_id, user_id)` only, which still works with the defaults.
+*Built in 2-2:* governed changes are `wf.propose_membership_change` and `wf.decide_membership_change` (approve applies the change; there is no separate `apply_membership_change`), in the new `V9__workflow_phase2.sql` with `wf.membership_change` and `wf.config_audit`. Both functions and the audit trigger are `SECURITY DEFINER` owned by the migration owner, and `nexus_wf` loses `INSERT, UPDATE, DELETE` on `user_group_member`, `membership_change` and `config_audit`, so only the functions write membership. Workflow administrator = `WORKFLOW_ADMIN` for all hierarchies on the business day (`wf.is_workflow_admin`). Added rules: a change cannot take effect before today (`N2233`); proposer and decider must be workflow administrators (`N1026`). New codes `N1026`, `N2230`–`N2233`. Bootstrap members are inserted by the owner.
 
 ### 4.3 Claims (D-12) — edit V4
 ```sql

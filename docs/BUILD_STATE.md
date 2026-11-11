@@ -2,7 +2,7 @@
 
 - **Current phase:** 2 — Governance
 - **Step in loop:** Build — branch `feature/GOV-02-phase-2-governance` (from the Phase 1 branch)
-- **Baseline:** db-test **pass** 222/222 · mvnw verify **pass** 78/78 (after 2-1, 2026-11-11)
+- **Baseline:** db-test **pass** 243/243 · mvnw verify **pass** 78/78 (after 2-2, 2026-11-11)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -31,8 +31,9 @@
 ### Phase 2 progress
 | Increment | Capability | Status | Tests | Notes |
 |---|---|---|---|---|
-| 2-1 Business-day functions, `wf` day boundaries, activation guard | PROG, GOV-12 | Done (this commit) | pgTAP 14 (11) | `system_setting` moved V8 → V1; guard in `trg_policy_guard`, `N2225` |
-| 2-2 … 2-12 | GOV-01, GOV-02, GOV-12, GOV-13, PROG | Planned | per plan | |
+| 2-1 Business-day functions, `wf` day boundaries, activation guard | PROG, GOV-12 | Done `19f92c9` | pgTAP 14 (11) | `system_setting` moved V8 → V1; guard in `trg_policy_guard`, `N2225` |
+| 2-2 Bitemporal membership, `wf.is_member`, governed changes, config audit | PROG | Done (this commit) | pgTAP 15 (21) | new V9; only definer functions write membership; D-15 fixed; codes N1026, N2230–N2233 |
+| 2-3 … 2-12 | GOV-01, GOV-02, GOV-12, GOV-13, PROG | Planned | per plan | |
 
 ## Decisions awaiting human review
 | ADR | Title | Why it needs review |
@@ -63,4 +64,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Increment 2-2 (bitemporal group membership, governed membership changes, `wf.is_member`, `wf.config_audit`), then 2-3 … 2-12, asking before each commit. Performance tests deferred to the end of the build.
+Increment 2-3 (claim guard and functions, close rules, `wf.record_stage_decision`), then 2-4 … 2-12, asking before each commit. Performance tests deferred to the end of the build.
