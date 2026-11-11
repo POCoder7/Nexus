@@ -103,3 +103,14 @@ END $$;
 ALTER FUNCTION mdm.apply_change_request(uuid, uuid) OWNER TO nexus_apply;
 REVOKE EXECUTE ON FUNCTION mdm.apply_change_request(uuid, uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION mdm.apply_change_request(uuid, uuid) TO nexus_api;   -- ApplyService, after a decision (1-10)
+
+-- Validation (1-9): a trial apply, so it is owned by the fact writer; its trial is always rolled back, which also
+-- discards anything a rule expression might write. Only its findings persist.
+GRANT INSERT ON mdm.validation_result TO nexus_apply;
+ALTER FUNCTION mdm.validate_change_request(uuid, date) OWNER TO nexus_apply;
+REVOKE EXECUTE ON FUNCTION mdm.validate_change_request(uuid, date) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION mdm.validate_change_request(uuid, date) TO nexus_api;
+
+ALTER FUNCTION mdm.submit_change_request(uuid, uuid) OWNER TO nexus_decider;
+REVOKE EXECUTE ON FUNCTION mdm.submit_change_request(uuid, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION mdm.submit_change_request(uuid, uuid) TO nexus_api;

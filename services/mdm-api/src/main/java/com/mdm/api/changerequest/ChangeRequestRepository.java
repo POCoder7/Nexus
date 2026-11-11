@@ -184,6 +184,21 @@ public class ChangeRequestRepository {
                 .param("kind", nodeKind).param("cr", requestId).query(UUID.class).single();
     }
 
+    /** (hierarchy, node) of each item, for scope checks: the target parent for placements, else the node. */
+    public List<UUID[]> itemScopes(UUID requestId) {
+        return jdbc.sql("""
+                SELECT hierarchy_id, coalesce(target_parent_id, node_id) AS node_id
+                FROM mdm.change_item WHERE change_request_id = :cr ORDER BY seq
+                """).param("cr", requestId)
+                .query((rs, i) -> new UUID[] {rs.getObject("hierarchy_id", UUID.class), rs.getObject("node_id", UUID.class)})
+                .list();
+    }
+
+    public void submit(UUID requestId, UUID actorId) {
+        jdbc.sql("SELECT mdm.submit_change_request(:cr, :actor)").param("cr", requestId).param("actor", actorId)
+                .query((rs, i) -> 0).single();
+    }
+
     public void withdraw(UUID requestId, UUID actorId) {
         jdbc.sql("SELECT mdm.withdraw_change_request(:cr, :actor)").param("cr", requestId).param("actor", actorId)
                 .query((rs, i) -> 0).single();

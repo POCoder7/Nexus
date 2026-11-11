@@ -1171,16 +1171,64 @@ BEGIN
     USING ERRCODE = 'N2105', HINT = 'apply.action_not_available';
 END $$;
 
--- Applies an approved request as one unit (LLD §7.1). Rule failures (N2…, stale base, overlaps, duplicates)
--- undo every item and leave the request apply_failed with the reason; anything else is raised to the caller.
+-- The items an apply (or a trial) runs, in order: all of them, or only the cleared ones when a workflow governs
+-- the request (ADR-019).
+CREATE FUNCTION apply_items_of(p_cr change_request)
+RETURNS SETOF change_item LANGUAGE sql STABLE SET search_path = mdm, public AS $$
+  SELECT ci.* FROM mdm.change_item ci
+  WHERE ci.change_request_id = p_cr.change_request_id
+    AND (NOT p_cr.governed_by_workflow
+         OR EXISTS (SELECT 1 FROM mdm.change_item_clearance c WHERE c.change_item_id = ci.change_item_id))
+  ORDER BY ci.seq
+$$;
+
+-- CR-04: the item limit depends on where the request came from (sandboxes may be larger); settings in V8.
+CREATE FUNCTION apply_check_limit(p_cr change_request)
+RETURNS void LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE v_count int; v_limit int;
+BEGIN
+  SELECT count(*) INTO v_count FROM apply_items_of(p_cr);
+  SELECT setting_value::int INTO v_limit FROM mdm.system_setting
+  WHERE setting_key = CASE WHEN p_cr.origin = 'sandbox' THEN 'sandbox_max_items' ELSE 'max_items_per_change_request' END;
+  IF v_count > coalesce(v_limit, 5000) THEN
+    RAISE EXCEPTION 'Change request % has % items; the limit for origin % is %', p_cr.change_request_id, v_count,
+      p_cr.origin, coalesce(v_limit, 5000) USING ERRCODE = 'N2103', HINT = 'change_request.too_many_items';
+  END IF;
+END $$;
+
+-- One item, dispatched on its action (LLD §7.2). Actions without a handler fail rather than being skipped.
+CREATE FUNCTION apply_item(p_item change_item)
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+BEGIN
+  RETURN CASE p_item.action
+    WHEN 'add_node'       THEN apply_add_node(p_item)
+    WHEN 'insert_node'    THEN apply_insert_node(p_item)
+    WHEN 'move_node'      THEN apply_move_node(p_item)
+    WHEN 'remove_node'    THEN apply_remove_node(p_item)
+    WHEN 'delete_node'    THEN apply_delete_node(p_item)
+    WHEN 'update_node'    THEN apply_update_node(p_item)
+    WHEN 'add_hierarchy'  THEN apply_add_hierarchy(p_item)
+    WHEN 'set_property'   THEN apply_set_property(p_item)
+    WHEN 'clear_property' THEN apply_clear_property(p_item)
+    ELSE apply_not_available(p_item)
+  END;
+END $$;
+
+-- The failures that mean "this request cannot be applied as it stands" (rules, stale base, overlaps, duplicates),
+-- as opposed to faults, which are raised to the caller.
+CREATE FUNCTION apply_is_rule_failure(p_state text)
+RETURNS boolean LANGUAGE sql IMMUTABLE AS $$
+  SELECT p_state LIKE 'N2%' OR p_state IN ('N3001', '23P01', '23505')
+$$;
+
+-- Applies an approved request as one unit (LLD §7.1). Rule failures undo every item and leave the request
+-- apply_failed with the reason; anything else is raised to the caller.
 CREATE FUNCTION apply_change_request(p_change_request_id uuid, p_actor uuid)
 RETURNS int LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
 DECLARE
   cr       mdm.change_request%ROWTYPE;
   it       mdm.change_item%ROWTYPE;
   v_rows   int := 0;
-  v_count  int;
-  v_limit  int;
   v_seq    int;
   v_state  text;
   v_msg    text;
@@ -1202,57 +1250,26 @@ BEGIN
   PERFORM set_config('mdm.apply_date', cr.effective_from::text, true);
 
   BEGIN                                                          -- subtransaction: all items or none
-    -- CR-04: the limit depends on where the request came from (sandboxes may be larger); settings in V8
-    SELECT count(*) INTO v_count FROM mdm.change_item ci
-    WHERE ci.change_request_id = p_change_request_id
-      AND (NOT cr.governed_by_workflow
-           OR EXISTS (SELECT 1 FROM mdm.change_item_clearance c WHERE c.change_item_id = ci.change_item_id));
-    SELECT setting_value::int INTO v_limit FROM mdm.system_setting
-    WHERE setting_key = CASE WHEN cr.origin = 'sandbox' THEN 'sandbox_max_items' ELSE 'max_items_per_change_request' END;
-    IF v_count > coalesce(v_limit, 5000) THEN
-      RAISE EXCEPTION 'Change request % has % items; the limit for origin % is %', p_change_request_id, v_count, cr.origin,
-        coalesce(v_limit, 5000) USING ERRCODE = 'N2103', HINT = 'change_request.too_many_items';
-    END IF;
-
-    FOR it IN
-      SELECT ci.* FROM mdm.change_item ci
-      WHERE ci.change_request_id = p_change_request_id
-        AND (NOT cr.governed_by_workflow
-             OR EXISTS (SELECT 1 FROM mdm.change_item_clearance c WHERE c.change_item_id = ci.change_item_id))
-      ORDER BY ci.seq
-    LOOP
+    PERFORM mdm.apply_check_limit(cr);
+    FOR it IN SELECT * FROM mdm.apply_items_of(cr) LOOP
       v_seq := it.seq;
-      v_rows := v_rows + CASE it.action
-        WHEN 'add_node'    THEN mdm.apply_add_node(it)
-        WHEN 'insert_node' THEN mdm.apply_insert_node(it)
-        WHEN 'move_node'   THEN mdm.apply_move_node(it)
-        WHEN 'remove_node' THEN mdm.apply_remove_node(it)
-        WHEN 'delete_node' THEN mdm.apply_delete_node(it)
-        WHEN 'update_node' THEN mdm.apply_update_node(it)
-        WHEN 'add_hierarchy' THEN mdm.apply_add_hierarchy(it)
-        WHEN 'set_property' THEN mdm.apply_set_property(it)
-        WHEN 'clear_property' THEN mdm.apply_clear_property(it)
-        ELSE mdm.apply_not_available(it)
-      END;
+      v_rows := v_rows + mdm.apply_item(it);
     END LOOP;
     v_seq := NULL;
 
     INSERT INTO mdm.change_event (change_request_id, event_type, payload)
     SELECT p_change_request_id, 'change_request_applied',
            jsonb_build_object('effective_from', cr.effective_from,
-             'items', coalesce(jsonb_agg(jsonb_build_object('seq', ci.seq, 'action', ci.action, 'node_id', ci.node_id,
-                                'hierarchy_id', ci.hierarchy_id, 'property_id', ci.property_id) ORDER BY ci.seq), '[]'::jsonb))
-    FROM mdm.change_item ci
-    WHERE ci.change_request_id = p_change_request_id
-      AND (NOT cr.governed_by_workflow
-           OR EXISTS (SELECT 1 FROM mdm.change_item_clearance c WHERE c.change_item_id = ci.change_item_id));
+             'items', coalesce(jsonb_agg(jsonb_build_object('seq', i.seq, 'action', i.action, 'node_id', i.node_id,
+                                'hierarchy_id', i.hierarchy_id, 'property_id', i.property_id) ORDER BY i.seq), '[]'::jsonb))
+    FROM mdm.apply_items_of(cr) i;
 
     UPDATE mdm.change_request SET status = 'applied', applied_at = now(), apply_error = NULL
     WHERE change_request_id = p_change_request_id;
     RETURN v_rows;
   EXCEPTION WHEN OTHERS THEN
     GET STACKED DIAGNOSTICS v_state = RETURNED_SQLSTATE, v_msg = MESSAGE_TEXT, v_detail = PG_EXCEPTION_DETAIL;
-    IF v_state LIKE 'N2%' OR v_state IN ('N3001', '23P01', '23505') THEN
+    IF mdm.apply_is_rule_failure(v_state) THEN
       UPDATE mdm.change_request
       SET status = 'apply_failed',
           apply_error = v_state || ' (item ' || coalesce(v_seq::text, '-') || '): ' || v_msg
@@ -1262,4 +1279,154 @@ BEGIN
     END IF;
     RAISE;
   END;
+END $$;
+
+-- -----------------------------------------------------------------------------
+-- Validation (Phase 1 LLD §7.4): a trial apply plus the active rules, always rolled back. Findings survive the
+-- rollback in variables and are stored in validation_result. Runs for draft, submitted and in-review requests.
+-- -----------------------------------------------------------------------------
+
+-- Findings that are not about a configured rule (the trial apply itself) are recorded against this rule. Its level
+-- is 'version', so the rule loop (node and hierarchy rules) never runs its expression.
+INSERT INTO validation_rule (rule_code, description, level, severity, engine, expression) VALUES
+  ('NEXUS.TRIAL_APPLY', 'The request applies cleanly: structure guards, stale base, property rules (Phase 1 LLD §7.4)',
+   'version', 'error', 'sql', 'SELECT NULL::uuid AS node_id, NULL::uuid AS hierarchy_id, NULL::text AS message WHERE false');
+
+CREATE FUNCTION validate_change_request(p_change_request_id uuid, p_as_of date)
+RETURNS TABLE (rule_code text, severity text, node_id uuid, hierarchy_id uuid, message text, evaluated_at timestamptz)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
+#variable_conflict use_column
+DECLARE
+  cr          mdm.change_request%ROWTYPE;
+  it          mdm.change_item%ROWTYPE;
+  r           mdm.validation_rule%ROWTYPE;
+  v_at        timestamptz := clock_timestamp();
+  v_trial     uuid;
+  v_found     jsonb := '[]';
+  v_seq       int;
+  v_state     text;
+  v_msg       text;
+  v_detail    text;
+  v_affected  uuid[];
+  v_touched   uuid[];
+  v_depth     int;
+BEGIN
+  SELECT * INTO cr FROM mdm.change_request c WHERE c.change_request_id = p_change_request_id FOR SHARE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Change request % not found', p_change_request_id USING ERRCODE = 'N2102', HINT = 'change_request.not_found';
+  END IF;
+  IF cr.status NOT IN ('draft', 'submitted', 'in_review') THEN
+    RAISE EXCEPTION 'Change request % is % and is no longer validated', p_change_request_id, cr.status
+      USING ERRCODE = 'N2101', HINT = 'change_request.status_transition';
+  END IF;
+  SELECT rule_id INTO v_trial FROM mdm.validation_rule WHERE validation_rule.rule_code = 'NEXUS.TRIAL_APPLY';
+  SELECT coalesce(max(setting_value::int), 50) INTO v_depth FROM mdm.system_setting WHERE setting_key = 'max_hierarchy_depth';
+
+  -- Nodes the request touches, and their current parents (a parent losing a child can break a rule too).
+  SELECT array_agg(DISTINCT x) INTO v_affected FROM (
+    SELECT i.node_id AS x FROM mdm.apply_items_of(cr) i
+    UNION SELECT i.target_parent_id FROM mdm.apply_items_of(cr) i
+    UNION SELECT rel.parent_node_id FROM mdm.apply_items_of(cr) i
+          JOIN mdm.hierarchy_relationship rel ON rel.child_node_id = i.node_id AND rel.hierarchy_id = i.hierarchy_id
+           AND rel.valid_period @> cr.effective_from AND upper_inf(rel.recorded_period)) s WHERE x IS NOT NULL;
+  SELECT array_agg(DISTINCT i.hierarchy_id) INTO v_touched FROM mdm.apply_items_of(cr) i WHERE i.hierarchy_id IS NOT NULL;
+
+  BEGIN                                                          -- the trial: always rolled back (N9999)
+    PERFORM set_config('mdm.change_request_id', p_change_request_id::text, true);
+    PERFORM set_config('mdm.apply_date', cr.effective_from::text, true);
+    PERFORM mdm.apply_check_limit(cr);
+    FOR it IN SELECT * FROM mdm.apply_items_of(cr) LOOP
+      v_seq := it.seq;
+      PERFORM mdm.apply_item(it);
+    END LOOP;
+    v_seq := NULL;
+
+    -- after the trial: new hierarchies, and everything below the touched nodes (moves carry descendants along)
+    v_touched := coalesce(v_touched, '{}') || coalesce((SELECT array_agg(h.hierarchy_id) FROM mdm.hierarchy h
+                   JOIN mdm.apply_items_of(cr) i ON i.action = 'add_hierarchy' AND h.top_node_id = i.node_id), '{}');
+    WITH RECURSIVE down(node_id, depth) AS (
+      SELECT unnest(coalesce(v_affected, '{}')), 0
+      UNION
+      SELECT rel.child_node_id, down.depth + 1 FROM mdm.hierarchy_relationship rel JOIN down ON rel.parent_node_id = down.node_id
+      WHERE rel.hierarchy_id = ANY (v_touched) AND rel.valid_period @> cr.effective_from AND upper_inf(rel.recorded_period)
+        AND down.depth < v_depth
+    )
+    SELECT array_agg(DISTINCT down.node_id) INTO v_affected FROM down;
+
+    FOR r IN SELECT * FROM mdm.validation_rule vr
+             WHERE vr.is_active AND vr.level IN ('node', 'hierarchy')
+               AND (vr.hierarchy_id IS NULL OR vr.hierarchy_id = ANY (v_touched))
+             ORDER BY vr.rule_code LOOP
+      IF r.engine <> 'sql' THEN
+        v_found := v_found || jsonb_build_object('rule_id', r.rule_id, 'severity', 'warning',
+                     'message', format('Rule %s was not run: engine %s is not available yet (OD-19)', r.rule_code, r.engine));
+        CONTINUE;
+      END IF;
+      BEGIN                                                      -- a broken rule is a finding, not a failed validation
+        EXECUTE format('SELECT coalesce(jsonb_agg(jsonb_build_object(''node_id'', q.node_id, ''hierarchy_id'', q.hierarchy_id,
+                                                   ''message'', q.message)), ''[]'')
+                        FROM (%s) AS q(node_id, hierarchy_id, message)   -- the rule contract is positional
+                        WHERE q.node_id = ANY ($3) OR (q.node_id IS NULL AND q.hierarchy_id = ANY ($4))', r.expression)
+          INTO v_detail USING p_as_of, now(), v_affected, v_touched;
+        SELECT v_found || coalesce(jsonb_agg(f || jsonb_build_object('rule_id', r.rule_id, 'severity', r.severity)), '[]')
+          INTO v_found FROM jsonb_array_elements(v_detail::jsonb) f;
+      EXCEPTION WHEN OTHERS THEN
+        GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
+        v_found := v_found || jsonb_build_object('rule_id', r.rule_id, 'severity', 'error',
+                     'message', format('Rule %s could not be evaluated: %s', r.rule_code, v_msg));
+      END;
+    END LOOP;
+    RAISE EXCEPTION 'trial rollback' USING ERRCODE = 'N9999';
+  EXCEPTION WHEN OTHERS THEN
+    GET STACKED DIAGNOSTICS v_state = RETURNED_SQLSTATE, v_msg = MESSAGE_TEXT, v_detail = PG_EXCEPTION_DETAIL;
+    IF v_state = 'N9999' THEN
+      NULL;
+    ELSIF mdm.apply_is_rule_failure(v_state) THEN
+      SELECT coalesce(jsonb_build_object('node_id', i.node_id, 'hierarchy_id', i.hierarchy_id), '{}') INTO v_detail
+      FROM mdm.apply_items_of(cr) i WHERE i.seq = v_seq;
+      v_found := v_found || (coalesce(v_detail::jsonb, '{}') || jsonb_build_object('rule_id', v_trial, 'severity', 'error',
+                   'message', v_state || ' (item ' || coalesce(v_seq::text, '-') || '): ' || v_msg));
+    ELSE
+      RAISE;
+    END IF;
+  END;
+
+  INSERT INTO mdm.validation_result (rule_id, change_request_id, node_id, hierarchy_id, severity, message, evaluated_at)
+  SELECT (f ->> 'rule_id')::uuid, p_change_request_id, (f ->> 'node_id')::uuid,
+         (SELECT h.hierarchy_id FROM mdm.hierarchy h WHERE h.hierarchy_id = (f ->> 'hierarchy_id')::uuid),  -- a trial-only hierarchy is gone
+         (f ->> 'severity')::validation_severity, f ->> 'message', v_at
+  FROM jsonb_array_elements(v_found) f;
+
+  RETURN QUERY
+  SELECT vr.rule_code, (f ->> 'severity'), (f ->> 'node_id')::uuid, (f ->> 'hierarchy_id')::uuid, f ->> 'message', v_at
+  FROM jsonb_array_elements(v_found) f JOIN mdm.validation_rule vr ON vr.rule_id = (f ->> 'rule_id')::uuid
+  ORDER BY (f ->> 'severity') = 'error' DESC, vr.rule_code;
+END $$;
+
+-- Submit (core mode): draft → submitted, by the requester. The API validates first in the same transaction and
+-- refuses on errors; a request governed by a workflow is submitted by starting it (Phase 2).
+CREATE FUNCTION submit_change_request(p_change_request_id uuid, p_actor uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
+DECLARE r mdm.change_request%ROWTYPE;
+BEGIN
+  SELECT * INTO r FROM mdm.change_request WHERE change_request_id = p_change_request_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Change request % not found', p_change_request_id USING ERRCODE = 'N2102', HINT = 'change_request.not_found';
+  END IF;
+  IF r.requester_id IS DISTINCT FROM p_actor THEN
+    RAISE EXCEPTION 'Only the requester can submit change request %', p_change_request_id
+      USING ERRCODE = 'N1025', HINT = 'change_request.not_requester';
+  END IF;
+  IF r.governed_by_workflow THEN
+    RAISE EXCEPTION 'Change request % is governed by a workflow; it is submitted there', p_change_request_id
+      USING ERRCODE = 'N2104', HINT = 'change_request.governed';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM mdm.change_item WHERE change_request_id = p_change_request_id) THEN
+    RAISE EXCEPTION 'Change request % has no items', p_change_request_id USING ERRCODE = 'N2106', HINT = 'change_request.empty';
+  END IF;
+  IF r.status <> 'draft' THEN
+    RAISE EXCEPTION 'Change request % is % and cannot be submitted', p_change_request_id, r.status
+      USING ERRCODE = 'N2101', HINT = 'change_request.status_transition';
+  END IF;
+  UPDATE mdm.change_request SET status = 'submitted', submitted_at = now() WHERE change_request_id = p_change_request_id;
 END $$;

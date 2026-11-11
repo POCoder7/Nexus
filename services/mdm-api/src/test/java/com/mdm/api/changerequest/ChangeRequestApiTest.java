@@ -33,6 +33,7 @@ class ChangeRequestApiTest extends PostgresIntegrationTest {
     static final String SCOPED = "cr_scoped";
     static final String VIEWER = "cr_viewer";
     static final String OTHER = "cr_other";
+    static final String APPROVER = "cr_approver";
 
     @Autowired
     MockMvc mvc;
@@ -70,7 +71,18 @@ class ChangeRequestApiTest extends PostgresIntegrationTest {
                     SELECT :x, property_id, '"EUR"', daterange('2020-01-01', NULL) FROM mdm.property_definition WHERE property_code = 'CR.Ccy'
                     """).param("x", ENTITY).update();
         }
+        if (jdbc.sql("SELECT count(*) FROM mdm.validation_rule WHERE rule_code = 'CR.NO_BAD'").query(Integer.class).single() == 0) {
+            jdbc.sql("""
+                    INSERT INTO mdm.validation_rule (rule_code, description, level, severity, engine, expression, hierarchy_id)
+                    SELECT 'CR.NO_BAD', 'Names must not contain BAD (test rule)', 'node', 'error', 'sql',
+                           'SELECT a.node_id, NULL::uuid, ''Name contains BAD'' FROM mdm.node_attr a
+                            WHERE a.valid_period @> $1 AND a.recorded_period @> $2 AND a.node_name LIKE ''%BAD%''',
+                           hierarchy_id
+                    FROM mdm.hierarchy WHERE hierarchy_code = 'CR_H'
+                    """).update();
+        }
         grant(STEWARD, "STEWARD", "CR_H", null);
+        grant(APPROVER, "APPROVER", "CR_H", null);
         grant(SCOPED, "STEWARD", "CR_H", AMERICAS);
         grant(VIEWER, "VIEWER", "CR_H", null);
         grant(OTHER, "VIEWER", "CR_H", null);
@@ -314,6 +326,71 @@ class ChangeRequestApiTest extends PostgresIntegrationTest {
         addItem(STEWARD, id, Integer.parseInt(etag), "{\"action\":\"delete_node\",\"hierarchyCode\":\"CR_H\",\"nodeId\":\"" + ENTITY + "\"}")
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("change_request.not_draft"));
+    }
+
+    // ------------------------------------------------------------------ validate, submit
+
+    @Test
+    void submitValidatesThenSubmitsAndFreezesTheDraft() throws Exception {
+        String id = create(STEWARD, "Submit me");
+        addItem(STEWARD, id, 1, "{\"action\":\"add_node\",\"hierarchyCode\":\"CR_H\",\"targetParentId\":\"" + EUROPE
+                + "\",\"payload\":{\"nodeKind\":\"legal_entity\",\"name\":\"CR Submitted entity\"}}")
+                .andExpect(status().isCreated());
+        mvc.perform(post("/api/v1/change-requests/" + id + "/submit").with(asUser(STEWARD)))
+                .andExpect(status().is(428));
+        MvcResult r = mvc.perform(post("/api/v1/change-requests/" + id + "/submit").with(asUser(STEWARD)).header("If-Match", "\"2\""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("submitted"))
+                .andExpect(jsonPath("$.submittedAt").exists())
+                .andReturn();
+        int etag = Integer.parseInt(r.getResponse().getHeader("ETag").replace("\"", ""));
+        assertThat(etag).isGreaterThan(2);
+        addItem(STEWARD, id, etag, "{\"action\":\"delete_node\",\"hierarchyCode\":\"CR_H\",\"nodeId\":\"" + ENTITY + "\"}")
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("change_request.not_draft"));
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM mdm.node_attr WHERE node_name = 'CR Submitted entity'")
+                .query(Integer.class).single()).isZero();
+    }
+
+    @Test
+    void submitWithValidationErrorsIs422KeepsTheDraftAndStoresTheFindings() throws Exception {
+        String id = create(STEWARD, "Bad name");
+        addItem(STEWARD, id, 1, "{\"action\":\"add_node\",\"hierarchyCode\":\"CR_H\",\"targetParentId\":\"" + EUROPE
+                + "\",\"payload\":{\"nodeKind\":\"legal_entity\",\"name\":\"CR BAD entity\"}}")
+                .andExpect(status().isCreated());
+        mvc.perform(post("/api/v1/change-requests/" + id + "/submit").with(asUser(STEWARD)).header("If-Match", "\"2\""))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.type").value("urn:nexus:problem:validation-failed"))
+                .andExpect(jsonPath("$.code").value("change_request.validation_failed"))
+                .andExpect(jsonPath("$.errors[0].ruleCode").value("CR.NO_BAD"))
+                .andExpect(jsonPath("$.errors[0].nodeId").exists());
+        mvc.perform(get("/api/v1/change-requests/" + id).with(asUser(STEWARD)))
+                .andExpect(jsonPath("$.status").value("draft"));
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM mdm.validation_result WHERE change_request_id = CAST(:id AS uuid)")
+                .param("id", id).query(Integer.class).single()).isPositive();
+    }
+
+    @Test
+    void anEmptyRequestCannotBeSubmitted() throws Exception {
+        String id = create(STEWARD, "Empty");
+        mvc.perform(post("/api/v1/change-requests/" + id + "/submit").with(asUser(STEWARD)).header("If-Match", "\"1\""))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("change_request.empty"));
+    }
+
+    @Test
+    void validateIsForTheRequesterOrADeciderInScope() throws Exception {
+        String id = create(STEWARD, "Validate me");
+        addItem(STEWARD, id, 1, "{\"action\":\"update_node\",\"hierarchyCode\":\"CR_H\",\"nodeId\":\"" + ENTITY
+                + "\",\"payload\":{\"description\":\"Checked\"}}").andExpect(status().isCreated());
+        mvc.perform(post("/api/v1/change-requests/" + id + "/validate").with(asUser(STEWARD)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.errors.length()").value(0))
+                .andExpect(jsonPath("$.validatedAt").exists());
+        mvc.perform(post("/api/v1/change-requests/" + id + "/validate").with(asUser(OTHER)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/v1/change-requests/" + id + "/validate").with(asUser(APPROVER)))
+                .andExpect(status().isOk());
     }
 
     // ------------------------------------------------------------------ helpers

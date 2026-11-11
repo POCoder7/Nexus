@@ -15,6 +15,8 @@ import com.mdm.api.security.Actor;
 import com.mdm.api.security.EntitlementService;
 import com.mdm.api.security.ForbiddenException;
 import com.mdm.api.security.Permission;
+import com.mdm.api.validation.ValidationReport;
+import com.mdm.api.validation.ValidationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,13 +40,15 @@ public class ChangeRequestService {
     private final ItemFactory items;
     private final EntitlementService entitlements;
     private final BusinessClock clock;
+    private final ValidationService validation;
 
     public ChangeRequestService(ChangeRequestRepository repository, ItemFactory items, EntitlementService entitlements,
-                                BusinessClock clock) {
+                                BusinessClock clock, ValidationService validation) {
         this.repository = repository;
         this.items = items;
         this.entitlements = entitlements;
         this.clock = clock;
+        this.validation = validation;
     }
 
     @Transactional
@@ -130,6 +134,44 @@ public class ChangeRequestService {
         ETags.check(expected, cr.rowVersion());
         repository.withdraw(id, actor.userId());   // the function re-checks requester, status and workflow ownership
         return repository.find(id).orElseThrow();
+    }
+
+    /** Outcome of a submit: the submitted request, or the report that refused it (the request stays a draft). */
+    public record SubmitOutcome(ChangeRequestView request, ValidationReport report) {
+        public boolean refused() {
+            return request == null;
+        }
+    }
+
+    /**
+     * Trial validation (LLD §5.2): the requester, or someone who may decide every item's scope. The findings are
+     * stored with the request.
+     */
+    @Transactional
+    public ValidationReport validate(Actor actor, UUID id) {
+        ChangeRequestView cr = visible(actor, id);
+        if (!actor.userId().equals(cr.requesterId())) {
+            for (UUID[] scope : repository.itemScopes(id)) {
+                entitlements.require(actor, Permission.DECIDE, scope[0], scope[1]);
+            }
+        }
+        return validation.run(id, cr.effectiveFrom());
+    }
+
+    /**
+     * Validate and submit in one transaction (LLD §6.3). On errors the request stays a draft and the outcome carries the
+     * report; the transaction still commits, so the stored findings are kept.
+     */
+    @Transactional
+    public SubmitOutcome submit(Actor actor, UUID id, String ifMatch) {
+        int expected = ETags.require(ifMatch);
+        ChangeRequestView cr = lockOwnDraft(actor, id, expected);
+        ValidationReport report = validation.run(id, cr.effectiveFrom());
+        if (report.hasErrors()) {
+            return new SubmitOutcome(null, report);
+        }
+        repository.submit(id, actor.userId());   // the function re-checks requester, status, items and workflow ownership
+        return new SubmitOutcome(repository.find(id).orElseThrow(), report);
     }
 
     // ------------------------------------------------------------------ helpers

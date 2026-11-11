@@ -8,9 +8,13 @@ import com.mdm.api.changerequest.ChangeRequestDtos.UpdateRequest;
 import com.mdm.api.common.Cursors;
 import com.mdm.api.common.ETags;
 import com.mdm.api.common.Page;
+import com.mdm.api.common.Problems;
 import com.mdm.api.security.Actor;
+import com.mdm.api.validation.ValidationReport;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -99,6 +103,29 @@ public class ChangeRequestController {
                                            @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
         int version = service.deleteItem(actor, id, itemId, ifMatch);
         return ResponseEntity.noContent().eTag(ETags.of(version)).build();
+    }
+
+    /** Trial validation: nothing changes except that the findings are stored with the request. */
+    @PostMapping("/{id}/validate")
+    public ValidationReport validate(Actor actor, @PathVariable UUID id) {
+        return service.validate(actor, id);
+    }
+
+    /** Validate and submit. 200 with the submitted request, or 422 with the findings (the request stays a draft). */
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<?> submit(Actor actor, @PathVariable UUID id,
+                                    @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+                                    @RequestBody(required = false) Map<String, Object> ignored) {
+        ChangeRequestService.SubmitOutcome outcome = service.submit(actor, id, ifMatch);
+        if (outcome.refused()) {
+            ProblemDetail p = Problems.of(HttpStatus.UNPROCESSABLE_ENTITY, Problems.VALIDATION_FAILED,
+                    "The change request has validation errors and stays a draft. Fix them and submit again.");
+            p.setProperty("code", "change_request.validation_failed");
+            p.setProperty("errors", outcome.report().errors());
+            p.setProperty("warnings", outcome.report().warnings());
+            return ResponseEntity.unprocessableEntity().contentType(MediaType.APPLICATION_PROBLEM_JSON).body(p);
+        }
+        return ResponseEntity.ok().eTag(ETags.of(outcome.request().rowVersion())).body(outcome.request());
     }
 
     @PostMapping("/{id}/withdraw")

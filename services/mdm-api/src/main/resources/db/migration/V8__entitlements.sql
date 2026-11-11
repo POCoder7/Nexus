@@ -18,7 +18,9 @@ INSERT INTO mdm.system_setting VALUES
   ('max_items_per_change_request', '5000',
    'Apply refuses larger requests (N2103); bounds the apply transaction (Phase 1 A-9, OPEN_DECISIONS defaults)'),
   ('sandbox_max_items', '20000',
-   'Item limit for requests of origin sandbox (CR-04, ADR-028); Phase 5 sandboxes');
+   'Item limit for requests of origin sandbox (CR-04, ADR-028); Phase 5 sandboxes'),
+  ('max_hierarchy_depth', '50',
+   'Bound for tree walks (D-09; OPEN_DECISIONS default); validation uses it to find the nodes below a change');
 
 -- -----------------------------------------------------------------------------
 -- Roles and grants (ADR-022). Roles are data; what each role may do is fixed in code (Permission matrix).
