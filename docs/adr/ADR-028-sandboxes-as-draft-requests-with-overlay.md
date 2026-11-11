@@ -1,6 +1,6 @@
 # ADR-028: Sandboxes as long-lived draft requests with a trial-apply overlay
 
-- **Status:** Proposed (Phase 5 LLD)
+- **Status:** Accepted (repository owner, 2026-11-11)
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** NEW-08 (New), BLD-03 (pending, OD-12)

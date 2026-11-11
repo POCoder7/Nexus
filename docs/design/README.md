@@ -12,8 +12,9 @@ Produced by following `docs/DESIGN_PROTOCOL.md`, before implementation.
 | `phase-2-governance/LLD.md` | Phase 2: Camunda 8 orchestration over `wf`, worklist, commit policy in shadow mode, workflow control fixes | Approved |
 | `phase-3-steward-ui/LLD.md` | Phase 3: Angular steward UI (shell, Home, workspace, add leaf, worklist, request detail); prototype in `phase-3-steward-ui/prototypes/` | Approved |
 | `phase-4-data-loading-and-parity/LLD.md` | Phase 4: governed DRM loader, synthetic generator, golden framework, performance baseline | Approved |
-| `phase-5-remaining-parity/LLD.md` | Phase 5: sandboxes (NEW-08), governed role grants and read scopes (SEC-01/02 full), outlines for 35 pending capabilities | Draft; awaiting review |
-| `phase-N-<name>/LLD.md` | Low-level designs for Phases 6–9 (Phase 0 was built directly; see `docs/phases/phase-0/`) | Not started |
+| `phase-5-remaining-parity/LLD.md` | Phase 5: sandboxes (NEW-08), governed role grants and read scopes (SEC-01/02 full), outlines for 35 pending capabilities | Approved |
+| `phase-6-ownership-and-ubo/LLD.md` | Phase 6: governed ownership edges, evidence, exact UBO calculation, determinations, ownership views | Draft; awaiting review |
+| `phase-N-<name>/LLD.md` | Low-level designs for Phases 7–9 (Phase 0 was built directly; see `docs/phases/phase-0/`) | Not started |
 | `CONSISTENCY_REVIEW.md` | Cross-phase review after all LLDs | Not started |
 
 Read in this order: `../architecture/overview.md`, `../architecture/patterns.md`, then the LLD for the phase

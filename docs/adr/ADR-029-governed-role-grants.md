@@ -1,6 +1,6 @@
 # ADR-029: Role grants as governed change actions
 
-- **Status:** Proposed (Phase 5 LLD)
+- **Status:** Accepted (repository owner, 2026-11-11)
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** SEC-01, SEC-02 (Improve)

@@ -1,6 +1,6 @@
 # Design state
 
-- **Current item:** Phase 5 LLD (protocol step 3)
+- **Current item:** Phase 6 LLD (protocol step 3)
 - **Status:** Awaiting review
 - **Session date:** 2026-11-11 (overview and patterns approved the same day; Phase 0 built and approved first)
 
@@ -17,14 +17,16 @@
 | adr/ADR-023, ADR-024 | Accepted (023 with Audit-Risk review pending) | — | 2026-11-11 |
 | adr/ADR-025 | Accepted | — | 2026-11-11 |
 | adr/ADR-026, ADR-027 | 026 Accepted (OD-29 open); 027 Proposed (OD-31, OD-32 open) | — | 2026-11-11 |
-| adr/ADR-028, ADR-029 | Proposed with the Phase 5 LLD | — | 2026-11-11 |
+| adr/ADR-028, ADR-029 | Accepted | — | 2026-11-11 |
+| adr/ADR-030 | Proposed with the Phase 6 LLD (OD-34, OD-35 open) | — | 2026-11-11 |
 | design/phase-0 | Not written: Phase 0 was built first by your instruction (sequence A); its plan, test report and summary are in `docs/phases/phase-0/` | — | 2026-11-11 |
 | design/phase-1-core-write-path/LLD.md | Approved 2026-11-11 (two small corrections made while writing Phase 2: validation also in `in_review`; writing guard triggers run as owner) | Medium | 2026-11-11 |
 | design/phase-2-governance/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
 | design/phase-3-steward-ui/LLD.md | Approved 2026-11-11 | Medium (structure); Low (visual detail) | 2026-11-11 |
 | design/phase-4-data-loading-and-parity/LLD.md | Approved 2026-11-11 | Medium (design); Low (extract format unknown) | 2026-11-11 |
-| design/phase-5-remaining-parity/LLD.md | Draft, awaiting review | Medium (NEW-08, SEC full); Low (35 outlines pending decision) | 2026-11-11 |
-| design/phase-6..9 LLDs | Not started | — | — |
+| design/phase-5-remaining-parity/LLD.md | Approved 2026-11-11 | Medium (designed); Low (outlines) | 2026-11-11 |
+| design/phase-6-ownership-and-ubo/LLD.md | Draft, awaiting review | Medium (methodology and personal data open) | 2026-11-11 |
+| design/phase-7..9 LLDs | Not started | — | — |
 | design/phase-3-steward-ui/prototypes/landing.html | Landing-page prototype; combined design chosen (OD-27) | Prototype only: placeholder tokens, synthetic data | 2026-11-11 |
 | design/CONSISTENCY_REVIEW.md | Not started | — | — |
 
@@ -170,18 +172,19 @@ one-way kill switch, frozen approved policies and models; 35 pgTAP tests.
 - **OD-02 to OD-04** design-system details: block visual sign-off of Phase 3 (the LLD designs against the Nexus token layer and CDK, with adapters).
 - **OD-08, OD-17a, OD-18a** Audit-Risk and Security confirmations: block activation and merging, not design.
 - **OD-28** external capability working copy.
-- **OD-29 to OD-33** load-run approval, versions to migrate, masking, golden dataset storage, ADR-009 acceptance: block the Phase 4 build's load and golden parts, not the design.
+- **OD-29a, OD-31a, OD-32a** confirmations by Audit-Risk and Security of the adopted load-run, masking and storage choices.
+- **OD-34, OD-35** personal data in the ownership graph; UBO methodology per regime (Phase 6 build).
 
-## Self-review (DESIGN_PROTOCOL §5) for the Phase 5 LLD
-- *Implementable without a design question?* Yes for NEW-08 and the full SEC-01/SEC-02 scope. **No** for the 35 outlined
-  capabilities, by design: they are pending decision (DESIGN_PROTOCOL §2 allows outline only). Each outline names its approach, objects, main risk and test source.
-- *Existing code verified?* Against the Phase 1 apply design (capture hook in the handlers), `change_action` values in V1
-  (`reorder_node`, `update_node` exist; `merge_node` does not), `export_run` (D-30) and the Phase 3 UI.
-- *Weakens a control, crosses the layer, contradicts an Accepted ADR?* No. Sandboxes never write facts; grants become governed
-  requests (stronger than ADR-022's interim SQL path, which ADR-029 removes).
-- *Assumptions listed?* F-1 to F-6; sandbox parameters in OPEN_DECISIONS.
-- *Acceptance criteria covered?* NEW-08 and SEC have P/N/C/B cases; outlined rows list their catalogue criterion and golden source only.
-- *Confidence honest?* Medium for the designed part; Low for the outlines. The Phase 5 gate will show most capabilities as explicit gaps unless OD-09 decisions arrive first.
+## Self-review (DESIGN_PROTOCOL §5) for the Phase 6 LLD
+- *Implementable without a design question?* Yes for data, solver, API, determinations, evidence and UI. The control-chain strategy waits for OD-35; access and retention details wait for OD-34.
+- *Existing code verified?* Against V2: `ownership_edge` columns and CHECKs, nominee look-through and share-class aggregation in
+  `effective_ownership`, cycle flagging and exclusion, `ubo_control_prong` relations, empty `ubo_threshold`, starter rules.
+  The worked example was checked by hand against what `effective_ownership` returns today (30 %) and the exact solve (3/8).
+- *Weakens a control, crosses the layer, contradicts an Accepted ADR?* No. All calculation is deterministic code (rule 4);
+  ownership changes stay human-decided (V6 hard limits); thresholds and determinations become governed and append-only.
+- *Assumptions listed?* G-1 to G-6; Phase 6 parameters in OPEN_DECISIONS.
+- *Acceptance criteria covered?* NEW-02 criteria and every exit criterion have cases; "compliance-verified samples" are synthetic structures confirmed by Compliance.
+- *Confidence honest?* Medium; methodology and personal data are open and stated.
 
 ## Next action
-Human review of `docs/design/phase-5-remaining-parity/LLD.md`, ADR-028 and ADR-029. On approval: Phase 6 LLD (ownership and UBO), then stop.
+Human review of `docs/design/phase-6-ownership-and-ubo/LLD.md` and ADR-030. On approval: Phase 7 LLD (AI assistance), then stop.

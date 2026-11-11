@@ -10,7 +10,7 @@
 | ADR-006 | Bitemporal data model | Proposed |
 | ADR-007 | Ownership graph separate from hierarchies | Proposed |
 | ADR-008 | AI proposes, humans approve, code calculates | Proposed |
-| ADR-009 | Golden testing against the legacy system as the parity standard | Proposed |
+| ADR-009 | Golden testing against the legacy system as the parity standard | Accepted |
 | ADR-010 | Track the programme in Excel for now | Accepted |
 | ADR-011 | Technology stack | Accepted |
 | ADR-012 | UI framework — Angular with the organisation's design system | Accepted |
@@ -26,9 +26,10 @@
 | ADR-022 | Role-and-scope entitlements, Phase 1 model | Accepted |
 | ADR-023 | Phase 2 control fixes in `wf` and the bridge | Accepted (Audit-Risk review pending) |
 | ADR-024 | Camunda 8 integration | Accepted |`n| ADR-025 | UI toolchain: tests, stories, accessibility checks, style lint, generated API client | Accepted |
-| ADR-026 | Governed migration load runs; `add_hierarchy` and `update_node` actions | Accepted (approval model open, OD-29) |
-| ADR-027 | Golden datasets: masking and storage | Proposed (decisions open, OD-31, OD-32) |
-| ADR-028 | Sandboxes as draft requests with a trial-apply overlay | Proposed |
-| ADR-029 | Role grants as governed change actions | Proposed |
+| ADR-026 | Governed migration load runs; `add_hierarchy` and `update_node` actions | Accepted (Audit-Risk confirmation pending, OD-29a) |
+| ADR-027 | Golden datasets: masking and storage | Accepted (Security/Audit-Risk confirmation pending) |
+| ADR-028 | Sandboxes as draft requests with a trial-apply overlay | Accepted |
+| ADR-029 | Role grants as governed change actions | Accepted |
+| ADR-030 | Ownership calculation: exact rational solve, methodology per regime, recorded determinations | Proposed |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.

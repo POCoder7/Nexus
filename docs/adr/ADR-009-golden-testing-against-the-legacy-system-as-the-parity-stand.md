@@ -1,6 +1,6 @@
 # ADR-009: Golden testing against the legacy system as the parity standard
 
-- **Status:** Proposed
+- **Status:** Accepted (repository owner, 2026-11-11; OD-33). Masking and dataset storage: ADR-027
 - **Date:** <set when reviewed>
 - **Deciders:** <names / roles>
 - **Capabilities:** ALL

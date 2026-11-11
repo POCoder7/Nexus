@@ -1,6 +1,6 @@
-# ADR-027: Golden datasets — masking approach and storage (decisions open)
+# ADR-027: Golden datasets — masking approach and storage
 
-- **Status:** Proposed. Masking (OD-31) and storage (OD-32) belong to Security and Audit-Risk; **not decided here**
+- **Status:** Accepted by the repository owner (2026-11-11): rank-preserving pseudonyms; internal artefact store. Security and Audit-Risk confirmation pending (OD-31a, OD-32a)
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** all capabilities with golden test sources; NEW-09
