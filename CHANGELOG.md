@@ -2,7 +2,7 @@
 
 All notable changes to Nexus, newest first. Each entry names its capability ID or `PROG`.
 
-## Phase 0 — Foundation (2026-11-11, awaiting gate approval)
+## Phase 0 — Foundation (2026-11-11, gate approved)
 
 ### Added
 - Maven wrapper for `services/mdm-api` (Maven 3.9.9; `mvnw`, `mvnw.cmd`). `PROG`

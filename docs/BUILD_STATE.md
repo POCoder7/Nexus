@@ -1,14 +1,14 @@
 # Build state
 
 - **Current phase:** 0 — Foundation
-- **Step in loop:** Awaiting approval to proceed (gate passed locally; see `docs/phases/phase-0/TEST_REPORT.md`)
+- **Step in loop:** Phase 0 approved 2026-11-11. Build paused for step B (design track); Phase 1 starts only after its LLD is approved
 - **Baseline:** db-test **pass** 35/35 (PowerShell and Bash) · mvnw verify **pass** 6/6 (Windows and Bash) · UI tests n/a (as of 2026-11-11)
 - **Last commit:** see `git log -1` (P0-7 records commit, after `cf3fe35` PROG: make db-test.sh work in Git Bash on Windows)
 
 ## Completed phases
 | Phase | Gate result | Summary | Date |
 |---|---|---|---|
-| 0 — Foundation | Pass locally; CI on GitHub not yet run (gap) | `docs/phases/phase-0/SUMMARY.md` | 2026-11-11 (awaiting approval) |
+| 0 — Foundation | Pass locally; approved by the repository owner. Gap: CI not yet run on GitHub (OD-11) | `docs/phases/phase-0/SUMMARY.md` | 2026-11-11 |
 
 ## Current phase progress
 | Increment | Capability | Status | Tests | Notes |
@@ -29,7 +29,7 @@
 | ADR-013 to ADR-018 | Modular monolith, DB roles, API conventions, outbox, workflow engine (open), time handling | Proposed in the design track; see `docs/design/OPEN_DECISIONS.md` |
 
 ## Open questions for the human
-1. Approve the Phase 0 gate (with the CI-on-GitHub gap) and proceed to step B, the design track?
+1. Review the architecture overview, pattern catalogue and ADR-013 to ADR-018 (design track, first stop).
 2. Should `CLAUDE.md` "Commands" switch to the Maven wrapper? (Not edited; your rules file.)
 3. OD-11: where will the repository live, so CI can run on GitHub?
 
@@ -40,5 +40,5 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Wait for approval of the Phase 0 gate. Then step B: review of the architecture overview and pattern catalogue
+Step B: wait for review of the architecture overview and pattern catalogue
 (`docs/design/DESIGN_STATE.md` next action), followed by the Phase 1 LLD.
