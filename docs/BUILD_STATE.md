@@ -24,8 +24,9 @@
 | 1-8b Apply: remove, delete, update node, add hierarchy | HIE-02, HIE-01 | Done `d10e67c` | pgTAP 10 (24), JUnit 1 | delete refused for top node / children / references / scheduled changes; cascade follows primary links (LLD noted); 09 fixture: unavailable action now `clear_property` (setup only) |
 | 1-8c Apply: set and clear property, item limit by origin | PRP-01 | Done `f72d738` | pgTAP 11 (18) | limits in `system_setting`; JSON null kept; 09 fixture: unavailable action now `inactivate_node` (setup only) |
 | 1-9 Validation (trial apply + rules) and submit | HIE-02, PRP-01 | Done `c1efe3a` | pgTAP 12 (17), JUnit 4 | shared item path for apply and trial; `NEXUS.TRIAL_APPLY` system rule; N2106; 422 keeps findings |
-| 1-10 Decision, apply service, sweeper, review queue | HIE-02, PRP-01 | Done (this commit) | pgTAP 13 (14), JUnit 6 (SLICE-01 end to end) | `record_apply_failure` added (LLD noted); serialization-retry path not exercised by a test (hard to force; reviewed) |
-| 1-11, 1-12 | HIE-01, PRP-01, PROG | Planned | per plan | |
+| 1-10 Decision, apply service, sweeper, review queue | HIE-02, PRP-01 | Done `de69b7d` | pgTAP 13 (14), JUnit 6 (SLICE-01 end to end) | `record_apply_failure` added (LLD noted); serialization-retry path not exercised by a test (hard to force; reviewed) |
+| 1-11 Performance tests + synthetic generator | HIE-01, PRP-01 | **Deferred** (scaffold committed, not run) | none run | owner deferred performance testing to the end of the build (2026-11-11); `PerfTest` (tag `perf`, excluded from default build) and `SyntheticHierarchy` committed unverified; finding kept below |
+| 1-12 Records | PROG | Planned | per plan | |
 ## Decisions awaiting human review
 | ADR | Title | Why it needs review |
 |---|---|---|
@@ -40,16 +41,18 @@
 3. OD-18a: Audit-Risk review of ADR-021 before the Phase 1 branch is merged to `main`.
 
 ## Scope changes
+- **Performance testing deferred to the end of the build** by the repository owner on 2026-11-11: Phase 1 increment 1-11 is not run; its tests and generator are kept (`./mvnw -B verify -Dperf`). Phase 1 gate reports the LLD §10 targets as "not measured".
 - **Phase 7 (AI assistance) deferred** by the repository owner on 2026-11-11 (OD-38): design approved; the build goes from Phase 6 to Phase 8. The `BUILD_PROTOCOL.md` phase table is updated in design step 5 (wiring).
 
 ## Known gaps, stubs and technical debt
 - Running the API locally now needs the `local` profile and a user (`-Dspring-boot.run.profiles=local`, `mdm.api.local-user`); README quick start to update in 1-12.
 - V1, V5, V6 edited on the branch: local `docker compose` databases must be recreated (`docker compose down -v`); note in 1-12.
 - New error codes N1025, N2104, N2105, N2106, hints for N2004–N2006 (`hierarchy.parent_is_leaf`, `hierarchy.remove_with_children`, `node.referenced`) and API rule codes (`change_item.*`, `change_request.not_draft`) to add to the registry (CONSISTENCY_REVIEW §3) in 1-12.
+- Perf finding (1-11, before deferral): one statement inserting many placements into a large hierarchy whose statistics are stale runs the cycle-check trigger with an "empty table" plan (measured 29 s per 5 000 rows from empty vs 1.2 s with current statistics; one guarded insert under a 50 000-child parent about 21 ms). Guards unchanged. Phase 4 bulk loading must refresh statistics between batches; the generator does.
 - CI has never run on GitHub (no remote; OD-11).
 - Mockito dynamic-agent warning in tests (future JDKs will block it).
 - `scripts/check-setup.*` still requires a local `mvn`.
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Increment 1-11 (tagged performance tests + small synthetic generator), then 1-12 (records), then the Phase 1 test gate, asking before each commit
+Increment 1-12 (records), then the Phase 1 test gate (stop for approval). Performance tests deferred to the end, asking before each commit
