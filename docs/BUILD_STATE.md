@@ -26,12 +26,11 @@
 |---|---|---|
 | ADR-005 | Policy-governed straight-through commit | Needs Audit/Risk sign-off before any policy is activated |
 | ADR-006 to ADR-008 | Bitemporal model, ownership graph, AI proposes/humans approve | Proposed; awaiting team confirmation |
-| ADR-013 to ADR-031 | Design-track decisions | Accepted by the owner; confirmations pending for ADR-014, 021, 023, 026, 027 (Security / Audit-Risk), see `docs/design/OPEN_DECISIONS.md` |
-| ADR-032 | Governed export profiles, streaming runs, reconciliation review | Accepted |
-| ADR-033, ADR-034 | Authentication (OIDC), observability | Proposed with the Phase 9 LLD |
+| ADR-013 to ADR-034 | Design-track decisions | Accepted by the owner; confirmations pending for ADR-014, 021, 023, 026, 027 (Security / Audit-Risk), see `docs/design/OPEN_DECISIONS.md` |
+
 
 ## Open questions for the human
-1. Review the Phase 9 LLD and ADR-033, ADR-034 (design track). Phase 1–8 LLDs approved 2026-11-11 (Phase 7 build deferred).
+1. Review `docs/design/CONSISTENCY_REVIEW.md` (design step 4). All nine LLDs approved 2026-11-11 (Phase 7 build deferred).
 2. OD-11 decided (enterprise GitHub organisation, private): create the remote and say when to push; CI runs only after that.
 
 ## Scope changes

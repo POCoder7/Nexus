@@ -71,7 +71,7 @@ flowchart TB
     api[mdm-api<br/>Java 21 / Spring Boot 3<br/>services/mdm-api · exists, read-only today]
     worker[Workflow worker<br/>Camunda job workers calling wf.*<br/>ADR-017 · planned Phase 2]
     camunda[Camunda 8 engine<br/>self-managed or SaaS: OD-01c]
-    aisvc[AI services<br/>Python, behind an internal API<br/>planned Phase 7]
+    aisvc[AI services<br/>Python, behind an internal API<br/>Phase 7: designed, build deferred OD-38]
     db[(PostgreSQL 16<br/>mdm · wf · wf_bridge · mdm_stage<br/>exists)]
     obj[(Object storage<br/>evidence documents, export files<br/>open: OD-16)]
   end
@@ -197,7 +197,7 @@ sequenceDiagram
   actor S as Steward (or AI agent)
   participant API as mdm-api
   participant DB as PostgreSQL (mdm, wf, wf_bridge)
-  participant W as Workflow worker (OD-01)
+  participant W as Workflow worker (Camunda 8 job workers, ADR-024)
   actor A as Approver (human)
   S->>API: POST /change-requests (title, version, risk tier)
   API->>DB: INSERT mdm.change_request (status draft)
@@ -408,7 +408,7 @@ transaction, and the Phase 1 LLD proposes a guard that rejects fact inserts with
 | Time | Business dates in a configured business time zone; UTC recorded time | Proposed | ADR-018 |
 | Workflow orchestration | Camunda 8 (one generic BPMN process over `wf` models; guarded `wf` functions); self-managed or SaaS per OD-01c | Decided | ADR-017, ADR-024 |
 | Business time zone | `America/New_York` | Decided | ADR-018 |
-| Identity provider | Corporate SSO (OIDC recommended) | Open | OD-06 |
+| Identity provider | Corporate SSO; API as OIDC resource server (ADR-033) | Open (provider) | OD-06, ADR-033 |
 | AI model and provider | — | Open | OD-07 |
 | Hosting platform and environments | — | Open | OD-15 |
 | Object storage (evidence, export files) | — | Open | OD-16 |
@@ -417,7 +417,7 @@ transaction, and the Phase 1 LLD proposes a guard that rejects fact inserts with
 | Search (QRY-03) | PostgreSQL full-text / trigram vs a search engine | Open | OD-21 |
 | Graph visualisation (ownership view) | — | Open | OD-05 |
 | OpenAPI generation | springdoc-openapi (needs dependency approval) | Proposed | §17 |
-| Tracing | OpenTelemetry (needs dependency approval) | Proposed | §14 |
+| Observability | Structured logs, Micrometer + Prometheus, OpenTelemetry traces | Decided | ADR-034 |
 
 ## 19. Known risks at architecture level
 

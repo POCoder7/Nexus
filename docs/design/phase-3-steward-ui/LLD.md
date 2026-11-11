@@ -1,6 +1,7 @@
 # Phase 3 — Steward UI: low-level design
 
-- **Status:** Draft, awaiting review (2026-11-11)
+- **Status:** Approved 2026-11-11 (consistency fixes CR-nn applied the same day, see `../CONSISTENCY_REVIEW.md`)
+- **Migration rule (CR-07):** where this design says "edit Vn", that is allowed only while no shared environment exists (CLAUDE.md rule 6, OD-18). If one exists when this phase is built, the same change goes into a new V-numbered migration (`ALTER` / `CREATE OR REPLACE`). What counts as shared: OD-44.
 - **Phase goal (BUILD_PROTOCOL §2):** the first slice is usable by a person.
 - **Exit criteria:** tree browsing with paging, node panel, worklist, add-leaf form; UI tests pass; SLICE-01 acceptance
   criteria met on synthetic data.

@@ -1,6 +1,7 @@
 # Phase 6 — Ownership and UBO: low-level design
 
-- **Status:** Draft, awaiting review (2026-11-11)
+- **Status:** Approved 2026-11-11 (consistency fixes CR-nn applied the same day, see `../CONSISTENCY_REVIEW.md`)
+- **Migration rule (CR-07):** where this design says "edit Vn", that is allowed only while no shared environment exists (CLAUDE.md rule 6, OD-18). If one exists when this phase is built, the same change goes into a new V-numbered migration (`ALTER` / `CREATE OR REPLACE`). What counts as shared: OD-44.
 - **Phase goal (BUILD_PROTOCOL §2):** beneficial-ownership analysis.
 - **Exit criteria:** ownership API and graph view; exact cross-holding calculation; UBO results with paths and evidence; thresholds as data.
 - **Reads with:** V2 (`evidence_document`, `ownership_edge`, `ubo_threshold`, `effective_ownership`, `ubo_ownership_prong`,

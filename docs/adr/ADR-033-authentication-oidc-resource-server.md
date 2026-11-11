@@ -1,6 +1,6 @@
 # ADR-033: Authentication — API as OIDC resource server; identities mapped, roles kept in Nexus
 
-- **Status:** Proposed (Phase 9 LLD). The identity provider and its Angular library (OD-06) are **not** decided here
+- **Status:** Accepted (repository owner, 2026-11-11): option A. The identity provider and its Angular library (OD-06) remain open
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** SEC-05 (pending decision), SEC-01, SEC-02

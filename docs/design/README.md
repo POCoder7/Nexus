@@ -17,7 +17,7 @@ Produced by following `docs/DESIGN_PROTOCOL.md`, before implementation.
 | `phase-7-ai-assistance/LLD.md` | Phase 7: AI service boundary, extraction, drafting, anomaly suggestions, NL questions as read-only plans, model governance, evaluation harness | Approved; build deferred (OD-38) |
 | `phase-8-exports-and-reconciliation/LLD.md` | Phase 8: governed export profiles, streaming runs, bundles and schedules, daily DRM reconciliation, change-event feed | Draft; awaiting review |
 | `phase-N-<name>/LLD.md` | Low-level design for Phase 9 (Phase 0 was built directly; see `docs/phases/phase-0/`) | Not started |
-| `CONSISTENCY_REVIEW.md` | Cross-phase review after all LLDs | Not started |
+| `CONSISTENCY_REVIEW.md` | Cross-phase review after all LLDs: findings CR-01 to CR-13, error-code registry, role catalogue | Done; awaiting review |
 
 Read in this order: `../architecture/overview.md`, `../architecture/patterns.md`, then the LLD for the phase
 you are working on, with `UI_STANDARD.md` alongside for any screen work. `DESIGN_STATE.md` lists the differences

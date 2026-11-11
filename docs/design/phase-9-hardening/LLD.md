@@ -1,6 +1,7 @@
 # Phase 9 — Hardening: low-level design
 
-- **Status:** Draft, awaiting review (2026-11-11)
+- **Status:** Approved 2026-11-11 (consistency fixes CR-nn applied the same day, see `../CONSISTENCY_REVIEW.md`)
+- **Migration rule (CR-07):** where this design says "edit Vn", that is allowed only while no shared environment exists (CLAUDE.md rule 6, OD-18). If one exists when this phase is built, the same change goes into a new V-numbered migration (`ALTER` / `CREATE OR REPLACE`). What counts as shared: OD-44.
 - **Phase goal (BUILD_PROTOCOL §2):** ready for a security and operations review.
 - **Exit criteria:** authentication and authorisation integrated; observability; performance targets tested; runbooks; threat model.
 - **Reads with:** overview §10 (security layers), §14 (observability); ADR-014, ADR-022, ADR-029; every phase's §10 (targets)
@@ -55,7 +56,10 @@ CREATE TABLE mdm.app_user_identity (
   issuer text NOT NULL, subject text NOT NULL,
   user_id uuid NOT NULL REFERENCES mdm.app_user,
   linked_by uuid NOT NULL REFERENCES mdm.app_user, linked_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (issuer, subject));   -- audited; linking is a governed request (action 'link_identity', SYSTEM_ADMIN maker-checker)
+  PRIMARY KEY (issuer, subject));   -- audited; linking is a governed request (action 'link_identity', SYSTEM_ADMIN maker-checker;
+                                    --   on the commit-policy hard-limit list, CR-08)
+-- Bootstrap (CR-09): each environment's first two SYSTEM_ADMIN users and their identity links are created by the
+--   environment's provisioning migration from platform-supplied values (never in git), so maker-checker works from day one.
 ```
 
 ### 3.2 Authorisation across environments

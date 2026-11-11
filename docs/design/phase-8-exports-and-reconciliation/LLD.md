@@ -1,6 +1,7 @@
 # Phase 8 — Exports and reconciliation: low-level design
 
-- **Status:** Draft, awaiting review (2026-11-11)
+- **Status:** Approved 2026-11-11 (consistency fixes CR-nn applied the same day, see `../CONSISTENCY_REVIEW.md`)
+- **Migration rule (CR-07):** where this design says "edit Vn", that is allowed only while no shared environment exists (CLAUDE.md rule 6, OD-18). If one exists when this phase is built, the same change goes into a new V-numbered migration (`ALTER` / `CREATE OR REPLACE`). What counts as shared: OD-44.
 - **Phase goal (BUILD_PROTOCOL §2):** downstream compatibility.
 - **Exit criteria:** export service with profiles and bundles; byte-level comparison harness; export run history.
 - **Reads with:** V3 (`export_profile`, `export_profile_column`, `hierarchy_tree`, `property_value_asof`, `export_drm`,
@@ -106,7 +107,8 @@ CREATE TABLE mdm.export_bundle_run (bundle_run_id uuid PRIMARY KEY DEFAULT gen_r
   triggered_by uuid REFERENCES mdm.app_user);                                  -- append-only except completion
 CREATE TABLE mdm.export_schedule (schedule_code text PRIMARY KEY, bundle_code text, profile_code text,
   cron text NOT NULL, version_alias text NOT NULL DEFAULT 'current_working',  -- VER-05 aliases when decided; until then a fixed rule (§7.3)
-  time_zone text NOT NULL DEFAULT 'America/New_York', reconcile boolean NOT NULL DEFAULT false, is_active boolean NOT NULL DEFAULT true,
+  time_zone text,                                    -- NULL = the business time zone from mdm.system_setting (CR-01)
+  reconcile boolean NOT NULL DEFAULT false, is_active boolean NOT NULL DEFAULT true,
   CHECK ((bundle_code IS NULL) <> (profile_code IS NULL)));
 ```
 
@@ -145,10 +147,10 @@ data: {changeRequestId, effectiveFrom, items: [{seq, action, nodeId, hierarchyCo
 | `GET /reconciliations?day&status&target&cursor` / `GET /reconciliations/{id}` (hashes, row counts, first differing lines, row diff summary) | NEW-09 | `RECON_REVIEWER` (new role), READ |
 | `POST /reconciliations/{id}/explain {explanation}` / `…/fix {changeRequestId \| profileVersionId}` / `…/accept` | Review | `RECON_REVIEWER`; accept by a second reviewer (OD-40) |
 | `GET /reconciliations/readiness?target` | Consecutive exact days per consumer | `RECON_REVIEWER` |
-| `GET /events?after&limit` | NEW-07 pull feed (keyset on `event_id`, `nextAfter` in the response) | integration identity with `INTEGRATION_READER` (new role) on the hierarchies it may see |
+| `GET /events?cursor&limit` | NEW-07 pull feed (keyset on `event_id`; ADR-015 envelope `{items, nextCursor}`; a consumer may also start from a stored position, CR-03) | integration identity with `INTEGRATION_READER` (new role) on the hierarchies it may see |
 | `PUT /events/consumers/{code}/position {lastEventId}` | Optional server-side offset for consumers that want it | same |
 
-Errors: `N2601` profile version not approved; `N2602` DRM file not available for the day; `N2603` acceptance by the explainer (OD-40).
+Errors: `N2601` profile version not approved; `N2602` DRM file not available for the day; `N1021` acceptance by the explainer (OD-40; a control, so class N1 / HTTP 403, CR-02).
 
 ## 6. Behaviour
 
@@ -251,7 +253,7 @@ consumer against `PARALLEL_RUN_DAYS`).
 | Profiles | Governed versions | N: approve own version; N: edit an approved version; P: new version retires the old one; C: run records the version | pgTAP + JUnit |
 | Bundles and schedules | All members run; one leader | P: bundle with 3 profiles; N: second scheduler instance does not run; B: misfire after downtime runs once | JUnit |
 | Run history | Every run logged with outcome and hash (AUD-03 criterion) | P: success and failure recorded; C: no update after completion | pgTAP |
-| NEW-09 | Daily automated comparison during the parallel run | P: exact match; P: mismatch → first lines and row diff; P: missing DRM file; N: explainer accepts (N2603); P: readiness after N exact days (with a shortened parameter) | JUnit + golden |
+| NEW-09 | Daily automated comparison during the parallel run | P: exact match; P: mismatch → first lines and row diff; P: missing DRM file; N: explainer accepts (N1021); P: readiness after N exact days (with a shortened parameter) | JUnit + golden |
 | NEW-07 | Changes published within agreed latency | P: applied request → event in feed with ids only; N: consumer without scope sees no events for that hierarchy; B: paging across retention | JUnit |
 | EXP-01/02/08 | Byte-for-byte with DRM | Golden cases per profile on masked data (OD-31/32) | Golden |
 

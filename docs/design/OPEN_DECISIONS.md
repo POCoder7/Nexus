@@ -38,6 +38,7 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-41 | Recovery objectives (assumed `RPO_MIN` 15, `RTO_H` 4) and the availability SLO (assumed 99.5 % monthly) | Platform / Product / Audit-Risk | — | Confirm or set; they size backups, replicas and on-call | Phase 9 DR design and tests |
 | OD-42 | Security tooling and the CI jobs for it: dependency scanning, SAST, secret scanning, container scanning, licence report | Security / Platform | GitHub-native (Dependabot, CodeQL, secret scanning) · organisation's tools | Whatever the organisation already licenses; otherwise GitHub-native | Phase 9 build (CI changes need approval) |
 | OD-43 | Penetration test: scope, provider, timing | Security | — | External test of UI, API and evidence storage in pre-production before the first production release | Phase 9 gate |
+| OD-44 | What counts as a "shared environment" for CLAUDE.md rule 6 (after which applied migrations are never edited) | Architecture | Any environment besides a developer's machine · any environment that keeps data between deployments or is used by more than one person · the first environment with real data | Any environment that keeps data between deployments or is used by more than one person; disposable CI and performance databases rebuilt per run do not count | Phase 4 build (performance environment); every "edit Vn" in Phases 2–8 (CR-07) |
 | OD-28 | `docs/capabilities.md` says it is regenerated from a working copy outside the repository. The OD-13 decisions must be entered there, or the next regeneration will reset them to "—" | Product (catalogue owner) | Update the external working copy · let the repository copy become the master | Update the working copy, then regenerate | Keeping decisions consistent |
 
 ## Decided
@@ -52,6 +53,7 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-31 | Masking: **rank-preserving pseudonyms** for names and codes, one tool for extracts and DRM outputs | Repository owner (adopted recommendation) | 2026-11-11 | Confirmation pending (OD-31a) |
 | OD-32 | Golden datasets in an **internal artefact store**; only synthetic self-tests in git | Repository owner (adopted recommendation) | 2026-11-11 | Confirmation pending (OD-32a) |
 | OD-33 | **ADR-009 accepted** (golden testing as the parity standard) | Repository owner (adopted recommendation) | 2026-11-11 | Phase 4, 5, 8 |
+| — | **Phase 9 LLD approved**; ADR-033 Accepted (IdP OD-06 open), ADR-034 Accepted | Repository owner | 2026-11-11 | Design step 4 (consistency review) |
 | — | **Phase 8 LLD approved**; ADR-032 Accepted (OD-39, OD-40 open) | Repository owner | 2026-11-11 | Design track continues with Phase 9 |
 | OD-38 | **Phase 7 (AI assistance): design approved, implementation deferred.** The build sequence skips Phase 7 (Phase 6 → Phase 8); AI features stay hidden; ADR-031 stands for when it is resumed | Repository owner | 2026-11-11 | Build phases; `BUILD_PROTOCOL.md` phase table updated in design step 5; OD-07, OD-36, OD-37 no longer block anything until resumed |
 | — | **Phase 7 LLD approved** (build deferred, OD-38); ADR-031 Accepted | Repository owner | 2026-11-11 | Design track continues with Phase 8 |
@@ -145,8 +147,8 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | ADR-030 | Ownership calculation: exact rational solve, methodology per regime, recorded determinations | Accepted 2026-11-11 | Methodology OD-35 open |
 | ADR-031 | AI service boundary, model governance, prompted-by maker-checker | Accepted 2026-11-11 (implementation deferred, OD-38) | OD-07, OD-36, OD-37 open |
 | ADR-032 | Governed export profile versions, streaming runs, reconciliation review | Accepted 2026-11-11 | OD-39, OD-40 open |
-| ADR-033 | Authentication: OIDC resource server; identities mapped, roles in Nexus | Proposed (Phase 9 LLD) | IdP OD-06 open |
-| ADR-034 | Observability: structured logs, Micrometer, OpenTelemetry | Proposed (Phase 9 LLD) | |
+| ADR-033 | Authentication: OIDC resource server; identities mapped, roles in Nexus | Accepted 2026-11-11 | IdP OD-06 open |
+| ADR-034 | Observability: structured logs, Micrometer, OpenTelemetry | Accepted 2026-11-11 | Dependencies approved in the Phase 9 plan |
 | ADR-027 | Golden datasets: masking and storage | Accepted 2026-11-11 (owner); Security/Audit-Risk confirmation pending | OD-31a, OD-32a |
 | ADR-009 | Golden testing as the parity standard | Accepted 2026-11-11 (OD-33) | |
 | ADR-005 to ADR-008 | (existing) | Proposed | Unchanged by this design |

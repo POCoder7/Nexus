@@ -3,6 +3,7 @@
 - **Status:** Approved 2026-11-11. **Amendment (Phase 4 LLD §4.1, ADR-026, proposed):** add the `add_hierarchy` action
   (hierarchy + top node) and an `update_node` handler (name, description), both on the commit-policy hard-limit list.
   Build them in Phase 1 if the amendment is approved before Phase 1 is built.
+- **Migration rule (CR-07):** where this design says "edit Vn", that is allowed only while no shared environment exists (CLAUDE.md rule 6, OD-18). If one exists when this phase is built, the same change goes into a new V-numbered migration (`ALTER` / `CREATE OR REPLACE`). What counts as shared: OD-44.
 - **Phase goal (BUILD_PROTOCOL §2):** changes flow through change requests into the bitemporal model.
 - **Reads with:** `docs/architecture/overview.md`, `docs/architecture/patterns.md`, ADR-013 to ADR-022,
   `docs/design/DESIGN_STATE.md` (D-nn), `docs/specs/SLICE-01-add-leaf.md`.
@@ -53,7 +54,7 @@ semantics, which are pending decision (VAL-01–03).
 | A-5 | New nodes get their identity (`mdm.node` row) when the `add_node` item is drafted, so later items and the Phase 2 workflow functions can refer to `node_id`. A withdrawn request leaves an identity with no attributes, which belongs to no slice | Accepted cost; HIE-04 orphan logic must count only nodes with `node_attr` rows |
 | A-6 | Validation rules authored in `mdm.validation_rule` are changed only by migration in Phase 1 (no rule-editing API) | Needed because rule SQL runs with the apply role's privileges (D-39); revisit in Phase 5 (VAL-04) |
 | A-7 | Role grants are changed only by migration or SQL by a `SYSTEM_ADMIN` in Phase 1; no grant-editing API | A governed grant API is Phase 5 (SEC-01 full) |
-| A-8 | `BUSINESS_TIME_ZONE` = `America/New_York` (OD-22a, DST confirmation OD-22b), configured as `mdm.business-time-zone` in every profile | If a fixed UTC−5 is meant, the setting becomes `-05:00`; no code change |
+| A-8 | `BUSINESS_TIME_ZONE` = `America/New_York` (OD-22a). Single source of truth: the database row `mdm.system_setting('business_time_zone')` (defined in Phase 2 §4.1, created in Phase 1 if Phase 1 is built first); `BusinessClock` reads it at startup and fails if a configured `mdm.business-time-zone` disagrees (CONSISTENCY_REVIEW CR-01) | — |
 | A-9 | `MAX_ITEMS_PER_CHANGE_REQUEST` = 5 000; `P95_SUBMIT_MS` / `P95_APPLY_MS` = 2 000 for ≤ 50 items | Benchmarks in §10 |
 
 **Human decisions this phase waits on:** OD-22a (zone value) before the build's time tests can be final; OD-18a (Audit-Risk
@@ -117,7 +118,7 @@ Blue = new, amber = changed.
 | `LocalDevActor` | Adapter, profiles `local` and `test` only: reads header `X-Nexus-User` (a login), looks up `mdm.app_user`; `local` falls back to `mdm.api.local-user` | — | Exist in any other profile (`@Profile({"local","test"})`) |
 | `ActorFilter` | `OncePerRequestFilter`: resolves the actor, 401 Problem Details if none, puts `Actor` in a request attribute and MDC | `doFilterInternal(...)` | Authorise anything |
 | `StartupGuard` | Fails startup if no non-dev `CurrentActor` bean exists and the active profile is not `local`/`test` | `@EventListener(ApplicationReadyEvent)` | — |
-| `Permission` (enum) | `READ`, `PROPOSE`, `DECIDE`, `ADMIN_WORKFLOW`, `ADMIN_POLICY`, `ADMIN_SYSTEM` | — | — |
+| `Permission` (enum) | `READ`, `PROPOSE`, `DECIDE`, `ADMIN_WORKFLOW`, `ADMIN_POLICY`, `ADMIN_SYSTEM`; later phases add `READ_OWNERSHIP`, `PROPOSE_OWNERSHIP`, `DECIDE_OWNERSHIP` (6), `ADMIN_EXPORT`, `RUN_EXPORT`, `REVIEW_RECON`, `READ_EVENTS` (8). Role → permission mapping lives in one class and the full catalogue is in `CONSISTENCY_REVIEW.md` CR-11 | — | — |
 | `EntitlementService` | Answers permission questions from `mdm.user_role` (§4.4) | `void require(Actor a, Permission p, UUID hierarchyId, UUID nodeIdOrNull)` throws `ForbiddenException`; `Set<UUID> readableHierarchies(Actor a)` | Decide maker-checker or SoD (database guards do) |
 
 The role-to-permission matrix (ADR-022):
@@ -158,7 +159,7 @@ The role-to-permission matrix (ADR-022):
 ### 3.6 `common`
 | Type | Responsibility |
 |---|---|
-| `BusinessClock` | Wraps `java.time.Clock` and `mdm.business-time-zone`; `LocalDate today()`; `Instant now()` |
+| `BusinessClock` | Wraps `java.time.Clock` and the zone from `mdm.system_setting('business_time_zone')` (CR-01); `LocalDate today()`; `Instant now()` |
 | `Cursor` / `Page<T>` | Opaque keyset cursor: base64url of a JSON array of the last sort key; `Page(List<T> items, String nextCursor)` |
 | `DbErrorTranslator` | Maps SQLSTATE to Problem Details (§5.3, ADR-020) |
 | `IdempotencyFilter` | Stores and replays responses for `POST` with `Idempotency-Key` (§4.6) |
@@ -210,6 +211,7 @@ ALTER TYPE: add 'apply_failed' to mdm.cr_status;  add 'delete_node' to mdm.chang
   row_version         int  NOT NULL DEFAULT 1,       -- ETag (ADR-015)
   governed_by_workflow boolean NOT NULL DEFAULT false, -- set only by wf_bridge at instance start (Phase 2)
   apply_error         text,                          -- reason when status = 'apply_failed'
+  origin              text NOT NULL DEFAULT 'user' CHECK (origin IN ('user','sandbox','load','ai')),  -- set at creation, never changed (CR-04)
 -- mdm.change_item: new column
   created_at timestamptz NOT NULL DEFAULT now()
 ```
@@ -405,7 +407,7 @@ Item payloads (validated at the API boundary; unknown fields rejected):
 | SQLSTATE / cause | HTTP | `type` code | Example |
 |---|---|---|---|
 | `N1xxx` (control, e.g. `N1001` self-approval, `N1002` non-human decider, `N1003` AI request needs human, `N1004` policy basis outside bridge, `N1005` requester kind mismatch) | 403 | `forbidden` with `reason` | Requester approves own request |
-| `N2xxx` (integrity rule: `N2001` cycle, `N2002` top node, `N2003` shared not allowed, `N2010` bitemporal edit, `N2020` property type/scope, `N2101` invalid status transition, `N2102` request not draft) | 422 | `rule-violation` | Add child under a leaf |
+| `N2xxx` (integrity rule: `N2001` cycle, `N2002` top node, `N2003` shared not allowed, `N2004` parent is a leaf, `N2005` remove with children, `N2006` delete of a referenced node, `N2010` bitemporal edit, `N2020` property type/scope, `N2101` invalid status transition, `N2102` request not draft, `N2103` too many items) | 422 | `rule-violation` | Add child under a leaf |
 | `N3001` stale base | 409 | `conflict-stale-base` | Value changed since drafting |
 | `23P01`, `23505` | 409 | `conflict` | Duplicate name at the same dates |
 | `23514`, `22P02`, `23503` | 422 | `constraint-violation` | Bad enum or missing reference |
@@ -510,7 +512,7 @@ perform set_config('mdm.actor_id', p_actor, true); set_config('mdm.change_reques
 BEGIN  -- subtransaction for the item work; rule failures are caught below
 
 items := governed_by_workflow ? items joined to change_item_clearance : all items   (ORDER BY seq)
-if count(items) > MAX_ITEMS_PER_CHANGE_REQUEST: raise N2103
+if count(items) > limit for cr.origin (MAX_ITEMS_PER_CHANGE_REQUEST; SANDBOX_MAX_ITEMS for origin 'sandbox'): raise N2103   -- CR-04
 D := cr.effective_from ; T := now()                     -- one recorded instant for the whole request
 for each item: dispatch on action (7.2); each handler first checks payload.expected (7.3)
 insert mdm.change_event(cr, 'change_request_applied', summary)

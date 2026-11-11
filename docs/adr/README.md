@@ -33,7 +33,7 @@
 | ADR-030 | Ownership calculation: exact rational solve, methodology per regime, recorded determinations | Accepted (OD-34, OD-35 open) |
 | ADR-031 | AI service boundary, model governance, prompted-by maker-checker | Accepted (implementation deferred, OD-38) |
 | ADR-032 | Governed export profile versions, streaming export runs, reconciliation review | Accepted (OD-39, OD-40 open) |
-| ADR-033 | Authentication: OIDC resource server; identities mapped, roles in Nexus | Proposed (IdP open, OD-06) |
-| ADR-034 | Observability: structured logs, Micrometer metrics, OpenTelemetry traces | Proposed |
+| ADR-033 | Authentication: OIDC resource server; identities mapped, roles in Nexus | Accepted (IdP open, OD-06) |
+| ADR-034 | Observability: structured logs, Micrometer metrics, OpenTelemetry traces | Accepted |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.

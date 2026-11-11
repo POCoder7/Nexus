@@ -1,6 +1,6 @@
 # Design state
 
-- **Current item:** Phase 9 LLD (protocol step 3; last LLD)
+- **Current item:** Consistency review (protocol step 4)
 - **Status:** Awaiting review
 - **Session date:** 2026-11-11 (overview and patterns approved the same day; Phase 0 built and approved first)
 
@@ -21,7 +21,7 @@
 | adr/ADR-030 | Accepted (OD-34, OD-35 open) | — | 2026-11-11 |
 | adr/ADR-031 | Accepted; implementation deferred (OD-38) | — | 2026-11-11 |
 | adr/ADR-032 | Accepted (OD-39, OD-40 open) | — | 2026-11-11 |
-| adr/ADR-033, ADR-034 | Proposed with the Phase 9 LLD | — | 2026-11-11 |
+| adr/ADR-033, ADR-034 | Accepted (IdP open) | — | 2026-11-11 |
 | design/phase-0 | Not written: Phase 0 was built first by your instruction (sequence A); its plan, test report and summary are in `docs/phases/phase-0/` | — | 2026-11-11 |
 | design/phase-1-core-write-path/LLD.md | Approved 2026-11-11 (two small corrections made while writing Phase 2: validation also in `in_review`; writing guard triggers run as owner) | Medium | 2026-11-11 |
 | design/phase-2-governance/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
@@ -31,9 +31,9 @@
 | design/phase-6-ownership-and-ubo/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
 | design/phase-7-ai-assistance/LLD.md | Approved 2026-11-11; **build deferred (OD-38)** | Medium | 2026-11-11 |
 | design/phase-8-exports-and-reconciliation/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
-| design/phase-9-hardening/LLD.md | Draft, awaiting review | Medium (platform, IdP, NFR values open) | 2026-11-11 |
+| design/phase-9-hardening/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
+| design/CONSISTENCY_REVIEW.md | Done; 13 findings fixed (CR-01 to CR-13); awaiting review | — | 2026-11-11 |
 | design/phase-3-steward-ui/prototypes/landing.html | Landing-page prototype; combined design chosen (OD-27) | Prototype only: placeholder tokens, synthetic data | 2026-11-11 |
-| design/CONSISTENCY_REVIEW.md | Not started | — | — |
 
 ## What exists (verified against the files on 2026-11-11)
 
@@ -183,17 +183,13 @@ one-way kill switch, frozen approved policies and models; 35 pgTAP tests.
 - **OD-39, OD-40** DRM file access for reconciliation; who may accept a parity difference (Phase 8 build).
 - **OD-06, OD-41, OD-42, OD-43** identity provider; recovery objectives and SLO; security tooling; penetration test (Phase 9 build).
 
-## Self-review (DESIGN_PROTOCOL §5) for the Phase 9 LLD
-- *Implementable without a design question?* Yes for authentication with OIDC, identity mapping, authorisation gates,
-  observability, deployment requirements, tests and runbooks. Provider- and platform-specific configuration waits for OD-06 and OD-15a; values for OD-10/OD-41.
-- *Existing code verified?* Against `pom.xml` (actuator present; no security starter), `application.yml` (actuator exposure
-  `health,info,metrics`: D-20), the Phase 1 `CurrentActor`/`StartupGuard` design and each phase's targets and metrics, consolidated in §10–§11.
-- *Weakens a control, crosses the layer, contradicts an Accepted ADR?* No. Token claims never grant roles (keeps ADR-022/029);
-  the API validates tokens itself; DB roles in every environment; first shared environment gated on confirmations.
-- *Assumptions listed?* J-1 to J-6; Phase 9 parameters and OD-41 to OD-43 in OPEN_DECISIONS.
-- *Acceptance criteria covered?* SEC-05's criterion and every exit criterion have tests; the threat model lists how each mitigation is verified.
-- *Confidence honest?* Medium.
+## Self-review (DESIGN_PROTOCOL §5) for the consistency review
+- *Every statement verified?* Findings come from searches across all LLDs and from following each cross-phase call to its definition; each fix was applied with an exact-match edit (a non-matching edit stops the script).
+- *Weakens a control?* No. CR-08 and CR-10 strengthen controls (hard limit for identity links; maker-checker on workflow group membership). CR-05 makes a refusal explicit instead of a silent conflict.
+- *Contradicts an Accepted ADR or CLAUDE.md?* CR-07 aligns the designs with CLAUDE.md rule 6; CR-10 extends ADR-023's intent (membership history) to governance; recorded in the review.
+- *Assumptions listed?* OD-44 added.
+- *Remaining issues honest?* Section 6 of the review lists what is left and who owns it.
 
 ## Next action
-Human review of `docs/design/phase-9-hardening/LLD.md`, ADR-033 and ADR-034. On approval: protocol step 4, the
-cross-phase consistency review (`docs/design/CONSISTENCY_REVIEW.md`), then stop.
+Human review of `docs/design/CONSISTENCY_REVIEW.md`. On approval: protocol step 5, wiring the design into
+`docs/BUILD_PROTOCOL.md` and `CLAUDE.md` (phase table per OD-14 and OD-38; LLD rule; `mdm_stage` wording), then stop and report.

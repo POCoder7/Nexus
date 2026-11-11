@@ -1,6 +1,7 @@
 # Phase 4 — Data loading and parity harness: low-level design
 
-- **Status:** Draft, awaiting review (2026-11-11)
+- **Status:** Approved 2026-11-11 (consistency fixes CR-nn applied the same day, see `../CONSISTENCY_REVIEW.md`)
+- **Migration rule (CR-07):** where this design says "edit Vn", that is allowed only while no shared environment exists (CLAUDE.md rule 6, OD-18). If one exists when this phase is built, the same change goes into a new V-numbered migration (`ALTER` / `CREATE OR REPLACE`). What counts as shared: OD-44.
 - **Phase goal (BUILD_PROTOCOL §2):** realistic volumes and objective parity checks.
 - **Exit criteria:** staging loader; synthetic data generator at production-like scale; golden-test framework; performance baseline recorded.
 - **Reads with:** ADR-002, ADR-009, ADR-019, ADR-021, ADR-022, P-20, P-22, P-23; `tests/golden/README.md`;
@@ -145,7 +146,11 @@ CREATE TABLE mdm.load_run (
 CREATE TABLE mdm.load_run_request (load_run_id uuid REFERENCES mdm.load_run, change_request_id uuid UNIQUE REFERENCES mdm.change_request, seq int, items_sha256 char(64), PRIMARY KEY (load_run_id, seq));
 -- guard: approved_by must be a human; status transitions as listed; manifest frozen after 'approved'; audited
 ```
-Load-run requests have `requester_kind = 'system_feed'`, `risk_tier` from OD-29, `effective_from` = the version's business date.
+Load-run requests have `requester_kind = 'system_feed'`, `origin = 'load'`, `risk_tier` from OD-29, `effective_from` = the version's business date.
+**Hierarchies that require workflow** (Phase 2 `requires_workflow`) refuse core-mode decisions. Load runs therefore run
+before an administrator sets the flag (the baseline and the pre-cutover deltas), and the run is refused with a clear
+message if any target hierarchy has the flag; after cutover, loads into governed hierarchies go through a workflow model
+`LOAD_RUN` whose Commit stage the run approver holds (CR-05).
 
 ### 4.4 Bitemporal behaviour
 - **Baseline version** (oldest loaded): every fact gets `valid_period [business_as_of, ∞)` and recorded time = load time.

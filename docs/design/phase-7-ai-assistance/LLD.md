@@ -1,6 +1,7 @@
 # Phase 7 — AI assistance: low-level design
 
 - **Status:** Approved 2026-11-11. **Implementation deferred** by the repository owner (OD-38): the build skips Phase 7; this design stands for when it is resumed.
+- **Migration rule (CR-07):** where this design says "edit Vn", that is allowed only while no shared environment exists (CLAUDE.md rule 6, OD-18). If one exists when this phase is built, the same change goes into a new V-numbered migration (`ALTER` / `CREATE OR REPLACE`). What counts as shared: OD-44.
 - **Phase goal (BUILD_PROTOCOL §2):** AI proposes, humans approve.
 - **Exit criteria:** AI services behind an interface with a deterministic stub for tests; every AI output enters as a change
   request or suggestion; accuracy evaluation harness on synthetic data.
@@ -92,7 +93,7 @@ and returns JSON. Everything that is stored, checked or decided happens in `mdm-
 | `documents` | Text extraction with page and character offsets so locators point at exact quotes |
 | `eval/` | Evaluation harness (§7.5) |
 
-## 4. Data design (edit V1 and new file `V14__ai.sql`)
+## 4. Data design (edits as listed; new migration file numbered **at build time** with the next free V-number, not V14, because Phase 7 is deferred and later phases will already have applied higher numbers; CR-06)
 
 ```sql
 -- V1 edits (strengthen existing AI rules; ADR-031)
@@ -165,7 +166,7 @@ Query-plan schema (NEW-06), the only thing the model may produce for a question:
 (`=`, `<>`, `in`, `not_in`, `is_null`, `not_null`); anything else is refused. The answer shows the plan in plain words and the
 rows; no model-written numbers or summaries in v1 (H-6, rule 4).
 
-Errors: `N1301` model version not approved for this purpose; `N1302` AI agent cannot decide (existing guards); `N1303`
+Errors: `N1301` model version not approved for this purpose; AI agents cannot decide (existing guards, reported as `N1002`, CR-02); `N1303`
 prompter cannot decide the AI request they prompted; `N2501` invalid AI output (nothing stored); `N2502` plan outside the whitelist.
 
 ## 6. Behaviour
@@ -283,7 +284,7 @@ suggestions (from decisions), cost; alert on invalid-output rate > `AI_INVALID_A
 | PROG | Interface + stub; governance | P: stub-only in tests; N: unapproved model version called (`N1301`); N: approval without eval report; N: real adapter without the provider setting fails at startup | JUnit + pgTAP |
 
 ## 14. Rollout and compatibility
-Edits to V1 (prompted-by, rationale CHECK, maker-checker extension); new V14. The AI service is a new deployable (ADR-031);
+Prompted-by, rationale CHECK and maker-checker extension as a new migration (applied migrations cannot be edited by then, CR-07); tables in the same new file (number assigned at build time, CR-06). The AI service is a new deployable (ADR-031);
 until OD-07 it runs only with the stub provider. All AI features hidden in the UI unless an approved model exists for the purpose.
 
 ## 15. Risks, open questions and alternatives

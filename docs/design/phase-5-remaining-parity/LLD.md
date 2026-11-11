@@ -1,6 +1,7 @@
 # Phase 5 — Remaining parity: low-level design
 
-- **Status:** Draft, awaiting review (2026-11-11)
+- **Status:** Approved 2026-11-11 (consistency fixes CR-nn applied the same day, see `../CONSISTENCY_REVIEW.md`)
+- **Migration rule (CR-07):** where this design says "edit Vn", that is allowed only while no shared environment exists (CLAUDE.md rule 6, OD-18). If one exists when this phase is built, the same change goes into a new V-numbered migration (`ALTER` / `CREATE OR REPLACE`). What counts as shared: OD-44.
 - **Phase goal (BUILD_PROTOCOL §2):** the rest of the in-scope legacy capabilities.
 - **Exit criterion:** each capability with decision Parity or Improve has passing acceptance tests, or is listed as an explicit gap.
 - **Reads with:** Phase 1–4 LLDs, patterns, ADR-006, ADR-019, ADR-022, ADR-026; `docs/capabilities.md`.
@@ -72,7 +73,8 @@ flowchart LR
 ALTER mdm.change_request ADD kind text NOT NULL DEFAULT 'request' CHECK (kind IN ('request','sandbox')),
                          ADD sandbox_base_recorded_at timestamptz,   -- recorded time the sandbox was based on (rebase moves it)
                          ADD sandbox_name text;
--- a sandbox is a change request of kind 'sandbox' kept in status 'draft'; submit turns kind into 'request' (one-way, guarded)
+-- a sandbox is a change request of kind 'sandbox' kept in status 'draft'; submit turns kind into 'request' (one-way, guarded);
+-- its origin (Phase 1 column) is 'sandbox' from creation, so apply allows up to SANDBOX_MAX_ITEMS after submit (CR-04)
 -- mdm.change_action gains 'grant_role', 'revoke_role' (and both join the commit-policy hard-limit list)
 
 -- new file V12__sandboxes.sql: derived overlay, rebuildable, not governed data

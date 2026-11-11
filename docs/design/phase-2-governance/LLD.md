@@ -1,6 +1,7 @@
 # Phase 2 — Governance: low-level design
 
-- **Status:** Draft, awaiting review (2026-11-11)
+- **Status:** Approved 2026-11-11 (consistency fixes CR-nn applied the same day, see `../CONSISTENCY_REVIEW.md`)
+- **Migration rule (CR-07):** where this design says "edit Vn", that is allowed only while no shared environment exists (CLAUDE.md rule 6, OD-18). If one exists when this phase is built, the same change goes into a new V-numbered migration (`ALTER` / `CREATE OR REPLACE`). What counts as shared: OD-44.
 - **Phase goal (BUILD_PROTOCOL §2):** DRG-equivalent workflow end to end.
 - **Exit criteria:** a request moves Submit → (Enrich/Approve) → Commit through the `wf` layer; worklist API; separation
   of duties and human-only decisions proven; commit policy runs in shadow mode.
@@ -159,7 +160,12 @@ CREATE FUNCTION wf.is_member(p_group uuid, p_user uuid, p_on date) RETURNS boole
 Note on the layer rule: `wf` writing `mdm.audit_log` through `mdm.trg_audit_row` would be a `wf → mdm` write. Instead
 `wf` gets its own append-only `wf.config_audit(table_name, action, old_row, new_row, actor_id, occurred_at)` with the same
 trigger shape, used for `user_group_member`, `workflow_model`, `commit_policy`, `stp_protected_property`, `freeze_window`.
-The existing `wf.instance_action` / `wf.policy_event` stay as they are. The pgTAP fixture in `02_workflow_invariants.sql`
+The existing `wf.instance_action` / `wf.policy_event` stay as they are.
+
+**Governed membership (CR-10).** Group membership decides who may approve requests and, through `POLICY_APPROVERS`, commit
+policies, so it gets the same four-eyes rule as role grants (ADR-029): `wf.membership_change(change_id, group_id, user_id,
+op add|end, valid_from, proposed_by, approved_by, status)`; a `WORKFLOW_ADMIN` proposes, a different one approves
+(`POLICY_APPROVERS` changes need an approver who is in `POLICY_APPROVERS`), and only `wf.apply_membership_change` (definer, `nexus_wf`) writes `wf.user_group_member`. The pgTAP fixture in `02_workflow_invariants.sql`
 inserts `(group_id, user_id)` only, which still works with the defaults.
 
 ### 4.3 Claims (D-12) — edit V4

@@ -1,6 +1,6 @@
 # ADR-034: Observability — structured logs, Micrometer metrics, OpenTelemetry traces
 
-- **Status:** Proposed (Phase 9 LLD)
+- **Status:** Accepted (repository owner, 2026-11-11). Dependencies approved in the Phase 9 build plan
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** PROG (NFRs)

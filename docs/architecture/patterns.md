@@ -456,3 +456,36 @@
 - **Alternatives:** physical copies (P-02 rejects); hand-written overlay SQL per action (drift).
 - **When not to use:** exports and anything a downstream system consumes (F-3).
 - **Related ADR:** ADR-028.
+
+## Where each pattern is applied (index, consistency review 2026-11-11)
+
+| Pattern | Design sections |
+|---|---|
+| P-01 Bitemporal facts | Phase 1 §7.1; Phase 4 §4.4; Phase 5 §4 (grants); Phase 6 §4.2 (thresholds) |
+| P-02 Version slices | Phase 1 §5.1 (reads); Phase 4 §4.4 (migrated versions); Phase 5 §15.1 (VER-*); Phase 8 §7.3 |
+| P-03 Maker-checker | Phase 1 §4.2, §4.7; Phase 2 §4.4, §4.11, CR-10 membership; Phase 4 §4.3; Phase 5 §3.2; Phase 6 §4.2; Phase 7 §4; Phase 8 §4.1, §4.3; Phase 9 §3.1 |
+| P-04 Policy as data, shadow mode | Phase 2 §4.6, §6.3 |
+| P-05 Single bridge | Phase 1 §4.3; Phase 2 §4.7 |
+| P-06 Outbox | Phase 1 §4.5; Phase 2 §4.10, §6.4; Phase 8 §4.4 |
+| P-07 Ports and adapters | Phase 1 §3.1 (CurrentActor); Phase 2 §3.1 (WorkflowGateway); Phase 6 §3 (DocumentStore, MethodologyStrategy); Phase 7 §3 (AiProposalPort); Phase 8 §3 (DeliveryTarget, DrmFileSource); Phase 9 §3.1 (OidcActor) |
+| P-08 Command / read separation | Phase 1 §3 |
+| P-09 Atomic apply | Phase 1 §7.1 (ADR-019); Phase 4 §6.2; Phase 5 §7.1 |
+| P-10 Concurrency and idempotency | Phase 1 §4.6, §6.3, §7.3; Phase 2 §6.4; Phase 5 §7.3 (rebase) |
+| P-11 Keyset paging, lazy tree | Phase 1 §7.7; Phase 2 §4.9; Phase 3 §7.1; Phase 5 §7.2; Phase 8 §5 (events) |
+| P-12 Tree storage | Phase 1 §7.5; Phase 2 §4.8; Phase 3 §7.2 |
+| P-13 Rules engine | Phase 1 §7.4; Phase 5 §15.1 (VAL-04) |
+| P-14 Derivation strategy | Phase 1 §7.6 (sql); Phase 5 §15.1 (PRP-06, CEL) |
+| P-15 State machine + process manager | Phase 2 §4.5, §6.1, §6.2 |
+| P-16 Notifications | Phase 2 §15 (outline, GOV-08/16) |
+| P-17 Entitlements | Phase 1 §4.4; Phase 5 §3.2, §7.4; Phase 9 §3.2 |
+| P-18 Provenance and evidence | Phase 1 §7.6; Phase 3 §3.3; Phase 6 §4.1, §7.2; Phase 7 §7.3 |
+| P-19 Human-in-the-loop AI | Phase 7 (deferred) |
+| P-20 Streaming batch | Phase 4 §3.1, §7.1; Phase 8 §3, §7.1 |
+| P-21 Caching immutable slices | Phase 3 §5.2 |
+| P-22 Golden master | Phase 4 §3.3, §7.4; Phase 8 §7.1, §13 |
+| P-23 Parallel run | Phase 4 §4.4; Phase 8 §7.4 |
+| P-24 DB guards | every phase §4 and §9 |
+| P-25 Repositories with explicit SQL | Phase 1 §3; all later phases |
+| P-26 Feature stores | Phase 3 §3.2 |
+| P-27 Generated API client | Phase 3 §5 |
+| P-28 Overlay by trial apply | Phase 5 §7.1 |
