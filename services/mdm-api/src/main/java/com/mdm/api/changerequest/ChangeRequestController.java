@@ -1,0 +1,111 @@
+package com.mdm.api.changerequest;
+
+import com.mdm.api.changerequest.ChangeRequestDtos.ChangeRequestView;
+import com.mdm.api.changerequest.ChangeRequestDtos.CreateRequest;
+import com.mdm.api.changerequest.ChangeRequestDtos.ItemCommand;
+import com.mdm.api.changerequest.ChangeRequestDtos.ItemView;
+import com.mdm.api.changerequest.ChangeRequestDtos.UpdateRequest;
+import com.mdm.api.common.Cursors;
+import com.mdm.api.common.ETags;
+import com.mdm.api.common.Page;
+import com.mdm.api.security.Actor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/** Drafting change requests (HIE-02, PRP-01; Phase 1 LLD §5.2). Submit and decision arrive in increment 1-8. */
+@RestController
+@RequestMapping("/api/v1/change-requests")
+public class ChangeRequestController {
+
+    private final ChangeRequestService service;
+    private final Cursors cursors;
+
+    public ChangeRequestController(ChangeRequestService service, Cursors cursors) {
+        this.service = service;
+        this.cursors = cursors;
+    }
+
+    @PostMapping
+    public ResponseEntity<ChangeRequestView> create(Actor actor, @RequestBody CreateRequest body) {
+        ChangeRequestView cr = service.create(actor, body);
+        return ResponseEntity.created(URI.create("/api/v1/change-requests/" + cr.id()))
+                .eTag(ETags.of(cr.rowVersion())).body(cr);
+    }
+
+    /**
+     * The caller's own requests. Other people's requests (the review queue) need DECIDE in scope and arrive with
+     * decisions in increment 1-8.
+     */
+    @GetMapping
+    public Page<ChangeRequestView> list(Actor actor,
+                                        @RequestParam(defaultValue = "true") boolean mine,
+                                        @RequestParam(required = false) String status,
+                                        @RequestParam(defaultValue = "50") int limit,
+                                        @RequestParam(required = false) String cursor) {
+        if (!mine) {
+            throw new IllegalArgumentException("Only mine=true is available until the review queue is built");
+        }
+        cursors.checkLimit(limit);
+        List<String> after = cursors.decode(cursor, 2);
+        List<ChangeRequestView> rows = service.mine(actor, status,
+                after == null ? null : Instant.parse(after.get(0)), after == null ? null : UUID.fromString(after.get(1)), limit);
+        return Page.of(rows, limit, cr -> cursors.encode(cr.createdAt().toString(), cr.id().toString()));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ChangeRequestView> get(Actor actor, @PathVariable UUID id) {
+        ChangeRequestView cr = service.get(actor, id);
+        return ResponseEntity.ok().eTag(ETags.of(cr.rowVersion())).body(cr);
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ChangeRequestView> update(Actor actor, @PathVariable UUID id,
+                                                    @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+                                                    @RequestBody UpdateRequest body) {
+        ChangeRequestView cr = service.update(actor, id, ifMatch, body);
+        return ResponseEntity.ok().eTag(ETags.of(cr.rowVersion())).body(cr);
+    }
+
+    @PostMapping("/{id}/items")
+    public ResponseEntity<ItemView> addItem(Actor actor, @PathVariable UUID id,
+                                            @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+                                            @RequestBody ItemCommand body) {
+        var added = service.addItem(actor, id, ifMatch, body);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .location(URI.create("/api/v1/change-requests/" + id + "/items/" + added.item().id()))
+                .eTag(ETags.of(added.rowVersion())).body(added.item());
+    }
+
+    @GetMapping("/{id}/items")
+    public Page<ItemView> items(Actor actor, @PathVariable UUID id,
+                                @RequestParam(defaultValue = "200") int limit,
+                                @RequestParam(required = false) String cursor) {
+        cursors.checkLimit(limit);
+        List<String> after = cursors.decode(cursor, 1);
+        return Page.of(service.items(actor, id, after == null ? 0 : Integer.parseInt(after.get(0)), limit), limit,
+                i -> cursors.encode(String.valueOf(i.seq())));
+    }
+
+    @DeleteMapping("/{id}/items/{itemId}")
+    public ResponseEntity<Void> deleteItem(Actor actor, @PathVariable UUID id, @PathVariable UUID itemId,
+                                           @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+        int version = service.deleteItem(actor, id, itemId, ifMatch);
+        return ResponseEntity.noContent().eTag(ETags.of(version)).build();
+    }
+
+    @PostMapping("/{id}/withdraw")
+    public ResponseEntity<ChangeRequestView> withdraw(Actor actor, @PathVariable UUID id,
+                                                      @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+                                                      @RequestBody(required = false) Map<String, Object> ignored) {
+        ChangeRequestView cr = service.withdraw(actor, id, ifMatch);
+        return ResponseEntity.ok().eTag(ETags.of(cr.rowVersion())).body(cr);
+    }
+}

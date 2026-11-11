@@ -663,3 +663,51 @@ INSERT INTO property_category (category_code, name, sort_seq) VALUES
   ('Finance',   'Finance & consolidation', 3),
   ('Regulatory','Regulatory reporting',    4),
   ('Custom',    'Migrated DRM custom',     9);
+
+-- -----------------------------------------------------------------------------
+-- Draft-side operations (Phase 1 LLD §4.7). SECURITY DEFINER: owned by nexus_apply / nexus_decider (V7), so the
+-- API role needs no write access to mdm.node or to the status column. Each checks its own preconditions.
+-- -----------------------------------------------------------------------------
+
+-- A new node's identity is allocated when the add_node item is drafted, so later items and the workflow can refer
+-- to it (Phase 1 LLD A-5). The identity alone belongs to no slice until the request is applied.
+CREATE FUNCTION allocate_node(p_kind node_kind, p_change_request_id uuid)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
+DECLARE
+  v_status    cr_status;
+  v_requester uuid;
+  v_node      uuid;
+BEGIN
+  SELECT status, requester_id INTO v_status, v_requester
+  FROM mdm.change_request WHERE change_request_id = p_change_request_id FOR UPDATE;
+  IF v_status IS DISTINCT FROM 'draft' THEN
+    RAISE EXCEPTION 'Change request % is % and cannot get new items', p_change_request_id, coalesce(v_status::text, 'missing')
+      USING ERRCODE = 'N2102', HINT = 'change_request.not_draft';
+  END IF;
+  INSERT INTO mdm.node (node_kind, created_by) VALUES (p_kind, v_requester) RETURNING node_id INTO v_node;
+  RETURN v_node;
+END $$;
+
+-- Only the requester withdraws; requests governed by a workflow are withdrawn through it (Phase 2).
+CREATE FUNCTION withdraw_change_request(p_change_request_id uuid, p_actor uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
+DECLARE r mdm.change_request%ROWTYPE;
+BEGIN
+  SELECT * INTO r FROM mdm.change_request WHERE change_request_id = p_change_request_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Change request % not found', p_change_request_id USING ERRCODE = 'N2102', HINT = 'change_request.not_found';
+  END IF;
+  IF r.requester_id IS DISTINCT FROM p_actor THEN
+    RAISE EXCEPTION 'Only the requester can withdraw change request %', p_change_request_id
+      USING ERRCODE = 'N1025', HINT = 'change_request.not_requester';
+  END IF;
+  IF r.governed_by_workflow THEN
+    RAISE EXCEPTION 'Change request % is governed by a workflow; withdraw it there', p_change_request_id
+      USING ERRCODE = 'N2104', HINT = 'change_request.governed';
+  END IF;
+  IF r.status NOT IN ('draft', 'submitted', 'in_review') THEN
+    RAISE EXCEPTION 'Change request % cannot move from % to withdrawn', p_change_request_id, r.status
+      USING ERRCODE = 'N2101', HINT = 'change_request.status_transition';
+  END IF;
+  UPDATE mdm.change_request SET status = 'withdrawn' WHERE change_request_id = p_change_request_id;
+END $$;

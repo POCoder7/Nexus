@@ -81,4 +81,5 @@ CREATE TABLE mdm.idempotency_key (
   created_at      timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (actor_id, idem_key)
 );
-GRANT INSERT, DELETE ON mdm.idempotency_key TO nexus_api;
+-- UPDATE: a key is reserved first (response_status 0 = in progress), then completed with the response.
+GRANT INSERT, UPDATE, DELETE ON mdm.idempotency_key TO nexus_api;

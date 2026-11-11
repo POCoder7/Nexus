@@ -3,6 +3,8 @@ package com.mdm.api.common;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +17,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Problem Details carry a stable type URN and the request's correlation id (overview §9, ADR-015). */
-@WebMvcTest(controllers = ProblemShapeTest.ThrowingController.class)
+// IdempotencyFilter needs the database; this slice has none and does not exercise POST idempotency.
+@WebMvcTest(controllers = ProblemShapeTest.ThrowingController.class,
+        excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = IdempotencyFilter.class))
 @Import({ApiExceptionHandler.class, DbErrorTranslator.class, CorrelationIdFilter.class, ProblemShapeTest.ThrowingController.class})
 class ProblemShapeTest {
 

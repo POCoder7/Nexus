@@ -41,6 +41,39 @@ public class ApiExceptionHandler {
         return withCorrelation(p, request);
     }
 
+    @ExceptionHandler(ETags.PreconditionRequiredException.class)
+    public ProblemDetail preconditionRequired(ETags.PreconditionRequiredException ex, HttpServletRequest request) {
+        return withCorrelation(Problems.of(HttpStatus.PRECONDITION_REQUIRED, Problems.PRECONDITION_REQUIRED, ex.getMessage()), request);
+    }
+
+    @ExceptionHandler(ETags.PreconditionFailedException.class)
+    public org.springframework.http.ResponseEntity<ProblemDetail> preconditionFailed(ETags.PreconditionFailedException ex,
+                                                                                    HttpServletRequest request) {
+        ProblemDetail p = withCorrelation(Problems.of(HttpStatus.PRECONDITION_FAILED, Problems.STALE_RESOURCE, ex.getMessage()), request);
+        return org.springframework.http.ResponseEntity.status(HttpStatus.PRECONDITION_FAILED)
+                .eTag(ETags.of(ex.current())).body(p);
+    }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ProblemDetail unreadable(org.springframework.http.converter.HttpMessageNotReadableException ex, HttpServletRequest request) {
+        return withCorrelation(Problems.of(HttpStatus.BAD_REQUEST, Problems.INVALID_REQUEST,
+                "The request body is not valid JSON for this operation."), request);
+    }
+
+    @ExceptionHandler(ItemValidationException.class)
+    public ProblemDetail itemValidation(ItemValidationException ex, HttpServletRequest request) {
+        ProblemDetail p = Problems.of(HttpStatus.BAD_REQUEST, Problems.INVALID_REQUEST, ex.getMessage());
+        p.setProperty("errors", ex.errors());
+        return withCorrelation(p, request);
+    }
+
+    @ExceptionHandler(RuleException.class)
+    public ProblemDetail rule(RuleException ex, HttpServletRequest request) {
+        ProblemDetail p = Problems.of(HttpStatus.UNPROCESSABLE_ENTITY, Problems.RULE_VIOLATION, ex.getMessage());
+        p.setProperty("code", ex.code());
+        return withCorrelation(p, request);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail badRequest(IllegalArgumentException ex, HttpServletRequest request) {
         return withCorrelation(Problems.of(HttpStatus.BAD_REQUEST, Problems.INVALID_REQUEST, ex.getMessage()), request);

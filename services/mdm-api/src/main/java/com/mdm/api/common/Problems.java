@@ -15,6 +15,8 @@ public final class Problems {
     public static final String CONFLICT = "conflict";
     public static final String CONSTRAINT_VIOLATION = "constraint-violation";
     public static final String STALE_RESOURCE = "stale-resource";
+    public static final String PRECONDITION_REQUIRED = "precondition-required";
+    public static final String IDEMPOTENCY = "idempotency-conflict";
     public static final String CONFLICT_STALE_BASE = "conflict-stale-base";
     public static final String FORBIDDEN = "forbidden";
     public static final String UNAUTHENTICATED = "unauthenticated";

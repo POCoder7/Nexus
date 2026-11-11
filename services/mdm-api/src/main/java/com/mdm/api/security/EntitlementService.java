@@ -89,8 +89,8 @@ public class EntitlementService {
             if (g.allHierarchies()) {
                 return;
             }
-            if (!g.hierarchyId().equals(hierarchyId)) {
-                continue;
+            if (hierarchyId == null || !g.hierarchyId().equals(hierarchyId)) {
+                continue;   // without a hierarchy (e.g. creating one) only all-hierarchy grants count
             }
             if (g.wholeHierarchy() || permission == Permission.READ) {
                 return;
@@ -101,6 +101,11 @@ public class EntitlementService {
         }
         throw new ForbiddenException("entitlement.missing", "You don't have the " + describe(permission)
                 + " permission for this part of the hierarchy. Ask an administrator for a role with that scope.");
+    }
+
+    /** True if any current grant gives {@code permission} somewhere (e.g. "may this actor create a request at all?"). */
+    public boolean hasAny(Actor actor, Permission permission) {
+        return grants(actor).stream().anyMatch(g -> RolePermissions.allows(g.roleCode(), permission));
     }
 
     /** True if {@code nodeId} is {@code topNodeId} or placed (primarily or shared) somewhere under it on {@code on}. */

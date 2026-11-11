@@ -1,0 +1,209 @@
+package com.mdm.api.changerequest;
+
+import com.mdm.api.changerequest.ChangeRequestDtos.AddedItem;
+import com.mdm.api.changerequest.ChangeRequestDtos.ChangeRequestView;
+import com.mdm.api.changerequest.ChangeRequestDtos.CreateRequest;
+import com.mdm.api.changerequest.ChangeRequestDtos.ItemCommand;
+import com.mdm.api.changerequest.ChangeRequestDtos.ItemView;
+import com.mdm.api.changerequest.ChangeRequestDtos.UpdateRequest;
+import com.mdm.api.common.BusinessClock;
+import com.mdm.api.common.ETags;
+import com.mdm.api.common.ItemValidationException;
+import com.mdm.api.common.NotFoundException;
+import com.mdm.api.common.RuleException;
+import com.mdm.api.security.Actor;
+import com.mdm.api.security.EntitlementService;
+import com.mdm.api.security.ForbiddenException;
+import com.mdm.api.security.Permission;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
+/**
+ * Drafting change requests (HIE-02, PRP-01; Phase 1 LLD §5.2). Every write locks the request row, checks the
+ * {@code If-Match} ETag under the lock and leaves the database guards (draft-only items, frozen content,
+ * status transitions) as the last word.
+ */
+@Service
+public class ChangeRequestService {
+
+    private static final Set<String> RISK_TIERS = Set.of("low", "medium", "high", "critical");
+
+    private final ChangeRequestRepository repository;
+    private final ItemFactory items;
+    private final EntitlementService entitlements;
+    private final BusinessClock clock;
+
+    public ChangeRequestService(ChangeRequestRepository repository, ItemFactory items, EntitlementService entitlements,
+                                BusinessClock clock) {
+        this.repository = repository;
+        this.items = items;
+        this.entitlements = entitlements;
+        this.clock = clock;
+    }
+
+    @Transactional
+    public ChangeRequestView create(Actor actor, CreateRequest body) {
+        if (!entitlements.hasAny(actor, Permission.PROPOSE)) {
+            throw new ForbiddenException("entitlement.missing",
+                    "You don't have the propose permission anywhere. Ask an administrator for a steward role.");
+        }
+        if (body == null || body.title() == null || body.title().isBlank()) {
+            throw ItemValidationException.field("title", "is required");
+        }
+        if (body.versionName() == null || body.versionName().isBlank()) {
+            throw ItemValidationException.field("versionName", "is required");
+        }
+        UUID versionId = repository.versionId(body.versionName())
+                .orElseThrow(() -> ItemValidationException.field("versionName", "unknown version " + body.versionName()));
+        String risk = riskTier(body.riskTier(), "medium");
+        UUID id = repository.insert(versionId, body.title().trim(), body.rationale(), risk, actor.userId(), actor.kind(),
+                body.effectiveFrom() == null ? clock.today() : body.effectiveFrom());
+        return repository.find(id).orElseThrow();
+    }
+
+    @Transactional(readOnly = true)
+    public ChangeRequestView get(Actor actor, UUID id) {
+        return visible(actor, id);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChangeRequestView> mine(Actor actor, String status, Instant afterCreated, UUID afterId, int limit) {
+        return repository.mine(actor.userId(), status, afterCreated, afterId, limit);
+    }
+
+    @Transactional
+    public ChangeRequestView update(Actor actor, UUID id, String ifMatch, UpdateRequest body) {
+        int expected = ETags.require(ifMatch);
+        ChangeRequestView cr = lockOwnDraft(actor, id, expected);
+        if (body.title() != null && body.title().isBlank()) {
+            throw ItemValidationException.field("title", "must not be blank");
+        }
+        repository.updateDraft(cr.id(), body.title() == null ? null : body.title().trim(), body.rationale(),
+                body.riskTier() == null ? null : riskTier(body.riskTier(), null), body.effectiveFrom());
+        return repository.find(id).orElseThrow();
+    }
+
+    @Transactional
+    public AddedItem addItem(Actor actor, UUID id, String ifMatch, ItemCommand cmd) {
+        int expected = ETags.require(ifMatch);
+        ChangeRequestView cr = lockOwnDraft(actor, id, expected);
+        if (cmd == null) {
+            throw ItemValidationException.field("action", "is required");
+        }
+        List<ItemView> earlier = repository.allItems(cr.id());
+        ItemFactory.NewItem item = items.build(cr, cmd, earlier);
+        for (ItemFactory.Scope s : item.scopes()) {
+            entitlements.require(actor, Permission.PROPOSE, s.hierarchyId(), existingAncestor(s.nodeId(), earlier));
+        }
+        UUID itemId = repository.insertItem(cr.id(), repository.nextSeq(cr.id()), item.action(), item.hierarchyId(),
+                item.nodeId(), item.targetParentId(), item.propertyId(), item.payload());
+        return new AddedItem(repository.item(itemId).orElseThrow(), repository.find(id).orElseThrow().rowVersion());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ItemView> items(Actor actor, UUID id, int afterSeq, int limit) {
+        visible(actor, id);
+        return repository.items(id, afterSeq, limit);
+    }
+
+    @Transactional
+    public int deleteItem(Actor actor, UUID id, UUID itemId, String ifMatch) {
+        int expected = ETags.require(ifMatch);
+        lockOwnDraft(actor, id, expected);
+        if (repository.deleteItem(id, itemId) == 0) {
+            throw new NotFoundException("Item " + itemId + " not found in change request " + id);
+        }
+        return repository.find(id).orElseThrow().rowVersion();
+    }
+
+    @Transactional
+    public ChangeRequestView withdraw(Actor actor, UUID id, String ifMatch) {
+        int expected = ETags.require(ifMatch);
+        ChangeRequestView cr = lockVisible(actor, id);
+        requireRequester(actor, cr);
+        ETags.check(expected, cr.rowVersion());
+        repository.withdraw(id, actor.userId());   // the function re-checks requester, status and workflow ownership
+        return repository.find(id).orElseThrow();
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    /**
+     * For a node created earlier in this request, entitlement is checked on the existing node it hangs under,
+     * since the new node is not in any hierarchy yet.
+     */
+    private static UUID existingAncestor(UUID nodeId, List<ItemView> earlier) {
+        UUID current = nodeId;
+        for (int guard = 0; current != null && guard <= earlier.size(); guard++) {
+            UUID c = current;
+            Optional<ItemView> added = earlier.stream().filter(e -> "add_node".equals(e.action()) && c.equals(e.nodeId())).findFirst();
+            if (added.isEmpty()) {
+                return current;
+            }
+            current = added.get().targetParentId();
+        }
+        return current;
+    }
+
+    private ChangeRequestView lockOwnDraft(Actor actor, UUID id, int expectedVersion) {
+        ChangeRequestView cr = lockVisible(actor, id);
+        requireRequester(actor, cr);
+        ETags.check(expectedVersion, cr.rowVersion());
+        if (!"draft".equals(cr.status())) {
+            throw new RuleException("change_request.not_draft",
+                    "Only a draft can be edited; this change request is " + cr.status() + ".");
+        }
+        return cr;
+    }
+
+    private ChangeRequestView lockVisible(Actor actor, UUID id) {
+        ChangeRequestView cr = repository.lock(id).orElseThrow(() -> notFound(id));
+        if (!canSee(actor, cr)) {
+            throw notFound(id);
+        }
+        return cr;
+    }
+
+    private ChangeRequestView visible(Actor actor, UUID id) {
+        ChangeRequestView cr = repository.find(id).orElseThrow(() -> notFound(id));
+        if (!canSee(actor, cr)) {
+            throw notFound(id);
+        }
+        return cr;
+    }
+
+    /** The requester, or someone who can read every hierarchy its items touch (a request with no items is private). */
+    private boolean canSee(Actor actor, ChangeRequestView cr) {
+        if (actor.userId().equals(cr.requesterId())) {
+            return true;
+        }
+        List<UUID> hierarchies = repository.itemHierarchies(cr.id());
+        return !hierarchies.isEmpty() && hierarchies.stream().allMatch(h -> entitlements.canRead(actor, h));
+    }
+
+    private static void requireRequester(Actor actor, ChangeRequestView cr) {
+        if (!actor.userId().equals(cr.requesterId())) {
+            throw new ForbiddenException("change_request.not_requester", "Only the requester can change this change request.");
+        }
+    }
+
+    private static String riskTier(String value, String fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        if (!RISK_TIERS.contains(value)) {
+            throw ItemValidationException.field("riskTier", "must be one of low, medium, high, critical");
+        }
+        return value;
+    }
+
+    private static NotFoundException notFound(UUID id) {
+        return new NotFoundException("Change request " + id + " not found");
+    }
+}

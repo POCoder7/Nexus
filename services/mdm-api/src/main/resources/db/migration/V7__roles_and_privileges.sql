@@ -63,3 +63,19 @@ ALTER FUNCTION wf_bridge.sync_change_request(uuid) OWNER TO nexus_bridge;
 -- Callable only through the workflow role (its trigger on wf.workflow_instance), not by anyone with a connection.
 REVOKE EXECUTE ON FUNCTION wf_bridge.sync_change_request(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION wf_bridge.sync_change_request(uuid) TO nexus_wf;
+
+-- -----------------------------------------------------------------------------
+-- Draft-side functions (Phase 1 increment 1-7): owners hold the narrow rights; only the API may call them
+-- -----------------------------------------------------------------------------
+GRANT INSERT ON mdm.node TO nexus_apply;
+-- Apply records its outcome (Phase 1 LLD §4.1); this also lets nexus_apply's functions lock the request row
+-- (SELECT … FOR UPDATE needs UPDATE on at least one column).
+GRANT UPDATE (status, applied_at, apply_error) ON mdm.change_request TO nexus_apply;
+ALTER FUNCTION mdm.allocate_node(mdm.node_kind, uuid) OWNER TO nexus_apply;
+REVOKE EXECUTE ON FUNCTION mdm.allocate_node(mdm.node_kind, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION mdm.allocate_node(mdm.node_kind, uuid) TO nexus_api;
+
+GRANT UPDATE (status, submitted_at, decided_by, decided_at, decision_note, decision_basis) ON mdm.change_request TO nexus_decider;
+ALTER FUNCTION mdm.withdraw_change_request(uuid, uuid) OWNER TO nexus_decider;
+REVOKE EXECUTE ON FUNCTION mdm.withdraw_change_request(uuid, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION mdm.withdraw_change_request(uuid, uuid) TO nexus_api;
