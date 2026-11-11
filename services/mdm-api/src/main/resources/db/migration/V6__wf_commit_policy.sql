@@ -54,10 +54,12 @@ CREATE TABLE wf.commit_policy (
   review_due               date,                       -- re-certification; lapses to ineligible
   UNIQUE (policy_code, policy_version),
   -- Hard limits no configuration can override: structural removals, moves,
-  -- inactivations and ownership changes always need a human.
+  -- inactivations and ownership changes always need a human. Also deletes, renames and new hierarchies
+  -- (Phase 1: D-36, ADR-026).
   CHECK (NOT (allowed_actions && ARRAY['move_node', 'remove_node', 'inactivate_node',
                                        'add_ownership_edge', 'update_ownership_edge',
-                                       'end_ownership_edge']::mdm.change_action[])),
+                                       'end_ownership_edge',
+                                       'delete_node', 'update_node', 'add_hierarchy']::mdm.change_action[])),
   CHECK (cardinality(allowed_actions) > 0),
   CHECK (status <> 'approved' OR (approved_by IS NOT NULL AND approved_by <> proposed_by AND review_due IS NOT NULL))
 );

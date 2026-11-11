@@ -225,6 +225,10 @@ New guards (ADR-021):
 | `trg_cr_frozen_content` (BEFORE UPDATE) | Once status ≠ draft, `title, rationale, risk_tier, effective_from, version_id, requester_*, ai_*` cannot change | D-07 |
 | `trg_change_item_draft_only` (BEFORE INSERT OR UPDATE OR DELETE on `change_item`) | Parent request must be `draft`; also bumps the parent's `row_version` | D-07 |
 | `change_item` audit trigger | Add `change_item` to the `trg_audit_row` list | D-07, AUD-01 |
+| `cr_delete_draft_only` (BEFORE DELETE) — *added while building 1-2* | Only drafts can be deleted; otherwise the cascade would erase approved items. Withdraw instead (`N2102`) | D-07 |
+
+*Built in 1-2:* `effective_from` has `DEFAULT current_date` for direct SQL use (database tests); the API always sets it
+explicitly from `BusinessClock` (ADR-018), so the default never decides a business date in the application.
 
 `wf.commit_policy` hard-limit CHECK (V6) gains `'delete_node'` in its forbidden list (a strengthening: deletes always need a human).
 

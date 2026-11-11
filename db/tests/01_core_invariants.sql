@@ -101,6 +101,11 @@ INSERT INTO mdm.change_request (change_request_id, version_id, title, requester_
   ('00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000b1', 'T low',    '00000000-0000-0000-0000-0000000000a1', 'human', 'low'),
   ('00000000-0000-0000-0000-0000000000f2', '00000000-0000-0000-0000-0000000000b1', 'T medium', '00000000-0000-0000-0000-0000000000a1', 'human', 'medium'),
   ('00000000-0000-0000-0000-0000000000f3', '00000000-0000-0000-0000-0000000000b1', 'T human',  '00000000-0000-0000-0000-0000000000a1', 'human', 'medium');
+-- Phase 1 (ADR-021): decisions are only valid on submitted requests, so the fixture submits them first.
+-- Setup only; every assertion below is unchanged.
+UPDATE mdm.change_request SET status = 'submitted', submitted_at = now()
+WHERE change_request_id IN ('00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000f2',
+                            '00000000-0000-0000-0000-0000000000f3');
 
 SELECT throws_like(
   $$UPDATE mdm.change_request SET status = 'approved', decided_by = '00000000-0000-0000-0000-0000000000a1'

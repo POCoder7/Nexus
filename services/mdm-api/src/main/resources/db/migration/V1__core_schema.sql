@@ -31,14 +31,17 @@ CREATE TYPE property_origin    AS ENUM ('stored', 'derived', 'system');
 CREATE TYPE inheritance_mode   AS ENUM ('none', 'inherit_from_ancestor');
 CREATE TYPE requester_kind     AS ENUM ('human', 'ai_agent', 'system_feed');
 CREATE TYPE cr_status          AS ENUM ('draft', 'submitted', 'in_review', 'approved',
-                                        'rejected', 'applied', 'withdrawn');
+                                        'rejected', 'applied', 'withdrawn',
+                                        'apply_failed');  -- approved but could not be applied (stale base, rule); terminal
 CREATE TYPE risk_tier          AS ENUM ('low', 'medium', 'high', 'critical');
 CREATE TYPE decision_basis     AS ENUM ('human_review', 'approved_policy');
 CREATE TYPE change_action      AS ENUM (
   'add_node', 'update_node', 'inactivate_node',
   'insert_node', 'move_node', 'remove_node', 'reorder_node',
   'set_property', 'clear_property', 'add_identifier',
-  'add_ownership_edge', 'update_ownership_edge', 'end_ownership_edge'
+  'add_ownership_edge', 'update_ownership_edge', 'end_ownership_edge',
+  'delete_node',      -- end a node in the version: all relationships and its attributes (HIE-02)
+  'add_hierarchy'     -- create a hierarchy and its top node (HIE-01, ADR-026)
 );
 CREATE TYPE validation_level   AS ENUM ('node', 'hierarchy', 'version', 'ownership');
 CREATE TYPE validation_severity AS ENUM ('error', 'warning', 'info');
@@ -98,6 +101,14 @@ CREATE TABLE change_request (
   decision_basis    decision_basis,           -- how the decision was authorised
   decision_policy_ref uuid,                   -- approved commit policy; opaque here, validated by the workflow layer
   applied_at        timestamptz,
+  -- Business date the request takes effect (ADR-018). The API always sets it from the business calendar;
+  -- the default only serves direct SQL such as database tests.
+  effective_from    date NOT NULL DEFAULT current_date,
+  row_version       int  NOT NULL DEFAULT 1,             -- ETag for optimistic concurrency (ADR-015); bumped by trigger
+  governed_by_workflow boolean NOT NULL DEFAULT false,   -- set only by wf_bridge when a workflow instance starts (ADR-019)
+  apply_error       text,                                -- why apply failed, when status = 'apply_failed'
+  -- Where the request came from; fixes its item limit at apply (CR-04). Never changes.
+  origin            text NOT NULL DEFAULT 'user' CHECK (origin IN ('user', 'sandbox', 'load', 'ai')),
   CHECK (requester_kind <> 'ai_agent' OR (ai_model IS NOT NULL AND ai_confidence IS NOT NULL)),
   CHECK (decision_basis IS DISTINCT FROM 'approved_policy' OR decision_policy_ref IS NOT NULL),
   CHECK (decision_policy_ref IS NULL OR decision_basis = 'approved_policy')
@@ -141,6 +152,90 @@ END $$;
 
 CREATE TRIGGER cr_maker_checker BEFORE INSERT OR UPDATE ON change_request
   FOR EACH ROW EXECUTE FUNCTION trg_cr_maker_checker();
+
+-- The requester kind must be the truth about the requester (D-05): the AI rules in trg_cr_maker_checker and in
+-- the commit-policy evaluation rely on it, so it cannot be self-declared.
+CREATE FUNCTION trg_cr_requester_kind() RETURNS trigger
+LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE v_kind requester_kind;
+BEGIN
+  SELECT kind INTO v_kind FROM app_user WHERE user_id = NEW.requester_id;
+  IF v_kind IS DISTINCT FROM NEW.requester_kind THEN
+    RAISE EXCEPTION 'requester_kind % does not match the requester''s user record (%)', NEW.requester_kind, v_kind
+      USING ERRCODE = 'N1005', HINT = 'requester_kind_mismatch';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER cr_requester_kind BEFORE INSERT OR UPDATE OF requester_id, requester_kind ON change_request
+  FOR EACH ROW EXECUTE FUNCTION trg_cr_requester_kind();
+
+-- Allowed status transitions (D-07). Anything else is a programming or tampering error.
+-- Trigger names sort after cr_maker_checker, so a maker-checker violation is reported first.
+CREATE FUNCTION trg_cr_status_transition() RETURNS trigger
+LANGUAGE plpgsql SET search_path = mdm, public AS $$
+BEGIN
+  IF NOT (
+       (OLD.status = 'draft'                    AND NEW.status = 'submitted')
+    OR (OLD.status IN ('draft', 'submitted')    AND NEW.status = 'in_review')     -- workflow start (bridge)
+    OR (OLD.status IN ('submitted', 'in_review') AND NEW.status IN ('approved', 'rejected'))
+    OR (OLD.status = 'approved'                 AND NEW.status IN ('applied', 'apply_failed'))
+    OR (OLD.status IN ('draft', 'submitted', 'in_review') AND NEW.status = 'withdrawn')
+  ) THEN
+    RAISE EXCEPTION 'Change request % cannot move from % to %', NEW.change_request_id, OLD.status, NEW.status
+      USING ERRCODE = 'N2101', HINT = 'change_request.status_transition';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER cr_status_transition BEFORE UPDATE OF status ON change_request
+  FOR EACH ROW WHEN (OLD.status IS DISTINCT FROM NEW.status)
+  EXECUTE FUNCTION trg_cr_status_transition();
+
+-- What was submitted is what gets decided and applied (D-07): content is frozen once the request leaves draft.
+-- Status, decision, apply and version columns keep changing through the lifecycle.
+CREATE FUNCTION trg_cr_frozen_content() RETURNS trigger
+LANGUAGE plpgsql SET search_path = mdm, public AS $$
+BEGIN
+  IF OLD.status <> 'draft'
+     AND (NEW.title, NEW.rationale, NEW.risk_tier, NEW.effective_from, NEW.version_id, NEW.requester_id,
+          NEW.requester_kind, NEW.ai_model, NEW.ai_confidence, NEW.origin, NEW.created_at)
+         IS DISTINCT FROM
+         (OLD.title, OLD.rationale, OLD.risk_tier, OLD.effective_from, OLD.version_id, OLD.requester_id,
+          OLD.requester_kind, OLD.ai_model, OLD.ai_confidence, OLD.origin, OLD.created_at) THEN
+    RAISE EXCEPTION 'Change request % is % and its content can no longer change', OLD.change_request_id, OLD.status
+      USING ERRCODE = 'N2102', HINT = 'change_request.not_draft';
+  END IF;
+  IF NEW.origin IS DISTINCT FROM OLD.origin THEN
+    RAISE EXCEPTION 'The origin of a change request never changes'
+      USING ERRCODE = 'N2102', HINT = 'change_request.origin_fixed';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER cr_frozen_content BEFORE UPDATE ON change_request
+  FOR EACH ROW EXECUTE FUNCTION trg_cr_frozen_content();
+
+-- Only drafts can be deleted: deleting a submitted or decided request would also delete its items (cascade)
+-- and erase what was approved. Withdraw instead.
+CREATE FUNCTION trg_cr_delete_draft_only() RETURNS trigger
+LANGUAGE plpgsql SET search_path = mdm, public AS $$
+BEGIN
+  IF OLD.status <> 'draft' THEN
+    RAISE EXCEPTION 'Change request % is % and cannot be deleted; withdraw it instead', OLD.change_request_id, OLD.status
+      USING ERRCODE = 'N2102', HINT = 'change_request.not_draft';
+  END IF;
+  RETURN OLD;
+END $$;
+CREATE TRIGGER cr_delete_draft_only BEFORE DELETE ON change_request
+  FOR EACH ROW EXECUTE FUNCTION trg_cr_delete_draft_only();
+
+-- ETag source (ADR-015): every update of the request, including item changes (below), bumps the version.
+CREATE FUNCTION trg_cr_row_version() RETURNS trigger
+LANGUAGE plpgsql SET search_path = mdm, public AS $$
+BEGIN
+  NEW.row_version := OLD.row_version + 1;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER cr_row_version BEFORE UPDATE ON change_request
+  FOR EACH ROW EXECUTE FUNCTION trg_cr_row_version();
 
 -- -----------------------------------------------------------------------------
 -- Nodes  (DRM Node; Core.Name / Core.Description / inactive flag)
@@ -416,8 +511,33 @@ CREATE TABLE change_item (
   property_id          uuid REFERENCES property_definition,
   payload              jsonb NOT NULL DEFAULT '{}',
   evidence_document_id uuid,                     -- FK added in 02_ownership.sql
+  created_at           timestamptz NOT NULL DEFAULT now(),
   UNIQUE (change_request_id, seq)
 );
+
+-- Items can be added, changed or removed only while their request is a draft (D-07), so an approval always
+-- refers to exactly the items that are applied. Each change bumps the request's row_version (ETag).
+-- SECURITY DEFINER (owned by the migration owner): callers need no UPDATE right on change_request for the bump.
+CREATE FUNCTION trg_change_item_draft_only() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
+DECLARE
+  v_cr     uuid := CASE WHEN TG_OP = 'DELETE' THEN OLD.change_request_id ELSE NEW.change_request_id END;
+  v_status cr_status;
+BEGIN
+  SELECT status INTO v_status FROM mdm.change_request WHERE change_request_id = v_cr;
+  IF v_status IS DISTINCT FROM 'draft' AND v_status IS NOT NULL THEN
+    RAISE EXCEPTION 'Change request % is % and its items can no longer change', v_cr, v_status
+      USING ERRCODE = 'N2102', HINT = 'change_request.not_draft';
+  END IF;
+  IF TG_OP = 'UPDATE' AND NEW.change_request_id <> OLD.change_request_id THEN
+    RAISE EXCEPTION 'An item cannot move to another change request'
+      USING ERRCODE = 'N2102', HINT = 'change_item.request_fixed';
+  END IF;
+  UPDATE mdm.change_request SET row_version = row_version WHERE change_request_id = v_cr;   -- bump via trg_cr_row_version
+  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END $$;
+CREATE TRIGGER change_item_draft_only BEFORE INSERT OR UPDATE OR DELETE ON change_item
+  FOR EACH ROW EXECUTE FUNCTION trg_change_item_draft_only();
 
 -- -----------------------------------------------------------------------------
 -- Validations  (DRM Validations, rewritten as versioned, testable rules)
@@ -505,7 +625,7 @@ BEGIN
   END LOOP;
   FOREACH t IN ARRAY ARRAY['node', 'node_attr', 'node_identifier', 'legal_entity_profile',
                            'hierarchy', 'hierarchy_relationship', 'property_definition',
-                           'property_value', 'change_request', 'version'] LOOP
+                           'property_value', 'change_request', 'change_item', 'version'] LOOP
     EXECUTE format('CREATE TRIGGER %I AFTER INSERT OR UPDATE OR DELETE ON mdm.%I
                     FOR EACH ROW EXECUTE FUNCTION mdm.trg_audit_row()', t || '_audit', t);
   END LOOP;
