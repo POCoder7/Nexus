@@ -38,6 +38,39 @@
 | `N2` integrity (422) | `N2001` cycle · `N2002` top node · `N2003` shared not allowed · `N2004` parent is a leaf · `N2005` remove with children · `N2006` delete of a referenced node · `N2010` bitemporal edit · `N2020` property type/scope · `N2101` status transition · `N2102` request not draft · `N2103` too many items · `N2201` conflicting decision · `N2202` split not enabled · `N2301` sandbox conflicts · `N2302` sandbox too large · `N2303` sandbox not draft · `N2401` edge without evidence or rationale · `N2402` ownership component too large · `N2403` closed ownership loop · `N2404` threshold missing · `N2501` invalid AI output · `N2502` plan outside whitelist · `N2601` profile version not approved · `N2602` DRM file missing |
 | `N3` conflict (409) | `N3001` stale base |
 | reserved | `N9999` trial rollback |
+
+**Codes for the existing V1–V6 guards** (added 2026-11-11 while building Phase 1 increment 1-1; messages unchanged):
+| Code | Guard (migration) | HINT |
+|---|---|---|
+| `N1001` | requester decides own request (V1); proposer approves own policy (V6) | `maker_checker.self_decision` |
+| `N1002` | non-human decides a request (V1); human-only workflow action (V4, V6); non-human approves a policy (V6); non-human post-commit reviewer (V6) | `human_only` |
+| `N1003` | AI-originated request approved by policy (V1) | `ai_requires_human` |
+| `N1004` | policy-based approval not recorded by the system actor (V1) | `policy.system_actor_required` |
+| `N1006` | decision without a decider (V1) | `maker_checker.decider_required` |
+| `N1007` | policy-based rejection (V1) | `policy.approvals_only` |
+| `N1008` | policy-based approval of a non-low-risk request (V1) | `policy.low_risk_only` |
+| `N1015` | decider not a member of the deciding group (V4) | `wf.not_group_member` |
+| `N1016` | user cannot act on the stage (V4) | `wf.cannot_act` |
+| `N1017` | actor kind does not match the user record (V4, V6) | `wf.actor_kind_mismatch` |
+| `N1018` | AI action without model and confidence (V4, V6) | `ai.model_required` |
+| `N1019` | clearing a kill switch (V6) | `policy.kill_switch_one_way` |
+| `N1020` | policy approver not in `POLICY_APPROVERS` (V6) | `policy.not_approver` |
+| `N1022` | policy submitted by someone other than its proposer (V6) | `policy.not_proposer` |
+| `N1023` | kill switch engaged by a user not allowed to (V6) | `policy.kill_switch_not_allowed` |
+| `N1024` | policy commit recorded by a non-system actor (V6) | `policy.system_actor_required` |
+| `N2001`–`N2003` | cycle; top node; shared nodes not allowed (V1) | `hierarchy.cycle`, `hierarchy.top_node`, `hierarchy.shared_not_allowed` |
+| `N2010` | bitemporal edit or delete (V1) | `bitemporal.immutable` |
+| `N2011` | append-only table changed (V1, used by V4/V6 triggers) | `append_only` |
+| `N2020` | property scope (global with hierarchy / local without) (V1) | `property.scope` |
+| `N2021` | derived property stored (V1) | `property.derived` |
+| `N2022` | value of the wrong type or too long (V1) | `property.type` |
+| `N2023` | value not in the property's list (V1) | `property.list_value` |
+| `N2024` | reference to an unknown node (V1) | `property.node_ref` |
+| `N2205`–`N2207` | model frozen; model cannot be activated; invalid model status change (V4) | `wf.model_frozen`, `wf.model_invalid`, `wf.model_status` |
+| `N2208`, `N2209` | unknown property / unsupported type in a stage condition (V4) | `wf.condition_property`, `wf.condition_type` |
+| `N2210`–`N2215` | no active model; stage not splitting; bad outcome; commit stage not approved; stages incomplete; instance not open (V4) | `wf.no_active_model`, `wf.not_splitting`, `wf.bad_outcome`, `wf.commit_not_approved`, `wf.stages_incomplete`, `wf.instance_not_open` |
+| `N2216`–`N2224` | policy: only drafts deleted; must be submitted first; frozen while pending; overlapping scope; invalid status change; immutable once approved; scope frozen; not pending approval; completed review frozen (V6) | `policy.*` |
+| `N2604`–`N2609` | export: unsupported filter op; unknown filter property; unsupported column source; unknown or inactive profile; type not produced in SQL; unknown version (V3) | `export.*` |
 Codes are kept in `docs/data-model.md` when each phase is built (BUILD_PROTOCOL step 6).
 
 ## 4. Role catalogue (CR-11)

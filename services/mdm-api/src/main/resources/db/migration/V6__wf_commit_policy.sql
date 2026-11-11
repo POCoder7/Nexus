@@ -112,58 +112,58 @@ DECLARE
 BEGIN
   IF TG_OP = 'DELETE' THEN
     IF OLD.status <> 'draft' THEN
-      RAISE EXCEPTION 'Only draft policies can be deleted';
+      RAISE EXCEPTION 'Only draft policies can be deleted' USING ERRCODE = 'N2216', HINT = 'policy.delete_not_draft';
     END IF;
     RETURN OLD;
   END IF;
 
   IF OLD.kill_switch AND NOT NEW.kill_switch THEN
-    RAISE EXCEPTION 'A kill switch can only be cleared by approving a new policy version';
+    RAISE EXCEPTION 'A kill switch can only be cleared by approving a new policy version' USING ERRCODE = 'N1019', HINT = 'policy.kill_switch_one_way';
   END IF;
 
   IF OLD.status = 'draft' THEN
     IF NEW.status NOT IN ('draft', 'pending_approval') THEN
-      RAISE EXCEPTION 'A draft policy must be submitted for approval first';
+      RAISE EXCEPTION 'A draft policy must be submitted for approval first' USING ERRCODE = 'N2217', HINT = 'policy.submit_first';
     END IF;
     RETURN NEW;
   END IF;
 
   IF OLD.status = 'pending_approval' THEN
     IF (to_jsonb(OLD) - meta - 'kill_switch') IS DISTINCT FROM (to_jsonb(NEW) - meta - 'kill_switch') THEN
-      RAISE EXCEPTION 'Policy content is frozen while pending approval';
+      RAISE EXCEPTION 'Policy content is frozen while pending approval' USING ERRCODE = 'N2218', HINT = 'policy.frozen_pending';
     END IF;
     IF NEW.status = 'approved' THEN
       IF (SELECT kind FROM mdm.app_user WHERE user_id = NEW.approved_by) IS DISTINCT FROM 'human' THEN
-        RAISE EXCEPTION 'Policies must be approved by a human';
+        RAISE EXCEPTION 'Policies must be approved by a human' USING ERRCODE = 'N1002', HINT = 'human_only';
       END IF;
       IF NEW.approved_by = NEW.proposed_by THEN
-        RAISE EXCEPTION 'Maker-checker violation: the proposer cannot approve their own policy';
+        RAISE EXCEPTION 'Maker-checker violation: the proposer cannot approve their own policy' USING ERRCODE = 'N1001', HINT = 'maker_checker.self_decision';
       END IF;
       IF NOT EXISTS (SELECT 1 FROM wf.user_group_member m JOIN wf.user_group g ON g.group_id = m.group_id
                      WHERE g.group_code = 'POLICY_APPROVERS' AND m.user_id = NEW.approved_by
                        AND m.valid_from <= current_date
                        AND (m.valid_to IS NULL OR m.valid_to >= current_date)) THEN
-        RAISE EXCEPTION 'Approver is not in POLICY_APPROVERS';
+        RAISE EXCEPTION 'Approver is not in POLICY_APPROVERS' USING ERRCODE = 'N1020', HINT = 'policy.not_approver';
       END IF;
       IF EXISTS (SELECT 1 FROM wf.policy_scope s1
                  JOIN wf.policy_scope s2 ON s2.model_code = s1.model_code AND s2.policy_id <> s1.policy_id
                  JOIN wf.commit_policy p2 ON p2.policy_id = s2.policy_id
                  WHERE s1.policy_id = NEW.policy_id AND p2.status = 'approved'
                    AND p2.policy_code <> NEW.policy_code) THEN
-        RAISE EXCEPTION 'Another approved policy already covers one of these workflow models';
+        RAISE EXCEPTION 'Another approved policy already covers one of these workflow models' USING ERRCODE = 'N2219', HINT = 'policy.overlapping_scope';
       END IF;
     ELSIF NEW.status NOT IN ('pending_approval', 'draft') THEN
-      RAISE EXCEPTION 'Invalid status change % -> %', OLD.status, NEW.status;
+      RAISE EXCEPTION 'Invalid status change % -> %', OLD.status, NEW.status USING ERRCODE = 'N2220', HINT = 'policy.status';
     END IF;
     RETURN NEW;
   END IF;
 
   -- approved or retired: immutable except kill switch (one-way) and approved -> retired
   IF (to_jsonb(OLD) - 'kill_switch' - 'status') IS DISTINCT FROM (to_jsonb(NEW) - 'kill_switch' - 'status') THEN
-    RAISE EXCEPTION 'Approved policies are immutable; create a new version';
+    RAISE EXCEPTION 'Approved policies are immutable; create a new version' USING ERRCODE = 'N2221', HINT = 'policy.immutable';
   END IF;
   IF OLD.status <> NEW.status AND NOT (OLD.status = 'approved' AND NEW.status = 'retired') THEN
-    RAISE EXCEPTION 'Invalid status change % -> %', OLD.status, NEW.status;
+    RAISE EXCEPTION 'Invalid status change % -> %', OLD.status, NEW.status USING ERRCODE = 'N2220', HINT = 'policy.status';
   END IF;
   RETURN NEW;
 END $$;
@@ -175,7 +175,7 @@ LANGUAGE plpgsql SET search_path = wf, mdm, public AS $$
 BEGIN
   IF (SELECT status FROM wf.commit_policy
       WHERE policy_id = COALESCE(NEW.policy_id, OLD.policy_id)) <> 'draft' THEN
-    RAISE EXCEPTION 'Policy scope can only change while the policy is a draft';
+    RAISE EXCEPTION 'Policy scope can only change while the policy is a draft' USING ERRCODE = 'N2222', HINT = 'policy.scope_frozen';
   END IF;
   RETURN COALESCE(NEW, OLD);
 END $$;
@@ -191,7 +191,7 @@ BEGIN
   UPDATE wf.commit_policy SET status = 'pending_approval'
   WHERE policy_id = p_policy_id AND status = 'draft' AND proposed_by = p_actor;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Only the proposer can submit a draft policy';
+    RAISE EXCEPTION 'Only the proposer can submit a draft policy' USING ERRCODE = 'N1022', HINT = 'policy.not_proposer';
   END IF;
   INSERT INTO wf.policy_event (policy_id, actor_id, event) VALUES (p_policy_id, p_actor, 'submitted');
 END $$;
@@ -204,7 +204,7 @@ BEGIN
   SELECT policy_code INTO v_code FROM wf.commit_policy
   WHERE policy_id = p_policy_id AND status = 'pending_approval' FOR UPDATE;
   IF v_code IS NULL THEN
-    RAISE EXCEPTION 'Policy % is not pending approval', p_policy_id;
+    RAISE EXCEPTION 'Policy % is not pending approval', p_policy_id USING ERRCODE = 'N2223', HINT = 'policy.not_pending';
   END IF;
 
   -- retire the currently approved version of the same policy, if any
@@ -232,7 +232,7 @@ BEGIN
                   AND (g.group_id = p.owner_group_id OR g.group_code = 'POLICY_APPROVERS')
                   AND (m.valid_to IS NULL OR m.valid_to >= current_date));
   IF v_policy IS NULL THEN
-    RAISE EXCEPTION 'No approved policy % that user % may stop', p_policy_code, p_actor;
+    RAISE EXCEPTION 'No approved policy % that user % may stop', p_policy_code, p_actor USING ERRCODE = 'N1023', HINT = 'policy.kill_switch_not_allowed';
   END IF;
   UPDATE wf.commit_policy SET kill_switch = true WHERE policy_id = v_policy;
   INSERT INTO wf.policy_event (policy_id, actor_id, event, note)
@@ -373,7 +373,7 @@ DECLARE
   v_commit_stage uuid;
 BEGIN
   IF (SELECT kind FROM mdm.app_user WHERE user_id = p_system_actor) IS DISTINCT FROM 'system_feed' THEN
-    RAISE EXCEPTION 'Policy commits must be recorded by a system actor';
+    RAISE EXCEPTION 'Policy commits must be recorded by a system actor' USING ERRCODE = 'N1024', HINT = 'policy.system_actor_required';
   END IF;
   PERFORM 1 FROM wf.workflow_instance WHERE instance_id = p_instance_id FOR UPDATE;
 
@@ -428,7 +428,7 @@ DECLARE k mdm.requester_kind;
 BEGIN
   SELECT kind INTO k FROM mdm.app_user WHERE user_id = NEW.actor_id;
   IF k IS DISTINCT FROM NEW.actor_kind THEN
-    RAISE EXCEPTION 'actor_kind % does not match the user record (%)', NEW.actor_kind, k;
+    RAISE EXCEPTION 'actor_kind % does not match the user record (%)', NEW.actor_kind, k USING ERRCODE = 'N1017', HINT = 'wf.actor_kind_mismatch';
   END IF;
 
   IF NEW.action IN ('claim', 'approve', 'reject', 'push_back', 'commit') AND k <> 'human' THEN
@@ -442,12 +442,12 @@ BEGIN
                             WHERE a.action = 'commit'
                               AND a.payload->>'policy_evaluation_id' = NEW.payload->>'policy_evaluation_id')) THEN
       RAISE EXCEPTION 'Action % can only be performed by a human (or by the system under an approved commit policy)',
-        NEW.action;
+        NEW.action USING ERRCODE = 'N1002', HINT = 'human_only';
     END IF;
   END IF;
 
   IF k = 'ai_agent' AND (NEW.ai_model IS NULL OR NEW.ai_confidence IS NULL) THEN
-    RAISE EXCEPTION 'AI actions must record ai_model and ai_confidence';
+    RAISE EXCEPTION 'AI actions must record ai_model and ai_confidence' USING ERRCODE = 'N1018', HINT = 'ai.model_required';
   END IF;
   RETURN NEW;
 END $$;
@@ -509,10 +509,10 @@ LANGUAGE plpgsql SET search_path = wf, mdm, public AS $$
 BEGIN
   IF NEW.reviewer_id IS NOT NULL
      AND (SELECT kind FROM mdm.app_user WHERE user_id = NEW.reviewer_id) IS DISTINCT FROM 'human' THEN
-    RAISE EXCEPTION 'Post-commit reviews must be done by a human';
+    RAISE EXCEPTION 'Post-commit reviews must be done by a human' USING ERRCODE = 'N1002', HINT = 'human_only';
   END IF;
   IF TG_OP = 'UPDATE' AND OLD.outcome IS NOT NULL THEN
-    RAISE EXCEPTION 'Completed reviews cannot be changed';
+    RAISE EXCEPTION 'Completed reviews cannot be changed' USING ERRCODE = 'N2224', HINT = 'policy.review_frozen';
   END IF;
   RETURN NEW;
 END $$;

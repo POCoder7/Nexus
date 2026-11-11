@@ -247,11 +247,11 @@ DECLARE
 BEGIN
   FOR c IN SELECT * FROM jsonb_array_elements(coalesce(p_filter, '[]'::jsonb)) LOOP
     IF c->>'op' NOT IN ('=', '<>', 'in', 'not_in', 'is_null', 'not_null') THEN
-      RAISE EXCEPTION 'Unsupported filter op %', c->>'op';
+      RAISE EXCEPTION 'Unsupported filter op %', c->>'op' USING ERRCODE = 'N2604', HINT = 'export.filter_op';
     END IF;
     SELECT property_id INTO pid FROM property_definition WHERE property_code = c->>'property';
     IF pid IS NULL THEN
-      RAISE EXCEPTION 'Unknown property in filter: %', c->>'property';
+      RAISE EXCEPTION 'Unknown property in filter: %', c->>'property' USING ERRCODE = 'N2605', HINT = 'export.filter_property';
     END IF;
     v := property_value_asof(p_node_id, pid, p_hierarchy_id, p_as_of, p_recorded_as_of);
     IF v = 'null'::jsonb THEN v := NULL; END IF;
@@ -309,7 +309,7 @@ BEGIN
       END IF;
       RETURN format_cell(v, d.data_type, c.format_mask, p.true_token, p.false_token, p.null_token);
     ELSE
-      RAISE EXCEPTION 'Unsupported column_source %', c.column_source;
+      RAISE EXCEPTION 'Unsupported column_source %', c.column_source USING ERRCODE = 'N2606', HINT = 'export.column_source';
   END CASE;
 END $$;
 
@@ -337,15 +337,15 @@ DECLARE
 BEGIN
   SELECT * INTO p FROM export_profile WHERE profile_code = p_profile_code AND is_active;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Unknown or inactive export profile %', p_profile_code;
+    RAISE EXCEPTION 'Unknown or inactive export profile %', p_profile_code USING ERRCODE = 'N2607', HINT = 'export.unknown_profile';
   END IF;
   IF p.export_type NOT IN ('hierarchy', 'generation') THEN
-    RAISE EXCEPTION 'Export type % is produced by the export service, not SQL', p.export_type;
+    RAISE EXCEPTION 'Export type % is produced by the export service, not SQL', p.export_type USING ERRCODE = 'N2608', HINT = 'export.type_not_in_sql';
   END IF;
 
   SELECT * INTO v FROM version WHERE version_name = p_version_name;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Unknown version %', p_version_name;
+    RAISE EXCEPTION 'Unknown version %', p_version_name USING ERRCODE = 'N2609', HINT = 'export.unknown_version';
   END IF;
   s_asof := v.business_as_of;
   s_rec  := coalesce(v.recorded_as_of, now());

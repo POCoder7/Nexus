@@ -112,28 +112,28 @@ DECLARE v_kind requester_kind;
 BEGIN
   IF NEW.status IN ('approved', 'rejected') THEN
     IF NEW.decided_by IS NULL THEN
-      RAISE EXCEPTION 'Change request % needs a decided_by reviewer', NEW.change_request_id;
+      RAISE EXCEPTION 'Change request % needs a decided_by reviewer', NEW.change_request_id USING ERRCODE = 'N1006', HINT = 'maker_checker.decider_required';
     END IF;
     IF NEW.decided_by = NEW.requester_id THEN
-      RAISE EXCEPTION 'Maker-checker violation: requester cannot decide their own change request';
+      RAISE EXCEPTION 'Maker-checker violation: requester cannot decide their own change request' USING ERRCODE = 'N1001', HINT = 'maker_checker.self_decision';
     END IF;
     SELECT kind INTO v_kind FROM app_user WHERE user_id = NEW.decided_by;
 
     IF NEW.decision_basis = 'approved_policy' THEN
       IF NEW.status <> 'approved' THEN
-        RAISE EXCEPTION 'Only approvals can be policy-based; rejections need a human';
+        RAISE EXCEPTION 'Only approvals can be policy-based; rejections need a human' USING ERRCODE = 'N1007', HINT = 'policy.approvals_only';
       END IF;
       IF v_kind <> 'system_feed' THEN
-        RAISE EXCEPTION 'Policy-based approvals must be recorded by the system actor';
+        RAISE EXCEPTION 'Policy-based approvals must be recorded by the system actor' USING ERRCODE = 'N1004', HINT = 'policy.system_actor_required';
       END IF;
       IF NEW.requester_kind = 'ai_agent' THEN
-        RAISE EXCEPTION 'AI-originated requests always need human approval';
+        RAISE EXCEPTION 'AI-originated requests always need human approval' USING ERRCODE = 'N1003', HINT = 'ai_requires_human';
       END IF;
       IF NEW.risk_tier <> 'low' THEN
-        RAISE EXCEPTION 'Only low-risk requests may be approved by policy (this one is %)', NEW.risk_tier;
+        RAISE EXCEPTION 'Only low-risk requests may be approved by policy (this one is %)', NEW.risk_tier USING ERRCODE = 'N1008', HINT = 'policy.low_risk_only';
       END IF;
     ELSIF v_kind <> 'human' THEN
-      RAISE EXCEPTION 'Only human reviewers may approve or reject change requests';
+      RAISE EXCEPTION 'Only human reviewers may approve or reject change requests' USING ERRCODE = 'N1002', HINT = 'human_only';
     END IF;
   END IF;
   RETURN NEW;
@@ -253,10 +253,10 @@ BEGIN
   FROM hierarchy WHERE hierarchy_id = NEW.hierarchy_id;
 
   IF NEW.child_node_id = v_top THEN
-    RAISE EXCEPTION 'The top node of a hierarchy cannot be given a parent';
+    RAISE EXCEPTION 'The top node of a hierarchy cannot be given a parent' USING ERRCODE = 'N2002', HINT = 'hierarchy.top_node';
   END IF;
   IF NOT NEW.is_primary AND NOT v_shared THEN
-    RAISE EXCEPTION 'Hierarchy % does not allow shared nodes', NEW.hierarchy_id;
+    RAISE EXCEPTION 'Hierarchy % does not allow shared nodes', NEW.hierarchy_id USING ERRCODE = 'N2003', HINT = 'hierarchy.shared_not_allowed';
   END IF;
 
   WITH RECURSIVE anc(node_id) AS (
@@ -274,7 +274,7 @@ BEGIN
 
   IF v_cycle THEN
     RAISE EXCEPTION 'Cycle detected: node % is already an ancestor of % in hierarchy %',
-      NEW.child_node_id, NEW.parent_node_id, NEW.hierarchy_id;
+      NEW.child_node_id, NEW.parent_node_id, NEW.hierarchy_id USING ERRCODE = 'N2001', HINT = 'hierarchy.cycle';
   END IF;
   RETURN NEW;
 END $$;
@@ -349,13 +349,13 @@ BEGIN
   SELECT * INTO d FROM property_definition WHERE property_id = NEW.property_id;
 
   IF d.origin = 'derived' THEN
-    RAISE EXCEPTION 'Property % is derived and cannot be stored', d.property_code;
+    RAISE EXCEPTION 'Property % is derived and cannot be stored', d.property_code USING ERRCODE = 'N2021', HINT = 'property.derived';
   END IF;
   IF d.scope = 'global' AND NEW.hierarchy_id IS NOT NULL THEN
-    RAISE EXCEPTION 'Property % is global; hierarchy_id must be NULL', d.property_code;
+    RAISE EXCEPTION 'Property % is global; hierarchy_id must be NULL', d.property_code USING ERRCODE = 'N2020', HINT = 'property.scope';
   END IF;
   IF d.scope = 'local' AND NEW.hierarchy_id IS NULL THEN
-    RAISE EXCEPTION 'Property % is local; hierarchy_id is required', d.property_code;
+    RAISE EXCEPTION 'Property % is local; hierarchy_id is required', d.property_code USING ERRCODE = 'N2020', HINT = 'property.scope';
   END IF;
   IF t = 'null' THEN
     RETURN NEW;
@@ -363,18 +363,18 @@ BEGIN
 
   CASE d.data_type
     WHEN 'string', 'memo' THEN
-      IF t <> 'string' THEN RAISE EXCEPTION '% expects a string', d.property_code; END IF;
+      IF t <> 'string' THEN RAISE EXCEPTION '% expects a string', d.property_code USING ERRCODE = 'N2022', HINT = 'property.type'; END IF;
       IF d.max_length IS NOT NULL AND length(NEW.value #>> '{}') > d.max_length THEN
-        RAISE EXCEPTION '% exceeds max length %', d.property_code, d.max_length;
+        RAISE EXCEPTION '% exceeds max length %', d.property_code, d.max_length USING ERRCODE = 'N2022', HINT = 'property.type';
       END IF;
     WHEN 'integer' THEN
       IF t <> 'number' OR (NEW.value::text)::numeric <> trunc((NEW.value::text)::numeric) THEN
-        RAISE EXCEPTION '% expects an integer', d.property_code;
+        RAISE EXCEPTION '% expects an integer', d.property_code USING ERRCODE = 'N2022', HINT = 'property.type';
       END IF;
     WHEN 'decimal' THEN
-      IF t <> 'number' THEN RAISE EXCEPTION '% expects a number', d.property_code; END IF;
+      IF t <> 'number' THEN RAISE EXCEPTION '% expects a number', d.property_code USING ERRCODE = 'N2022', HINT = 'property.type'; END IF;
     WHEN 'boolean' THEN
-      IF t <> 'boolean' THEN RAISE EXCEPTION '% expects a boolean', d.property_code; END IF;
+      IF t <> 'boolean' THEN RAISE EXCEPTION '% expects a boolean', d.property_code USING ERRCODE = 'N2022', HINT = 'property.type'; END IF;
     WHEN 'date' THEN
       PERFORM (NEW.value #>> '{}')::date;          -- raises on invalid input
     WHEN 'datetime' THEN
@@ -383,17 +383,17 @@ BEGIN
       IF NOT EXISTS (SELECT 1 FROM property_list_value
                      WHERE property_id = d.property_id
                        AND list_value = NEW.value #>> '{}' AND is_active) THEN
-        RAISE EXCEPTION '% value "%" is not in its list', d.property_code, NEW.value #>> '{}';
+        RAISE EXCEPTION '% value "%" is not in its list', d.property_code, NEW.value #>> '{}' USING ERRCODE = 'N2023', HINT = 'property.list_value';
       END IF;
     WHEN 'node_ref' THEN
       IF NOT EXISTS (SELECT 1 FROM node WHERE node_id = (NEW.value #>> '{}')::uuid) THEN
-        RAISE EXCEPTION '% references an unknown node', d.property_code;
+        RAISE EXCEPTION '% references an unknown node', d.property_code USING ERRCODE = 'N2024', HINT = 'property.node_ref';
       END IF;
     WHEN 'multi_node_ref' THEN
       IF t <> 'array' OR EXISTS (
            SELECT 1 FROM jsonb_array_elements_text(NEW.value) x
            WHERE NOT EXISTS (SELECT 1 FROM node WHERE node_id = x::uuid)) THEN
-        RAISE EXCEPTION '% expects an array of existing node ids', d.property_code;
+        RAISE EXCEPTION '% expects an array of existing node ids', d.property_code USING ERRCODE = 'N2024', HINT = 'property.node_ref';
       END IF;
   END CASE;
   RETURN NEW;
@@ -465,7 +465,7 @@ CREATE TABLE audit_log (
 
 CREATE FUNCTION trg_append_only() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  RAISE EXCEPTION '% is append-only', TG_TABLE_NAME;
+  RAISE EXCEPTION '% is append-only', TG_TABLE_NAME USING ERRCODE = 'N2011', HINT = 'append_only';
 END $$;
 CREATE TRIGGER audit_log_append_only BEFORE UPDATE OR DELETE ON audit_log
   FOR EACH ROW EXECUTE FUNCTION trg_append_only();
@@ -486,11 +486,11 @@ END $$;
 CREATE FUNCTION trg_bitemporal_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF TG_OP = 'DELETE' THEN
-    RAISE EXCEPTION '% is bitemporal: close recorded_period instead of deleting', TG_TABLE_NAME;
+    RAISE EXCEPTION '% is bitemporal: close recorded_period instead of deleting', TG_TABLE_NAME USING ERRCODE = 'N2010', HINT = 'bitemporal.immutable';
   END IF;
   IF (to_jsonb(OLD) - 'recorded_period') IS DISTINCT FROM (to_jsonb(NEW) - 'recorded_period') THEN
     RAISE EXCEPTION '% is bitemporal: only recorded_period may be closed; insert a new row instead',
-      TG_TABLE_NAME;
+      TG_TABLE_NAME USING ERRCODE = 'N2010', HINT = 'bitemporal.immutable';
   END IF;
   RETURN NEW;
 END $$;

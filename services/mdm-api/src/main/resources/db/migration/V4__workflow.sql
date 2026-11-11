@@ -191,17 +191,17 @@ DECLARE issues text;
 BEGIN
   IF OLD.status = NEW.status THEN
     IF OLD.status <> 'draft' THEN
-      RAISE EXCEPTION 'Model % v% is %; create a new version to change it', NEW.model_code, NEW.model_version, NEW.status;
+      RAISE EXCEPTION 'Model % v% is %; create a new version to change it', NEW.model_code, NEW.model_version, NEW.status USING ERRCODE = 'N2205', HINT = 'wf.model_frozen';
     END IF;
     RETURN NEW;
   END IF;
   IF OLD.status = 'draft' AND NEW.status = 'active' THEN
     SELECT string_agg(issue, '; ') INTO issues FROM wf.validate_model(NEW.model_id);
     IF issues IS NOT NULL THEN
-      RAISE EXCEPTION 'Model % cannot be activated: %', NEW.model_code, issues;
+      RAISE EXCEPTION 'Model % cannot be activated: %', NEW.model_code, issues USING ERRCODE = 'N2206', HINT = 'wf.model_invalid';
     END IF;
   ELSIF NOT (OLD.status = 'active' AND NEW.status = 'retired') THEN
-    RAISE EXCEPTION 'Invalid model status change % -> %', OLD.status, NEW.status;
+    RAISE EXCEPTION 'Invalid model status change % -> %', OLD.status, NEW.status USING ERRCODE = 'N2207', HINT = 'wf.model_status';
   END IF;
   RETURN NEW;
 END $$;
@@ -226,7 +226,7 @@ BEGIN
   END IF;
   SELECT status INTO v_status FROM wf.workflow_model WHERE model_id = v_model;
   IF v_status <> 'draft' THEN
-    RAISE EXCEPTION 'Model is %; create a new model version to change it', v_status;
+    RAISE EXCEPTION 'Model is %; create a new model version to change it', v_status USING ERRCODE = 'N2205', HINT = 'wf.model_frozen';
   END IF;
   RETURN COALESCE(NEW, OLD);
 END $$;
@@ -451,11 +451,11 @@ BEGIN
                  WHERE m.group_id = NEW.group_id AND m.user_id = NEW.decided_by
                    AND m.valid_from <= current_date
                    AND (m.valid_to IS NULL OR m.valid_to >= current_date)) THEN
-    RAISE EXCEPTION 'User % is not a member of the deciding group', NEW.decided_by;
+    RAISE EXCEPTION 'User % is not a member of the deciding group', NEW.decided_by USING ERRCODE = 'N1015', HINT = 'wf.not_group_member';
   END IF;
   IF NOT wf.can_act(NEW.instance_stage_id, NEW.decided_by) THEN
     RAISE EXCEPTION 'User % cannot act on this stage (claim, group order, separation of duties or node access)',
-      NEW.decided_by;
+      NEW.decided_by USING ERRCODE = 'N1016', HINT = 'wf.cannot_act';
   END IF;
   RETURN NEW;
 END $$;
@@ -471,13 +471,13 @@ DECLARE k mdm.requester_kind;
 BEGIN
   SELECT kind INTO k FROM mdm.app_user WHERE user_id = NEW.actor_id;
   IF k IS DISTINCT FROM NEW.actor_kind THEN
-    RAISE EXCEPTION 'actor_kind % does not match the user record (%)', NEW.actor_kind, k;
+    RAISE EXCEPTION 'actor_kind % does not match the user record (%)', NEW.actor_kind, k USING ERRCODE = 'N1017', HINT = 'wf.actor_kind_mismatch';
   END IF;
   IF NEW.action IN ('claim', 'approve', 'reject', 'push_back', 'commit') AND k <> 'human' THEN
-    RAISE EXCEPTION 'Action % can only be performed by a human', NEW.action;
+    RAISE EXCEPTION 'Action % can only be performed by a human', NEW.action USING ERRCODE = 'N1002', HINT = 'human_only';
   END IF;
   IF k = 'ai_agent' AND (NEW.ai_model IS NULL OR NEW.ai_confidence IS NULL) THEN
-    RAISE EXCEPTION 'AI actions must record ai_model and ai_confidence';
+    RAISE EXCEPTION 'AI actions must record ai_model and ai_confidence' USING ERRCODE = 'N1018', HINT = 'ai.model_required';
   END IF;
   RETURN NEW;
 END $$;
@@ -583,7 +583,7 @@ BEGIN
     WHEN 'property' THEN
       SELECT property_id INTO pid FROM mdm.property_definition WHERE property_code = p_condition->>'property';
       IF pid IS NULL THEN
-        RAISE EXCEPTION 'Unknown property in stage condition: %', p_condition->>'property';
+        RAISE EXCEPTION 'Unknown property in stage condition: %', p_condition->>'property' USING ERRCODE = 'N2208', HINT = 'wf.condition_property';
       END IF;
       SELECT c2.payload->'value' INTO v
       FROM mdm.change_item c2
@@ -602,7 +602,7 @@ BEGIN
                WHEN 'not_null' THEN v IS NOT NULL
              END, false);
     ELSE
-      RAISE EXCEPTION 'Unsupported condition type %', p_condition->>'type';
+      RAISE EXCEPTION 'Unsupported condition type %', p_condition->>'type' USING ERRCODE = 'N2209', HINT = 'wf.condition_type';
   END CASE;
 END $$;
 
@@ -620,7 +620,7 @@ DECLARE
 BEGIN
   SELECT * INTO m FROM wf.workflow_model WHERE model_code = p_model_code AND status = 'active';
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'No active workflow model %', p_model_code;
+    RAISE EXCEPTION 'No active workflow model %', p_model_code USING ERRCODE = 'N2210', HINT = 'wf.no_active_model';
   END IF;
 
   INSERT INTO wf.workflow_instance (change_request_id, model_id, status, current_seq,
@@ -668,7 +668,7 @@ DECLARE
 BEGIN
   SELECT condition INTO v_cond FROM wf.workflow_stage WHERE stage_id = p_stage_id AND split_on_condition;
   IF v_cond IS NULL THEN
-    RAISE EXCEPTION 'Stage % is not a splitting conditional stage', p_stage_id;
+    RAISE EXCEPTION 'Stage % is not a splitting conditional stage', p_stage_id USING ERRCODE = 'N2211', HINT = 'wf.not_splitting';
   END IF;
   SELECT * INTO inst FROM wf.workflow_instance WHERE instance_id = p_instance_id FOR UPDATE;
 
@@ -725,7 +725,7 @@ DECLARE
   k              mdm.requester_kind;
 BEGIN
   IF p_outcome NOT IN ('committed', 'rejected', 'withdrawn') THEN
-    RAISE EXCEPTION 'Outcome must be committed, rejected or withdrawn';
+    RAISE EXCEPTION 'Outcome must be committed, rejected or withdrawn' USING ERRCODE = 'N2212', HINT = 'wf.bad_outcome';
   END IF;
 
   IF p_outcome = 'committed' THEN
@@ -735,7 +735,7 @@ BEGIN
     ORDER BY ist.iteration DESC LIMIT 1;
 
     IF wf.stage_outcome(v_commit_stage) IS DISTINCT FROM 'approved' THEN
-      RAISE EXCEPTION 'Commit stage has not been approved';
+      RAISE EXCEPTION 'Commit stage has not been approved' USING ERRCODE = 'N2213', HINT = 'wf.commit_not_approved';
     END IF;
     IF EXISTS (
       SELECT 1 FROM wf.instance_stage ist JOIN wf.workflow_stage ws ON ws.stage_id = ist.stage_id
@@ -745,14 +745,14 @@ BEGIN
         AND ist.iteration = (SELECT max(x.iteration) FROM wf.instance_stage x
                              WHERE x.instance_id = ist.instance_id AND x.stage_id = ist.stage_id)
         AND ist.status <> 'completed') THEN
-      RAISE EXCEPTION 'Not all required stages are complete';
+      RAISE EXCEPTION 'Not all required stages are complete' USING ERRCODE = 'N2214', HINT = 'wf.stages_incomplete';
     END IF;
   END IF;
 
   UPDATE wf.workflow_instance SET status = p_outcome, closed_at = now()
   WHERE instance_id = p_instance_id AND status IN ('draft', 'in_flight', 'pushed_back');
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Instance % is not open', p_instance_id;
+    RAISE EXCEPTION 'Instance % is not open', p_instance_id USING ERRCODE = 'N2215', HINT = 'wf.instance_not_open';
   END IF;
 
   SELECT kind INTO k FROM mdm.app_user WHERE user_id = p_actor_id;
