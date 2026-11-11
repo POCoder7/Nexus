@@ -25,4 +25,5 @@ jobs:
           java-version: '21'
           cache: maven
       - name: Build and test
-        run: mvn -B -f services/mdm-api/pom.xml verify
+        working-directory: services/mdm-api
+        run: ./mvnw -B verify
