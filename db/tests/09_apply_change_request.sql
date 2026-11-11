@@ -161,9 +161,9 @@ SELECT pg_temp.item('00000000-0000-0000-0000-0000000009d7', 1, 'add_node', '0000
 SELECT pg_temp.item('00000000-0000-0000-0000-0000000009d7', 2, 'add_node', '00000000-0000-0000-0000-0000000009c1',
   '00000000-0000-0000-0000-000000000912', '00000000-0000-0000-0000-000000000906', '{"name": "G Under leaf"}');
 SELECT pg_temp.approve('00000000-0000-0000-0000-0000000009d7');
--- an action whose handler is not built yet (property actions arrive in 1-8c)
+-- an action without a handler (inactivate_node awaits a decision)
 SELECT pg_temp.cr('00000000-0000-0000-0000-0000000009d8');
-SELECT pg_temp.item('00000000-0000-0000-0000-0000000009d8', 1, 'clear_property', '00000000-0000-0000-0000-0000000009c1',
+SELECT pg_temp.item('00000000-0000-0000-0000-0000000009d8', 1, 'inactivate_node', '00000000-0000-0000-0000-0000000009c1',
   '00000000-0000-0000-0000-000000000906', NULL, '{}');
 SELECT pg_temp.approve('00000000-0000-0000-0000-0000000009d8');
 

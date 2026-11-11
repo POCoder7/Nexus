@@ -14,7 +14,11 @@ CREATE TABLE mdm.system_setting (
 );
 INSERT INTO mdm.system_setting VALUES
   ('business_time_zone', 'America/New_York',
-   'ADR-018: the business day for as-of defaults, caps, SLAs and schedules (EST in winter, EDT in summer)');
+   'ADR-018: the business day for as-of defaults, caps, SLAs and schedules (EST in winter, EDT in summer)'),
+  ('max_items_per_change_request', '5000',
+   'Apply refuses larger requests (N2103); bounds the apply transaction (Phase 1 A-9, OPEN_DECISIONS defaults)'),
+  ('sandbox_max_items', '20000',
+   'Item limit for requests of origin sandbox (CR-04, ADR-028); Phase 5 sandboxes');
 
 -- -----------------------------------------------------------------------------
 -- Roles and grants (ADR-022). Roles are data; what each role may do is fixed in code (Permission matrix).

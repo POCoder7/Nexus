@@ -2,7 +2,7 @@
 
 - **Current phase:** 1 — Core write path
 - **Step in loop:** Build — branch `feature/HIE-02-phase-1-core-write-path`
-- **Baseline:** db-test **pass** 162/162 · mvnw verify **pass** 67/67 (after 1-8b, 2026-11-11)
+- **Baseline:** db-test **pass** 180/180 · mvnw verify **pass** 67/67 (after 1-8c, 2026-11-11)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -21,8 +21,9 @@
 | 1-6 Resolved properties with provenance | PRP-01 | Done `6a858f4` | pgTAP 07 (12), JUnit 2 | `node_properties_resolved` in V3 |
 | 1-7 Change requests: create, edit, items, withdraw | HIE-02, PRP-01 | Done `27119ab` | pgTAP 08 (8), JUnit 16 | `allocate_node`, `withdraw_change_request` (N1025, N2104); ETag 428/412; Idempotency-Key; expected values across earlier items; ProblemShapeTest slice excludes IdempotencyFilter (setup only) |
 | 1-8a Apply: framework, set-from-D, add/insert/move, stale base, events | HIE-02 | Done `da2d9b7` | pgTAP 09 (26) | `apply_fact` generic routine; `change_event`, `change_item_clearance`; new code N2105; stale-base JSON in DETAIL (ADR-020; LLD noted) |
-| 1-8b Apply: remove, delete, update node, add hierarchy | HIE-02, HIE-01 | Done (this commit) | pgTAP 10 (24), JUnit 1 | delete refused for top node / children / references / scheduled changes; cascade follows primary links (LLD noted); 09 fixture: unavailable action now `clear_property` (setup only) |
-| 1-8c … 1-12 | PRP-01 | Planned | per plan | |
+| 1-8b Apply: remove, delete, update node, add hierarchy | HIE-02, HIE-01 | Done `d10e67c` | pgTAP 10 (24), JUnit 1 | delete refused for top node / children / references / scheduled changes; cascade follows primary links (LLD noted); 09 fixture: unavailable action now `clear_property` (setup only) |
+| 1-8c Apply: set and clear property, item limit by origin | PRP-01 | Done (this commit) | pgTAP 11 (18) | limits in `system_setting`; JSON null kept; 09 fixture: unavailable action now `inactivate_node` (setup only) |
+| 1-9 … 1-12 | HIE-02, PRP-01 | Planned | per plan | |
 ## Decisions awaiting human review
 | ADR | Title | Why it needs review |
 |---|---|---|
@@ -49,4 +50,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Increment 1-8c (`set_property`, `clear_property`, item limit by origin), then 1-9 … 1-12, asking before each commit. List of other people's requests (`mine=false`, review queue) arrives with decisions in 1-8.
+Increment 1-9 (`validate_change_request` trial apply + submit), then 1-10 … 1-12, asking before each commit. List of other people's requests (`mine=false`, review queue) arrives with decisions in 1-8.

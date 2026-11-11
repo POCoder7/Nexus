@@ -738,16 +738,21 @@ CREATE TRIGGER change_item_clearance_append_only BEFORE UPDATE OR DELETE ON chan
   FOR EACH ROW EXECUTE FUNCTION trg_append_only();
 
 -- Inserts one row from JSON, using only the columns present (so the others keep their defaults) and never the
--- surrogate key.
+-- surrogate key. jsonb columns are taken from the JSON directly: jsonb_populate_record would turn a JSON null into
+-- SQL NULL, and a stored JSON null is meaningful (an explicit blank that blocks inheritance).
 CREATE FUNCTION apply_insert(p_table text, p_id_col text, p_row jsonb)
 RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
-DECLARE v_cols text;
+DECLARE v_cols text; v_vals text;
 BEGIN
-  SELECT string_agg(quote_ident(a.attname), ', ' ORDER BY a.attnum) INTO v_cols
+  SELECT string_agg(quote_ident(a.attname), ', ' ORDER BY a.attnum),
+         string_agg(CASE WHEN a.atttypid = 'jsonb'::regtype THEN format('$1 -> %L', a.attname)
+                         ELSE 'r.' || quote_ident(a.attname) END, ', ' ORDER BY a.attnum)
+    INTO v_cols, v_vals
   FROM pg_attribute a
   WHERE a.attrelid = ('mdm.' || quote_ident(p_table))::regclass AND a.attnum > 0 AND NOT a.attisdropped
     AND a.attname::text IS DISTINCT FROM p_id_col AND p_row ? a.attname::text;
-  EXECUTE format('INSERT INTO mdm.%1$I (%2$s) SELECT %2$s FROM jsonb_populate_record(NULL::mdm.%1$I, $1)', p_table, v_cols)
+  EXECUTE format('INSERT INTO mdm.%1$I (%2$s) SELECT %3$s FROM jsonb_populate_record(NULL::mdm.%1$I, $1) r',
+                 p_table, v_cols, v_vals)
     USING p_row;
   RETURN 1;
 END $$;
@@ -1097,7 +1102,68 @@ BEGIN
   RETURN v_rows + 1;
 END $$;
 
--- Actions whose handlers arrive in later increments (1-8c) fail the apply rather than being skipped.
+-- Key of a stored property value: global properties have no hierarchy, local ones belong to the item's hierarchy.
+-- Raises N2105 if the node does not exist on D.
+CREATE FUNCTION apply_property_key(p_item change_item, p_d date)
+RETURNS jsonb LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE v_scope property_scope;
+BEGIN
+  SELECT scope INTO v_scope FROM mdm.property_definition WHERE property_id = p_item.property_id;
+  IF v_scope IS NULL OR NOT EXISTS (SELECT 1 FROM mdm.node_attr a WHERE a.node_id = p_item.node_id
+                                    AND a.valid_period @> p_d AND upper_inf(a.recorded_period)) THEN
+    RAISE EXCEPTION 'Item %: node % or its property does not exist on %', p_item.seq, p_item.node_id, p_d
+      USING ERRCODE = 'N2105', HINT = 'apply.item_invalid';
+  END IF;
+  RETURN jsonb_build_object('node_id', p_item.node_id, 'property_id', p_item.property_id,
+                            'hierarchy_id', CASE WHEN v_scope = 'local' THEN p_item.hierarchy_id END);
+END $$;
+
+-- The stored value on D (present + value) checked against what the item assumed (LLD §7.3).
+CREATE FUNCTION apply_expect_property(p_item change_item, p_key jsonb, p_d date)
+RETURNS boolean LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE v_value jsonb; v_found boolean;
+BEGIN
+  SELECT pv.value, true INTO v_value, v_found FROM mdm.property_value pv
+  WHERE pv.node_id = (p_key ->> 'node_id')::uuid AND pv.property_id = (p_key ->> 'property_id')::uuid
+    AND pv.hierarchy_id IS NOT DISTINCT FROM (p_key ->> 'hierarchy_id')::uuid
+    AND pv.valid_period @> p_d AND upper_inf(pv.recorded_period);
+  v_found := coalesce(v_found, false);
+  PERFORM apply_expect(p_item, 'present', to_jsonb(v_found));
+  PERFORM apply_expect(p_item, 'value', v_value);
+  RETURN v_found;
+END $$;
+
+-- set_property (LLD §7.2): set-from-D, optionally until validTo. JSON null is stored as an explicit blank.
+-- trg_property_value_check enforces scope, type, list and reference rules (N2020–N2024).
+CREATE FUNCTION apply_set_property(p_item change_item)
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE
+  v_d   date  := current_setting('mdm.apply_date')::date;
+  v_key jsonb := apply_property_key(p_item, current_setting('mdm.apply_date')::date);
+BEGIN
+  IF NOT p_item.payload ? 'value' THEN
+    RAISE EXCEPTION 'Item %: set_property needs a value', p_item.seq USING ERRCODE = 'N2105', HINT = 'apply.item_invalid';
+  END IF;
+  PERFORM apply_expect_property(p_item, v_key, v_d);
+  RETURN apply_fact('property_value', 'property_value_id', v_key, jsonb_build_object('value', p_item.payload -> 'value'),
+                    (p_item.payload ->> 'validTo')::date, false);
+END $$;
+
+-- clear_property: end the stored value at D; the node then shows the inherited or default value. Nothing stored
+-- (and nothing expected) is a no-op.
+CREATE FUNCTION apply_clear_property(p_item change_item)
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE
+  v_d   date  := current_setting('mdm.apply_date')::date;
+  v_key jsonb := apply_property_key(p_item, current_setting('mdm.apply_date')::date);
+BEGIN
+  IF NOT apply_expect_property(p_item, v_key, v_d) THEN
+    RETURN 0;
+  END IF;
+  RETURN apply_fact('property_value', 'property_value_id', v_key, NULL, NULL, true);
+END $$;
+
+-- Actions without a handler (pending decisions, later phases) fail the apply rather than being skipped.
 CREATE FUNCTION apply_not_available(p_item change_item)
 RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
 BEGIN
@@ -1113,6 +1179,8 @@ DECLARE
   cr       mdm.change_request%ROWTYPE;
   it       mdm.change_item%ROWTYPE;
   v_rows   int := 0;
+  v_count  int;
+  v_limit  int;
   v_seq    int;
   v_state  text;
   v_msg    text;
@@ -1134,6 +1202,18 @@ BEGIN
   PERFORM set_config('mdm.apply_date', cr.effective_from::text, true);
 
   BEGIN                                                          -- subtransaction: all items or none
+    -- CR-04: the limit depends on where the request came from (sandboxes may be larger); settings in V8
+    SELECT count(*) INTO v_count FROM mdm.change_item ci
+    WHERE ci.change_request_id = p_change_request_id
+      AND (NOT cr.governed_by_workflow
+           OR EXISTS (SELECT 1 FROM mdm.change_item_clearance c WHERE c.change_item_id = ci.change_item_id));
+    SELECT setting_value::int INTO v_limit FROM mdm.system_setting
+    WHERE setting_key = CASE WHEN cr.origin = 'sandbox' THEN 'sandbox_max_items' ELSE 'max_items_per_change_request' END;
+    IF v_count > coalesce(v_limit, 5000) THEN
+      RAISE EXCEPTION 'Change request % has % items; the limit for origin % is %', p_change_request_id, v_count, cr.origin,
+        coalesce(v_limit, 5000) USING ERRCODE = 'N2103', HINT = 'change_request.too_many_items';
+    END IF;
+
     FOR it IN
       SELECT ci.* FROM mdm.change_item ci
       WHERE ci.change_request_id = p_change_request_id
@@ -1150,6 +1230,8 @@ BEGIN
         WHEN 'delete_node' THEN mdm.apply_delete_node(it)
         WHEN 'update_node' THEN mdm.apply_update_node(it)
         WHEN 'add_hierarchy' THEN mdm.apply_add_hierarchy(it)
+        WHEN 'set_property' THEN mdm.apply_set_property(it)
+        WHEN 'clear_property' THEN mdm.apply_clear_property(it)
         ELSE mdm.apply_not_available(it)
       END;
     END LOOP;
