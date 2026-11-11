@@ -16,6 +16,9 @@ spring:
     # (ADR-014). Locally both default to the single docker-compose account.
     user: ${MDM_DB_MIGRATION_USER:${MDM_DB_USER:nexus}}
     password: ${MDM_DB_MIGRATION_PASSWORD:${MDM_DB_PASSWORD:nexus}}
+  autoconfigure:
+    # ADR-035: the Camunda client starts only with mdm.workflow.engine=camunda (CamundaEngineConfiguration imports it)
+    exclude: io.camunda.zeebe.spring.client.configuration.CamundaAutoConfiguration
   threads:
     virtual:
       enabled: true   # Java 21 virtual threads for request handling
@@ -54,3 +57,9 @@ spring:
 springdoc:
   api-docs:
     enabled: true
+
+# Camunda client (used only with mdm.workflow.engine=camunda); connection per environment (OD-01c)
+camunda:
+  client:
+    zeebe:
+      prefer-rest-over-grpc: false

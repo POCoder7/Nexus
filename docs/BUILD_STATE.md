@@ -42,8 +42,9 @@
 | 2-8b Stage decisions, claims, enrichment, instance view, refusals in words | GOV-02 | Done `9308ee5` + `8298a6e` | JUnit 3 | `wf.why_cannot_act`; `WorkflowGateway`; N2201 is 422 per ADR-020 (LLD table corrected in a note); OpenAPI operation ids kept unique (test added) |
 | 2-8c Model and commit-policy admin endpoints | GOV-01, GOV-12 | Done `7fdcdfc` | JUnit 3 | V6 lifecycle functions owner-run as `nexus_wf`; `wf.propose_commit_policy` (N1027) |
 | 2-9 Worklist: nine views, counts, search, model filter, keyset | GOV-13 | Done `f621347` | JUnit 2 | perf test deferred with the other performance work |
-| 2-10a Engine-neutral ports, outbox offsets, relay, in-process driver, contract suite | GOV-02, PROG | Done (this commit) | JUnit 6 (contract 5, boundary 1), pgTAP +2 | bug fixed: `close_instance` recorded the commit after the status change (bridge saw no decider) |
-| 2-10b … 2-12 | GOV-02, PROG | Planned | per plan | |
+| 2-10a Engine-neutral ports, outbox offsets, relay, in-process driver, contract suite | GOV-02, PROG | Done `6f610e2` | JUnit 6 (contract 5, boundary 1), pgTAP +2 | bug fixed: `close_instance` recorded the commit after the status change (bridge saw no decider) |
+| 2-10b Camunda adapter: SDK config, BPMN, job adapters, contract suite on Camunda | GOV-02 | **Written, not yet run** (this commit) | contract suite on Camunda written (tag `camunda`) | blocked: Docker has 3.7 GiB; Camunda test runtime needs Elasticsearch (2 GB heap) + Camunda; decision asked |
+| 2-11, 2-12 | PROG | Planned | per plan | |
 
 ## Decisions awaiting human review
 | ADR | Title | Why it needs review |
@@ -54,7 +55,7 @@
 
 
 ## Open questions for the human
-1. (none blocking) Phase 2 plan, ADR-035 and the Camunda dependencies approved 2026-11-11; building.
+1. **Camunda contract run blocked by Docker memory (3.7 GiB):** raise the WSL/Docker memory limit (for example 8 GB), run it in CI later (needs OD-11), or defer it? Default build unaffected.
 2. OD-11: recommended now, before Phase 2 (prove CI green on the Phase 1 baseline). Waiting for a private repository URL; the first push still needs your go-ahead.
 3. OD-18a: Audit-Risk review of ADR-021 **skipped for now** by the repository owner (2026-11-11). ADR-021 still asks for it before merge to `main`; merging needs the review or your explicit waiver.
 
@@ -74,4 +75,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Increment 2-10b (Camunda adapter: client configuration, BPMN, job adapters; the same contract suite on Camunda's test engine, tag `camunda`; dependencies approved), then 2-11, 2-12, asking before each commit. Performance tests deferred to the end of the build.
+Waiting for the decision on the Camunda contract run (question 1). Meanwhile 2-11 (reconciler and resilience cases) can be built on the in-process driver, asking before each commit. Performance tests deferred to the end of the build.

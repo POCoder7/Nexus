@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The generic Nexus request process (ADR-024, ADR-035, Phase 2 LLD §6.2). One definition for every workflow model: the
+  models are data in wf, and every decision is made by a guarded database function behind a job. This file holds only
+  the loop and its waits; no business rule lives here. Variables are identifiers only (B-6).
+
+  start → next-stage ─ activated / wait → wait for: stage-decided (instanceStageId) | request-withdrawn (instanceId)
+                     ├ evaluate_policy → evaluate-policy ─ auto_committed → apply → end
+                     │                                   └ otherwise → next-stage
+                     └ none → close-committed ─ closed → apply → end
+                                              └ not closed → end
+  stage-decided: approved → complete-stage → next-stage;  rejected → close-rejected → end
+-->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  id="nexus-request-definitions" targetNamespace="urn:nexus:workflow">
+
+  <bpmn:message id="msg-stage-decided" name="stage-decided">
+    <bpmn:extensionElements><zeebe:subscription correlationKey="=instanceStageId"/></bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:message id="msg-request-withdrawn" name="request-withdrawn">
+    <bpmn:extensionElements><zeebe:subscription correlationKey="=instanceId"/></bpmn:extensionElements>
+  </bpmn:message>
+
+  <bpmn:process id="nexus-request" name="Nexus request" isExecutable="true">
+    <bpmn:startEvent id="start"/>
+    <bpmn:sequenceFlow id="f-start" sourceRef="start" targetRef="join-next"/>
+
+    <bpmn:exclusiveGateway id="join-next"/>
+    <bpmn:sequenceFlow id="f-join" sourceRef="join-next" targetRef="next-stage"/>
+
+    <bpmn:serviceTask id="next-stage" name="Next stage">
+      <bpmn:extensionElements><zeebe:taskDefinition type="nexus.next-stage"/></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f-next" sourceRef="next-stage" targetRef="route"/>
+
+    <bpmn:exclusiveGateway id="route" default="f-route-none"/>
+    <bpmn:sequenceFlow id="f-route-wait" sourceRef="route" targetRef="wait">
+      <bpmn:conditionExpression>=action = "activated" or action = "wait"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f-route-policy" sourceRef="route" targetRef="evaluate-policy">
+      <bpmn:conditionExpression>=action = "evaluate_policy"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f-route-none" sourceRef="route" targetRef="close-committed"/>
+
+    <!-- waiting for people: a decision on the active stage, or a withdrawal -->
+    <bpmn:eventBasedGateway id="wait"/>
+    <bpmn:sequenceFlow id="f-wait-decided" sourceRef="wait" targetRef="stage-decided"/>
+    <bpmn:sequenceFlow id="f-wait-withdrawn" sourceRef="wait" targetRef="withdrawn"/>
+    <bpmn:intermediateCatchEvent id="stage-decided" name="Stage decided">
+      <bpmn:messageEventDefinition messageRef="msg-stage-decided"/>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="withdrawn" name="Request withdrawn">
+      <bpmn:messageEventDefinition messageRef="msg-request-withdrawn"/>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="f-withdrawn" sourceRef="withdrawn" targetRef="end-withdrawn"/>
+    <bpmn:endEvent id="end-withdrawn"/>
+
+    <bpmn:sequenceFlow id="f-decided" sourceRef="stage-decided" targetRef="outcome"/>
+    <bpmn:exclusiveGateway id="outcome" default="f-outcome-rejected"/>
+    <bpmn:sequenceFlow id="f-outcome-approved" sourceRef="outcome" targetRef="complete-stage">
+      <bpmn:conditionExpression>=outcome = "approved"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f-outcome-rejected" sourceRef="outcome" targetRef="close-rejected"/>
+
+    <bpmn:serviceTask id="complete-stage" name="Complete stage">
+      <bpmn:extensionElements><zeebe:taskDefinition type="nexus.complete-stage"/></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f-completed" sourceRef="complete-stage" targetRef="join-next"/>
+
+    <bpmn:serviceTask id="close-rejected" name="Close rejected">
+      <bpmn:extensionElements><zeebe:taskDefinition type="nexus.close-rejected"/></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f-rejected" sourceRef="close-rejected" targetRef="end-rejected"/>
+    <bpmn:endEvent id="end-rejected"/>
+
+    <!-- commit policy before Commit (shadow mode records only) -->
+    <bpmn:serviceTask id="evaluate-policy" name="Evaluate policy">
+      <bpmn:extensionElements><zeebe:taskDefinition type="nexus.evaluate-policy"/></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f-evaluated" sourceRef="evaluate-policy" targetRef="policy"/>
+    <bpmn:exclusiveGateway id="policy" default="f-policy-human"/>
+    <bpmn:sequenceFlow id="f-policy-auto" sourceRef="policy" targetRef="apply">
+      <bpmn:conditionExpression>=policyOutcome = "auto_committed"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f-policy-human" sourceRef="policy" targetRef="join-next"/>
+
+    <!-- nothing left: close as committed when Commit is approved, then apply -->
+    <bpmn:serviceTask id="close-committed" name="Close committed">
+      <bpmn:extensionElements><zeebe:taskDefinition type="nexus.close-committed"/></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f-closing" sourceRef="close-committed" targetRef="closed"/>
+    <bpmn:exclusiveGateway id="closed" default="f-not-closed"/>
+    <bpmn:sequenceFlow id="f-closed" sourceRef="closed" targetRef="apply">
+      <bpmn:conditionExpression>=closed = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f-not-closed" sourceRef="closed" targetRef="end-open"/>
+    <bpmn:endEvent id="end-open"/>
+
+    <bpmn:serviceTask id="apply" name="Apply">
+      <bpmn:extensionElements><zeebe:taskDefinition type="nexus.apply"/></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f-applied" sourceRef="apply" targetRef="end-applied"/>
+    <bpmn:endEvent id="end-applied"/>
+  </bpmn:process>
+</bpmn:definitions>
