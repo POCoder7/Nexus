@@ -50,6 +50,8 @@ public class ItemFactory {
     private static final Set<String> NODE_KINDS = Set.of("legal_entity", "natural_person", "trust", "fund", "partnership",
             "government_body", "structural");
 
+    private static final Set<String> PURPOSES = Set.of("legal_consolidation", "management", "regulatory", "tax", "other");
+
     private final JdbcClient jdbc;
     private final ObjectMapper mapper;
     private final ChangeRequestRepository requests;
@@ -104,6 +106,10 @@ public class ItemFactory {
             throw ItemValidationException.field("payload.topNode", "needs nodeKind and name");
         }
         nodeKind(top.get("nodeKind").asText(), "payload.topNode.nodeKind");
+        if (payload.hasNonNull("purpose") && !PURPOSES.contains(payload.get("purpose").asText())) {
+            // checked here because the database CHECK (23514) is not a rule failure apply can record
+            throw ItemValidationException.field("payload.purpose", "must be one of " + new TreeSet<>(PURPOSES));
+        }
         String code = payload.get("code").asText();
         if (jdbc.sql("SELECT count(*) FROM mdm.hierarchy WHERE hierarchy_code = :c").param("c", code).query(Integer.class).single() > 0) {
             throw new RuleException("hierarchy.code_exists", "A hierarchy with code " + code + " already exists.");

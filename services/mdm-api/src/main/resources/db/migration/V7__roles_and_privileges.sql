@@ -86,6 +86,7 @@ GRANT EXECUTE ON FUNCTION mdm.withdraw_change_request(uuid, uuid) TO nexus_api;
 -- -----------------------------------------------------------------------------
 GRANT INSERT, UPDATE (recorded_period) ON mdm.node_attr, mdm.hierarchy_relationship, mdm.property_value TO nexus_apply;
 GRANT INSERT ON mdm.change_event TO nexus_apply;
+GRANT INSERT ON mdm.hierarchy TO nexus_apply;                   -- add_hierarchy (1-8b); hierarchies are never updated by apply
 GRANT INSERT ON mdm.change_item_clearance TO nexus_bridge;      -- written in Phase 2 when a workflow commits items
 
 -- Internal helpers: run inside apply_change_request with nexus_apply's rights; nobody else may call them.

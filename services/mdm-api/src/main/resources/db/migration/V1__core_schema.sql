@@ -944,7 +944,160 @@ BEGIN
   RETURN v_rows + apply_place(p_item, true, upper(v_valid));
 END $$;
 
--- Actions whose handlers arrive in later increments (1-8b, 1-8c) fail the apply rather than being skipped.
+-- Ends, at D, every current relationship row selected by the caller (by id), through apply_fact.
+CREATE FUNCTION apply_end_relationships(p_ids uuid[])
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE v_id uuid; v_rows int := 0;
+BEGIN
+  FOREACH v_id IN ARRAY coalesce(p_ids, '{}') LOOP
+    v_rows := v_rows + apply_fact('hierarchy_relationship', 'relationship_id', jsonb_build_object('relationship_id', v_id),
+                                  NULL, NULL, true);
+  END LOOP;
+  RETURN v_rows;
+END $$;
+
+-- remove_node (LLD §7.2): take the node out of one hierarchy from D. With children it needs cascade, which removes
+-- the node's primary sub-tree too: every placement of the sub-tree's members in this hierarchy ends, including
+-- shared links hanging below them. The node itself stays and keeps its places in other hierarchies.
+CREATE FUNCTION apply_remove_node(p_item change_item)
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE
+  v_d     date  := current_setting('mdm.apply_date')::date;
+  v_place jsonb := apply_placement(p_item.hierarchy_id, p_item.node_id, v_d);
+  v_ids   uuid[];
+BEGIN
+  PERFORM apply_expect(p_item, 'parentIds', v_place -> 'parents');
+  IF jsonb_array_length(v_place -> 'parents') = 0 THEN
+    RAISE EXCEPTION 'Item %: node % is not placed in hierarchy % on %', p_item.seq, p_item.node_id, p_item.hierarchy_id, v_d
+      USING ERRCODE = 'N2105', HINT = 'apply.item_invalid';
+  END IF;
+  IF NOT coalesce((p_item.payload ->> 'cascade')::boolean, false)
+     AND EXISTS (SELECT 1 FROM mdm.hierarchy_relationship r
+                 WHERE r.hierarchy_id = p_item.hierarchy_id AND r.parent_node_id = p_item.node_id
+                   AND r.valid_period @> v_d AND upper_inf(r.recorded_period)) THEN
+    RAISE EXCEPTION 'Item %: node % has children in hierarchy %; remove them first or use cascade',
+      p_item.seq, p_item.node_id, p_item.hierarchy_id USING ERRCODE = 'N2005', HINT = 'hierarchy.remove_with_children';
+  END IF;
+  WITH RECURSIVE sub(node_id) AS (
+    SELECT p_item.node_id
+    UNION
+    SELECT r.child_node_id FROM mdm.hierarchy_relationship r JOIN sub ON r.parent_node_id = sub.node_id
+    WHERE r.hierarchy_id = p_item.hierarchy_id AND r.is_primary AND r.valid_period @> v_d AND upper_inf(r.recorded_period)
+  )
+  SELECT array_agg(r.relationship_id ORDER BY r.relationship_id) INTO v_ids
+  FROM mdm.hierarchy_relationship r
+  WHERE r.hierarchy_id = p_item.hierarchy_id AND r.valid_period @> v_d AND upper_inf(r.recorded_period)
+    AND (r.child_node_id IN (SELECT node_id FROM sub) OR r.parent_node_id IN (SELECT node_id FROM sub));
+  RETURN apply_end_relationships(v_ids);
+END $$;
+
+-- delete_node (LLD §7.2): the node ends at D everywhere: its attributes, its stored values and its placements in
+-- every hierarchy. Refused while anything still depends on it from D on: being a top node (N2002), having children
+-- (N2005), being referenced by a node_ref value (N2006), or having changes already scheduled after D (N2105).
+CREATE FUNCTION apply_delete_node(p_item change_item)
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE
+  v_d    date := current_setting('mdm.apply_date')::date;
+  v_from daterange := daterange(current_setting('mdm.apply_date')::date, NULL);
+  v_attr mdm.node_attr%ROWTYPE;
+  v_ids  uuid[];
+  v_pv   record;
+  v_rows int := 0;
+BEGIN
+  SELECT * INTO v_attr FROM mdm.node_attr a
+  WHERE a.node_id = p_item.node_id AND a.valid_period @> v_d AND upper_inf(a.recorded_period);
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Item %: node % does not exist on %', p_item.seq, p_item.node_id, v_d
+      USING ERRCODE = 'N2105', HINT = 'apply.item_invalid';
+  END IF;
+  PERFORM apply_expect(p_item, 'name', to_jsonb(v_attr.node_name));
+  PERFORM apply_expect(p_item, 'description', to_jsonb(v_attr.description));
+  IF EXISTS (SELECT 1 FROM mdm.hierarchy WHERE top_node_id = p_item.node_id) THEN
+    RAISE EXCEPTION 'Item %: node % is the top node of a hierarchy and cannot be deleted', p_item.seq, p_item.node_id
+      USING ERRCODE = 'N2002', HINT = 'hierarchy.top_node';
+  END IF;
+  IF EXISTS (SELECT 1 FROM mdm.hierarchy_relationship r
+             WHERE r.parent_node_id = p_item.node_id AND r.valid_period && v_from AND upper_inf(r.recorded_period)) THEN
+    RAISE EXCEPTION 'Item %: node % has children on or after %; move or remove them first', p_item.seq, p_item.node_id, v_d
+      USING ERRCODE = 'N2005', HINT = 'hierarchy.remove_with_children';
+  END IF;
+  IF EXISTS (SELECT 1 FROM mdm.property_value pv JOIN mdm.property_definition pd ON pd.property_id = pv.property_id
+             WHERE pd.data_type IN ('node_ref', 'multi_node_ref') AND pv.node_id <> p_item.node_id
+               AND pv.valid_period && v_from AND upper_inf(pv.recorded_period)
+               AND (pv.value = to_jsonb(p_item.node_id::text)
+                    OR (jsonb_typeof(pv.value) = 'array' AND pv.value ? p_item.node_id::text))) THEN
+    RAISE EXCEPTION 'Item %: node % is still referenced by a property value on or after %', p_item.seq, p_item.node_id, v_d
+      USING ERRCODE = 'N2006', HINT = 'node.referenced';
+  END IF;
+  IF EXISTS (SELECT 1 FROM mdm.node_attr a WHERE a.node_id = p_item.node_id AND lower(a.valid_period) > v_d AND upper_inf(a.recorded_period))
+     OR EXISTS (SELECT 1 FROM mdm.hierarchy_relationship r WHERE r.child_node_id = p_item.node_id AND lower(r.valid_period) > v_d AND upper_inf(r.recorded_period))
+     OR EXISTS (SELECT 1 FROM mdm.property_value pv WHERE pv.node_id = p_item.node_id AND lower(pv.valid_period) > v_d AND upper_inf(pv.recorded_period)) THEN
+    RAISE EXCEPTION 'Item %: node % has changes scheduled after %', p_item.seq, p_item.node_id, v_d
+      USING ERRCODE = 'N2105', HINT = 'apply.item_invalid';
+  END IF;
+
+  SELECT array_agg(r.relationship_id ORDER BY r.relationship_id) INTO v_ids FROM mdm.hierarchy_relationship r
+  WHERE r.child_node_id = p_item.node_id AND r.valid_period @> v_d AND upper_inf(r.recorded_period);
+  v_rows := apply_end_relationships(v_ids);
+  FOR v_pv IN SELECT pv.property_value_id FROM mdm.property_value pv
+              WHERE pv.node_id = p_item.node_id AND pv.valid_period @> v_d AND upper_inf(pv.recorded_period)
+              ORDER BY pv.property_value_id LOOP
+    v_rows := v_rows + apply_fact('property_value', 'property_value_id',
+                                  jsonb_build_object('property_value_id', v_pv.property_value_id), NULL, NULL, true);
+  END LOOP;
+  RETURN v_rows + apply_fact('node_attr', NULL, jsonb_build_object('node_id', p_item.node_id), NULL, NULL, true);
+END $$;
+
+-- update_node: name and/or description from D (set-from-D on node_attr; other attributes carry over).
+CREATE FUNCTION apply_update_node(p_item change_item)
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE
+  v_d      date := current_setting('mdm.apply_date')::date;
+  v_attr   mdm.node_attr%ROWTYPE;
+  v_values jsonb := '{}';
+BEGIN
+  SELECT * INTO v_attr FROM mdm.node_attr a
+  WHERE a.node_id = p_item.node_id AND a.valid_period @> v_d AND upper_inf(a.recorded_period);
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Item %: node % does not exist on %', p_item.seq, p_item.node_id, v_d
+      USING ERRCODE = 'N2105', HINT = 'apply.item_invalid';
+  END IF;
+  PERFORM apply_expect(p_item, 'name', to_jsonb(v_attr.node_name));
+  PERFORM apply_expect(p_item, 'description', to_jsonb(v_attr.description));
+  IF p_item.payload ? 'name' THEN
+    v_values := v_values || jsonb_build_object('node_name', p_item.payload -> 'name');
+  END IF;
+  IF p_item.payload ? 'description' THEN
+    v_values := v_values || jsonb_build_object('description', p_item.payload -> 'description');
+  END IF;
+  RETURN apply_fact('node_attr', NULL, jsonb_build_object('node_id', p_item.node_id), v_values, NULL, false);
+END $$;
+
+-- add_hierarchy: the new top node's attributes from D, then the hierarchy row (not bitemporal; it has no
+-- placements before its top node exists). A duplicate code fails the apply (23505).
+CREATE FUNCTION apply_add_hierarchy(p_item change_item)
+RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE
+  v_top  jsonb := p_item.payload -> 'topNode';
+  v_rows int;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM mdm.node WHERE node_id = p_item.node_id)
+     OR EXISTS (SELECT 1 FROM mdm.node_attr WHERE node_id = p_item.node_id) THEN
+    RAISE EXCEPTION 'Item %: top node % must be a new identity without attributes', p_item.seq, p_item.node_id
+      USING ERRCODE = 'N2105', HINT = 'apply.item_invalid';
+  END IF;
+  v_rows := apply_fact('node_attr', NULL, jsonb_build_object('node_id', p_item.node_id),
+              jsonb_build_object('node_name', v_top ->> 'name', 'description', v_top ->> 'description',
+                                 'is_active', true, 'allows_children', true),
+              NULL, false);
+  INSERT INTO mdm.hierarchy (hierarchy_code, hierarchy_name, purpose, hierarchy_group, top_node_id, allow_shared_nodes, sort_seq)
+  VALUES (p_item.payload ->> 'code', p_item.payload ->> 'name', p_item.payload ->> 'purpose', p_item.payload ->> 'group',
+          p_item.node_id, coalesce((p_item.payload ->> 'allowSharedNodes')::boolean, false),
+          (p_item.payload ->> 'sortSeq')::int);
+  RETURN v_rows + 1;
+END $$;
+
+-- Actions whose handlers arrive in later increments (1-8c) fail the apply rather than being skipped.
 CREATE FUNCTION apply_not_available(p_item change_item)
 RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
 BEGIN
@@ -993,6 +1146,10 @@ BEGIN
         WHEN 'add_node'    THEN mdm.apply_add_node(it)
         WHEN 'insert_node' THEN mdm.apply_insert_node(it)
         WHEN 'move_node'   THEN mdm.apply_move_node(it)
+        WHEN 'remove_node' THEN mdm.apply_remove_node(it)
+        WHEN 'delete_node' THEN mdm.apply_delete_node(it)
+        WHEN 'update_node' THEN mdm.apply_update_node(it)
+        WHEN 'add_hierarchy' THEN mdm.apply_add_hierarchy(it)
         ELSE mdm.apply_not_available(it)
       END;
     END LOOP;

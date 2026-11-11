@@ -554,6 +554,8 @@ the guard's ancestor walk for relationship inserts (O(depth)). Whole request: O(
 | `set_property` | resolve scope: global → `hierarchy_id` NULL, local → item hierarchy (`trg_property_value_check` enforces); set-from-D with `value` |
 | `clear_property` | end the stored row at D (value reverts to inherited or default) |
 
+*Built in 1-8b:* `remove_node` with `cascade` follows **primary** links to find the sub-tree, then ends every placement of its members in that hierarchy (shared links below them included); a shared node whose primary place is outside the sub-tree only loses the link into it. The node itself and its places in other hierarchies stay. `delete_node` ends the node's attributes, its stored property values and its placements in every hierarchy, and is refused while anything depends on it from D on: top node of a hierarchy (`N2002`), children in any hierarchy (`N2005`, so a delete never orphans a sub-tree), a `node_ref` value (`N2006`), or changes already scheduled after D (`N2105`). `add_hierarchy` writes the top node's attributes from D and the (non-bitemporal) hierarchy row; `nexus_apply` gains `INSERT` on `mdm.hierarchy`. `ItemFactory` validates `purpose`, because a CHECK violation (`23514`) is not a rule failure that apply records.
+
 ### 7.3 Stale-base check
 At draft time `ItemFactory` stores in `payload.expected` what the item assumes (table above). At apply, each handler
 reads the same fact under lock and compares; any difference raises `N3001` with `HINT` = `apply.stale_base` and `DETAIL` = JSON of expected vs actual.

@@ -2,7 +2,7 @@
 
 - **Current phase:** 1 — Core write path
 - **Step in loop:** Build — branch `feature/HIE-02-phase-1-core-write-path`
-- **Baseline:** db-test **pass** 138/138 · mvnw verify **pass** 66/66 (after 1-8a, 2026-11-11)
+- **Baseline:** db-test **pass** 162/162 · mvnw verify **pass** 67/67 (after 1-8b, 2026-11-11)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -20,8 +20,9 @@
 | 1-5 Keyset paging, `recordedAsOf`, UTC sessions | HIE-01, NEW-01 | Done `592fb46` | JUnit 5 | offset paging removed (ADR-015) |
 | 1-6 Resolved properties with provenance | PRP-01 | Done `6a858f4` | pgTAP 07 (12), JUnit 2 | `node_properties_resolved` in V3 |
 | 1-7 Change requests: create, edit, items, withdraw | HIE-02, PRP-01 | Done `27119ab` | pgTAP 08 (8), JUnit 16 | `allocate_node`, `withdraw_change_request` (N1025, N2104); ETag 428/412; Idempotency-Key; expected values across earlier items; ProblemShapeTest slice excludes IdempotencyFilter (setup only) |
-| 1-8a Apply: framework, set-from-D, add/insert/move, stale base, events | HIE-02 | Done (this commit) | pgTAP 09 (26) | `apply_fact` generic routine; `change_event`, `change_item_clearance`; new code N2105; stale-base JSON in DETAIL (ADR-020; LLD noted) |
-| 1-8b … 1-12 | HIE-02, PRP-01 | Planned | per plan | |
+| 1-8a Apply: framework, set-from-D, add/insert/move, stale base, events | HIE-02 | Done `da2d9b7` | pgTAP 09 (26) | `apply_fact` generic routine; `change_event`, `change_item_clearance`; new code N2105; stale-base JSON in DETAIL (ADR-020; LLD noted) |
+| 1-8b Apply: remove, delete, update node, add hierarchy | HIE-02, HIE-01 | Done (this commit) | pgTAP 10 (24), JUnit 1 | delete refused for top node / children / references / scheduled changes; cascade follows primary links (LLD noted); 09 fixture: unavailable action now `clear_property` (setup only) |
+| 1-8c … 1-12 | PRP-01 | Planned | per plan | |
 ## Decisions awaiting human review
 | ADR | Title | Why it needs review |
 |---|---|---|
@@ -41,11 +42,11 @@
 ## Known gaps, stubs and technical debt
 - Running the API locally now needs the `local` profile and a user (`-Dspring-boot.run.profiles=local`, `mdm.api.local-user`); README quick start to update in 1-12.
 - V1, V5, V6 edited on the branch: local `docker compose` databases must be recreated (`docker compose down -v`); note in 1-12.
-- New error codes N1025, N2104, N2105 and API rule codes (`change_item.*`, `change_request.not_draft`) to add to the registry (CONSISTENCY_REVIEW §3) in 1-12.
+- New error codes N1025, N2104, N2105, hints for N2004–N2006 (`hierarchy.parent_is_leaf`, `hierarchy.remove_with_children`, `node.referenced`) and API rule codes (`change_item.*`, `change_request.not_draft`) to add to the registry (CONSISTENCY_REVIEW §3) in 1-12.
 - CI has never run on GitHub (no remote; OD-11).
 - Mockito dynamic-agent warning in tests (future JDKs will block it).
 - `scripts/check-setup.*` still requires a local `mvn`.
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Increment 1-8b (`remove_node`, `delete_node`, `update_node`, `add_hierarchy` handlers), then 1-8c … 1-12, asking before each commit. List of other people's requests (`mine=false`, review queue) arrives with decisions in 1-8.
+Increment 1-8c (`set_property`, `clear_property`, item limit by origin), then 1-9 … 1-12, asking before each commit. List of other people's requests (`mine=false`, review queue) arrives with decisions in 1-8.

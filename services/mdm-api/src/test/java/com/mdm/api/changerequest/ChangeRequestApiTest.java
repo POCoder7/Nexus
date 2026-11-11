@@ -250,6 +250,23 @@ class ChangeRequestApiTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void addHierarchyNeedsAnAllHierarchiesGrantAndAValidPurpose() throws Exception {
+        String admin = "cr_all_steward";
+        grant(admin, "STEWARD", null, null);
+        String body = "{\"action\":\"add_hierarchy\",\"payload\":{\"code\":\"CR_NEW\",\"name\":\"CR new\",\"purpose\":\"%s\","
+                + "\"topNode\":{\"nodeKind\":\"structural\",\"name\":\"CR new top\"}}}";
+        String scoped = create(STEWARD, "Hierarchy, scoped steward");
+        addItem(STEWARD, scoped, 1, body.formatted("management")).andExpect(status().isForbidden());
+        String id = create(admin, "Hierarchy");
+        addItem(admin, id, 1, body.formatted("bookkeeping"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("payload.purpose"));
+        addItem(admin, id, 1, body.formatted("management"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nodeId").exists());
+    }
+
+    @Test
     void deleteItemNeedsIfMatchAndBumpsTheEtag() throws Exception {
         String id = create(STEWARD, "Delete item");
         MvcResult r = addItem(STEWARD, id, 1, "{\"action\":\"delete_node\",\"hierarchyCode\":\"CR_H\",\"nodeId\":\"" + ENTITY + "\"}")
