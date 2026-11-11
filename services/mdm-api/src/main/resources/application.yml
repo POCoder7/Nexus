@@ -29,3 +29,19 @@ management:
 mdm:
   api:
     max-page-size: 1000
+
+# OpenAPI description (/v3/api-docs) is off by default, so shared environments do not publish it unauthenticated;
+# the local and test profiles turn it on. The committed copy is docs/api/openapi.json (OpenApiDocumentTest).
+springdoc:
+  api-docs:
+    enabled: false
+  packages-to-scan: com.mdm.api
+
+---
+spring:
+  config:
+    activate:
+      on-profile: "local | test"
+springdoc:
+  api-docs:
+    enabled: true

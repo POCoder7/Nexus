@@ -14,6 +14,7 @@ All notable changes to Nexus, newest first. Each entry names its capability ID o
 - V7 database roles and privileges; V8 entitlements, settings and idempotency keys. `PROG`
 - Error codes and hints on every guard, Problem Details responses. `PROG`
 - Performance test scaffold (tag `perf`, not run; deferred). `PROG`
+- OpenAPI description `docs/api/openapi.json` (springdoc, JSON only; served only in `local` and `test`), checked by `OpenApiDocumentTest`. `PROG`
 
 ### Changed
 - V1, V5, V6 edited (allowed until a shared environment exists, OD-44): new guards (requester kind, status transitions, frozen content, draft-only items and deletes), write-path functions; local databases must be recreated (`docker compose down -v`). `PROG`

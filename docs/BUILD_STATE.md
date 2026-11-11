@@ -1,15 +1,15 @@
 # Build state
 
 - **Current phase:** 1 — Core write path
-- **Step in loop:** Awaiting approval to proceed (test gate passed with gaps) — branch `feature/HIE-02-phase-1-core-write-path`
-- **Baseline:** db-test **pass** 211/211 · mvnw verify **pass** 77/77 (Phase 1 gate, code at `1929735`, 2026-11-11)
+- **Step in loop:** Phase 1 approved; Phase 2 not started (orient next) — branch `feature/HIE-02-phase-1-core-write-path`
+- **Baseline:** db-test **pass** 211/211 · mvnw verify **pass** 78/78 (after Phase 1 approval + OpenAPI, 2026-11-11)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
 | Phase | Gate result | Summary | Date |
 |---|---|---|---|
 | 0 — Foundation | Pass locally; approved by the repository owner. Gap: CI not yet run on GitHub (OD-11) | `docs/phases/phase-0/SUMMARY.md` | 2026-11-11 |
-| 1 — Core write path | **Pass with gaps, awaiting approval** (performance not measured; test gaps listed in the report; CI not run, OD-11) | `docs/phases/phase-1/SUMMARY.md`, `TEST_REPORT.md` | 2026-11-11 |
+| 1 — Core write path | Pass with gaps; **approved by the repository owner** (performance not measured; test gaps listed in the report; CI not run, OD-11) | `docs/phases/phase-1/SUMMARY.md`, `TEST_REPORT.md` | 2026-11-11 |
 
 ## Current phase progress
 | Increment | Capability | Status | Tests | Notes |
@@ -37,12 +37,12 @@
 
 
 ## Open questions for the human
-1. **Phase 1 gate: approve, or ask for changes.** Review first: guards and migrations changed in V1, V5–V8 (ADR-021 Audit-Risk review, OD-18a), the LLD *Built in …* notes, and the explicit gaps in `docs/phases/phase-1/TEST_REPORT.md`.
-2. OD-11: create the GitHub remote when ready; CI runs only after a push you approve.
-3. OD-18a: Audit-Risk review of ADR-021 before the Phase 1 branch is merged to `main`.
-4. Approve adding springdoc (OpenAPI generation) as a dependency? (CLAUDE.md rule 8; BUILD_PROTOCOL step 6 asks for it once the API exists.)
+1. (none blocking) Phase 1 gate approved 2026-11-11.
+2. OD-11: recommended now, before Phase 2 (prove CI green on the Phase 1 baseline). Waiting for a private repository URL; the first push still needs your go-ahead.
+3. OD-18a: Audit-Risk review of ADR-021 **skipped for now** by the repository owner (2026-11-11). ADR-021 still asks for it before merge to `main`; merging needs the review or your explicit waiver.
 
 ## Scope changes
+- **OpenAPI added** (springdoc 2.8.6, JSON only; endpoint on only in `local`/`test`), approved by the repository owner 2026-11-11; committed description `docs/api/openapi.json`, kept current by `OpenApiDocumentTest`.
 - **Performance testing deferred to the end of the build** by the repository owner on 2026-11-11: Phase 1 increment 1-11 is not run; its tests and generator are kept (`./mvnw -B verify -Dperf`). Phase 1 gate reports the LLD §10 targets as "not measured".
 - **Phase 7 (AI assistance) deferred** by the repository owner on 2026-11-11 (OD-38): design approved; the build goes from Phase 6 to Phase 8. The `BUILD_PROTOCOL.md` phase table is updated in design step 5 (wiring).
 
@@ -55,4 +55,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Stopped at the Phase 1 gate. On approval: Phase 2 (workflow with Camunda 8) — orient on `docs/design/phase-2-*/LLD.md`, then plan and stop for plan approval. Performance tests deferred to the end of the build.
+Phase 2 (workflow with Camunda 8) — orient on `docs/design/phase-2-*/LLD.md`, then plan and stop for plan approval. Performance tests deferred to the end of the build.

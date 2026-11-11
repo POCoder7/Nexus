@@ -35,6 +35,7 @@ Capabilities: [docs/capabilities.md](docs/capabilities.md)
 | [docs/adr/](docs/adr/) | Architecture decision records |
 | [docs/specs/](docs/specs/) | Specifications per capability |
 | [docs/data-model.md](docs/data-model.md) | Schema design and legacy-product mapping |
+| [docs/api/openapi.json](docs/api/openapi.json) | OpenAPI description of the API (regenerate with `./mvnw -B verify -Dopenapi.update=true`) |
 | [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md) · [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Environment setup and the contribution flow |
 
 ## Repository layout
@@ -49,7 +50,7 @@ Capabilities: [docs/capabilities.md](docs/capabilities.md)
 | `scripts` | Setup checks and database test runners |
 
 ## Status
-Phase 1 (core write path) built, awaiting gate approval: change requests from draft to applied data in core mode
+Phase 1 (core write path) built and approved: change requests from draft to applied data in core mode
 (maker-checker), entitlements by hierarchy and sub-tree, bitemporal reads at any date. Migrations V1–V8 apply on a
 fresh PostgreSQL 16 database and all 211 pgTAP tests pass; the API's 77 tests pass (verified 2026-11-11).
 Current progress: [docs/BUILD_STATE.md](docs/BUILD_STATE.md).

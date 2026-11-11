@@ -71,7 +71,7 @@ setup or shape only, each recorded in the build state and LLD:
 4. **Serialization-failure retry** in `ApplyService` is not exercised (hard to force reliably); reviewed only.
 5. **Golden parity for HIE-02** waits for the Phase 4 golden framework, as planned.
 6. **Observability (LLD §11):** structured logs for apply exist; the listed Micrometer metrics are not built.
-7. **OpenAPI:** not generated; it needs a new dependency (springdoc), which needs your approval (CLAUDE.md rule 8).
+7. **OpenAPI:** closed after the gate: springdoc approved and added; `docs/api/openapi.json`, checked by `OpenApiDocumentTest`.
 8. **CI has never run on GitHub** (no remote; OD-11).
 
 ## Gate result
