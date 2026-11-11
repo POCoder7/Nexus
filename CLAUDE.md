@@ -28,7 +28,7 @@ For design work, follow `docs/DESIGN_PROTOCOL.md`. Before building a phase, read
 ## Commands
 - Toolchain check: `scripts/check-setup.ps1` (Windows) or `scripts/check-setup.sh`
 - Database tests: `scripts/db-test.ps1` or `scripts/db-test.sh`
-- Java build + tests (needs Docker for Testcontainers): `mvn -B -f services/mdm-api/pom.xml verify`
+- Java build + tests (needs Docker for Testcontainers): from `services/mdm-api`, `./mvnw -B verify` (`.\mvnw.cmd -B verify` on Windows)
 - Local database only: `docker compose up -d db`
 
 ## Non-negotiable rules

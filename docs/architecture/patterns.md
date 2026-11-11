@@ -153,7 +153,7 @@
 - **Solution:** interfaces in the owning module, adapters in `…/adapter/…`. List in `overview.md` §4
   (`ApprovedItemsSource`, `WorkflowGateway`, `RuleEngine`, `DerivationEngine`, `CurrentActor`, `AiProposalPort`,
   `DocumentStore`, `DeliveryTarget`). Each port has a deterministic in-memory or local adapter for tests.
-- **Where applied:** planned from Phase 1, e.g. `services/mdm-api/src/main/java/com/mdm/api/apply/ApprovedItemsSource.java`.
+- **Where applied:** planned from Phase 1, e.g. `services/mdm-api/src/main/java/com/mdm/api/security/CurrentActor.java` (Phase 1 LLD §3.1); `WorkflowGateway` in Phase 2.
 - **Trade-offs / failure modes:** interfaces for things that never change add indirection; only externals and the two apply sources get ports.
 - **Alternatives:** direct SDK use (locks in OD choices); microservice per external (operational cost, ADR-013).
 - **When not to use:** the database: SQL stays explicit in repositories (P-25); the database is not abstracted.
@@ -176,15 +176,16 @@
 - **Intent:** every data change is a reviewable command applied all-or-nothing.
 - **Problem in Nexus:** DRG requests contain many actions; partial application would leave hierarchies inconsistent (HIE-02, IMP-03 "apply atomically").
 - **Solution:** `mdm.change_item(action, hierarchy_id, node_id, target_parent_id, property_id, payload)` (exists).
-  `ApplyService.apply(changeRequestId)` locks the request, loads items from `ApprovedItemsSource` in `seq` order,
-  dispatches each to an `ItemHandler` per `mdm.change_action`, re-runs blocking validations on the resulting state,
-  writes bitemporal rows, sets `status = 'applied'`, writes `mdm.change_event` rows, and commits once.
+  `mdm.apply_change_request(cr, actor)` (SQL, `SECURITY DEFINER`, ADR-019) locks the request, takes its items in `seq`
+  order (all items, or only those in `mdm.change_item_clearance` when a workflow governs it), checks each item's expected
+  base, writes bitemporal rows, writes `mdm.change_event`, sets `status = 'applied'`, all in one transaction; rule
+  failures are caught and recorded as `apply_failed`. Java `ApplyService` only orchestrates. Design: Phase 1 LLD §7.1.
 - **Invariants:** applied iff every item applied; items frozen after submit (to add, D-07); actor and request set on every row (D-29).
-- **Where applied:** planned Phase 1 `com.mdm.api.apply`; Phase 4 imports and Phase 7 AI proposals produce the same items.
+- **Where applied:** planned Phase 1 `mdm.apply_change_request` (in V1) and `com.mdm.api.apply.ApplyService`; Phase 4 imports and Phase 7 AI proposals produce the same items.
 - **Trade-offs / failure modes:** very large requests hold locks long (`MAX_ITEMS_PER_CHANGE_REQUEST`); one bad item fails the whole request (intended).
-- **Alternatives:** apply items individually (breaks atomicity); stored procedure apply in SQL (possible; rejected for testability and error mapping, revisit if performance demands).
+- **Alternatives:** apply items individually (breaks atomicity); apply in Java (the first version of this entry; rejected in ADR-019 because the application login would need write access to facts).
 - **When not to use:** reference data seeding by migrations.
-- **Related ADR:** ADR-003, ADR-013.
+- **Related ADR:** ADR-003, ADR-013, ADR-019.
 
 ## P-10 Optimistic concurrency and idempotency keys — Adopted
 

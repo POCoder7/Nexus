@@ -1,6 +1,6 @@
 # ADR-016: Transactional outboxes with per-consumer offsets
 
-- **Status:** Proposed
+- **Status:** Accepted (repository owner, 2026-11-11)
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** GOV-08, GOV-16, NEW-07, PROG

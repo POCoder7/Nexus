@@ -3,41 +3,54 @@
 Decisions, assumptions and unknowns that need a human. Owner types: Architecture · Product · Audit-Risk ·
 Security · Platform · UX. Add to this list as design proceeds; do not resolve a row by choosing for them.
 
+On 2026-11-11 the repository owner adopted the recommendations made so far ("go with your recommendations").
+Those rows moved to **Decided** below. Rows that need another team's sign-off, or a value nobody has given yet, stay open.
+
+## Open
+
 | # | Decision / unknown | Owner | Options | Recommendation | Blocks |
 |---|---|---|---|---|---|
-| OD-01 | Workflow orchestration engine (options and what changes under each: ADR-017) | Architecture / Platform | Temporal · Camunda · in-house scheduler | Temporal or Camunda, whichever the platform team already supports. Design note (ADR-017): an in-house worker behind `WorkflowGateway` is enough for Phase 2 if neither is already supported | Phase 2 |
+| OD-01a | Does the platform team already run Temporal or Camunda? (ADR-017 decided: in-house worker for Phase 2 unless one is already supported) | Platform | Yes, Temporal · Yes, Camunda · Neither | — (a fact to confirm) | Phase 2 LLD engine adapter |
 | OD-02 | Design-system package names, registry, supported Angular version | UX / Platform | — | — | Phase 3 UI build |
 | OD-03 | Design-system token list, for the mapping table in `UI_STANDARD.md` section 3 | UX | — | — | Phase 3 UI design |
 | OD-04 | Does the design system provide a tree and a virtual-scrolling data grid? | UX | — | Use them if they exist; otherwise build on Angular CDK | Phase 3 scope |
 | OD-05 | Approved graph-visualisation library for the ownership view | Architecture / Security | — | — | Phase 6 |
-| OD-06 | Authentication and authorisation provider and Angular library | Security | — | Organisation SSO (OIDC/SAML) | Phase 9 |
+| OD-06 | Authentication and authorisation provider and Angular library | Security | — | Organisation SSO (OIDC/SAML) | Phase 9; any shared environment (Phase 1 API refuses to start outside `local`/`test` without it) |
 | OD-07 | AI model and provider, and where inference runs | Architecture / Security / Audit-Risk | — | — | Phase 7 |
 | OD-08 | Audit/Risk sign-off on policy-governed straight-through commit (ADR-005) | Audit-Risk | Keep STP under approved policies · require human approval for all | Keep STP, shadow mode first | Activating any commit policy |
-| OD-09 | Capabilities still marked "—" in `docs/capabilities.md` | Product | Parity · Improve · Retire | Decide from discovery usage evidence | Phase 5 scope |
-| OD-10 | Production volumes and performance targets (NFRs) | Product / Platform | — | Parameterise: `MAX_NODES_PER_HIERARCHY`, `MAX_HIERARCHY_DEPTH`, `MAX_SIBLINGS` (full list in "Assumptions" below) | Phases 3–5 performance design |
-| OD-11 | Repository location and visibility | Architecture / Security | Enterprise GitHub org · private personal repo | Enterprise GitHub organisation | Pushing any code |
+| OD-09 | Remaining capabilities marked "—" (75 after OD-13) | Product | Parity · Improve · Retire | Decide from discovery usage evidence; next: the rest of Phases 1–2 (HIE-06, PRP-02, PRP-03, VAL-01–03, AUD-01, AUD-02, GOV-03–09) | Detailed design of those capabilities (outline only until decided) |
+| OD-10 | Production volumes and performance targets (NFRs) | Product / Platform | — | Parameterise (full list in "Assumptions" below) | Phases 3–5 performance design |
 | OD-12 | Scenario / restructure versions: used today? (BLD-03) | Product | Build sandboxes · retire | Confirm in discovery | Phase 5 scope |
-| OD-13 | Decisions for the capabilities in Phases 1–3. All of HIE-01, HIE-02, HIE-06, HIE-12, PRP-01–03, VAL-01–03, AUD-01, GOV-02–07, GOV-09, GOV-13 are `—`, so the design protocol allows only outline designs and the build protocol builds nothing for them | Product | Decide these first (Parity / Improve / Retire) · authorise detailed design ahead of the formal decision, marked provisional | Decide the SLICE-01 set first (HIE-01, HIE-02, HIE-12, PRP-01, GOV-02, GOV-13), then the rest of Phases 1–2 | Phase 1 and 2 LLDs (detailed), Phase 3 |
-| OD-14 | Phase placement: 14 capabilities are in no phase of `BUILD_PROTOCOL.md`; 5 are in two (D-34). Proposed placement in `TRACEABILITY.md` (marked `*`) | Product / Architecture | Accept the proposed placement · amend `BUILD_PROTOCOL.md` differently | Accept, then update the phase table in `BUILD_PROTOCOL.md` | Traceability sign-off; phase plans |
-| OD-15 | Hosting platform and shared environments (dev, test, pre-production, production) | Platform | Organisation container platform · cloud managed services · VMs | Container platform with managed PostgreSQL 16 supporting point-in-time recovery | Deployment design (Phase 9), VER-06, first shared environment (rule 6) |
-| OD-16 | Storage for evidence documents and export files (`storage_uri`) | Platform / Security | Object storage · file share · database large objects | Object storage with server-side encryption and retention lock | Phase 6, Phase 8 |
-| OD-17 | Least-privilege database roles (ADR-014) | Security / Audit-Risk | Adopt ADR-014 · keep one application login | Adopt before the first shared environment | Phase 1 data design; closes D-04 |
-| OD-18 | Control gaps found in the existing schema: D-04 forgeable policy approval, D-05 self-declared requester kind, D-06 decider attribution after splits, D-07 mutable items and unguarded status transitions, D-12 unguarded claims, D-13 unauthorised reject/withdraw, D-14 cap race, D-15 kill-switch membership date, D-29 untraced changes, D-33 untracked group membership. Each fix strengthens a guard but still changes a trigger or migration | Audit-Risk / Architecture | Fix in V1–V6 now (allowed until a shared environment exists, rule 6) · fix later in V7+ · accept a gap with a recorded reason | Fix in V1–V6 before the first shared environment, one ADR per group of fixes, each with pgTAP tests (positive, negative); D-21 error codes at the same time | Phase 1 and 2 data design |
-| OD-19 | Engines for rules and derived properties beyond `sql` (`cel`, `python` in the schema CHECKs). Accepted ADR-011 limits Python to AI and analysis (D-37) | Architecture | CEL evaluated in Java · Python rules service (needs an ADR-011 amendment) · SQL only | CEL in Java; keep `python` unused unless a DRM formula cannot be expressed otherwise | Phase 1 (validation runner shape), Phase 5 (PRP-06, VAL-04) |
-| OD-20 | Event transport beyond the database (NEW-07, downstream, notifications e-mail) | Architecture / Platform | Outbox polling only · organisation message broker · CDC (logical decoding) | Outbox polling first (ADR-016); add a broker relay when a consumer needs it | Phase 2 (notifier), Phase 8 (NEW-07) |
-| OD-21 | Search for QRY-03 | Architecture | PostgreSQL full-text + `pg_trgm` · dedicated search engine | PostgreSQL first; benchmark at `MAX_NODES_PER_HIERARCHY` | Phase 5 |
-| OD-22 | Business time zone and business-day convention (ADR-018) | Product / Architecture | One organisation zone · UTC | One configured zone, `BUSINESS_TIME_ZONE` | Phase 1 (as-of defaults), Phase 2 (caps, SLAs, freeze windows) |
+| OD-15a | Platform confirmation of the hosting direction (decided direction: container platform with managed PostgreSQL 16 and point-in-time recovery) | Platform | — | — | Phase 9 deployment design; first shared environment |
+| OD-16a | Platform/Security confirmation of evidence and export storage (decided direction: object storage, server-side encryption, retention lock) | Platform / Security | — | — | Phase 6, Phase 8 |
+| OD-17a | Security and Audit-Risk confirmation of ADR-014 (accepted by the repository owner) | Security / Audit-Risk | Confirm · request changes | Confirm before the first shared environment | First shared environment |
+| OD-18a | Audit-Risk review of the control fixes as they are designed (Phase 1 LLD §9, Phase 2 LLD) | Audit-Risk | — | Review each fix ADR before its migration is merged | Merging the fix migrations |
+| OD-22a | The value of `BUSINESS_TIME_ZONE` (ADR-018 decided: one configured zone) | Product | e.g. the organisation's head-office zone · UTC | — (a value only you can give) | Phase 1 build (as-of default); Phase 2 caps and SLAs |
 | OD-25 | Audit retention period and archival (AUD-04) | Audit-Risk | — | Parameterise `AUDIT_RETENTION_YEARS`; no deletion in any phase until decided | Phase 5, Phase 9 |
-| OD-26 | Identity mapping: IdP subject ↔ `mdm.app_user`; provisioning of the system actor and AI agent accounts; who may create them | Security | — | Users provisioned from IdP groups; system and AI accounts created only by migration or an admin request under maker-checker | Phase 1 (interim actor), Phase 7, Phase 9 |
+| OD-28 | `docs/capabilities.md` says it is regenerated from a working copy outside the repository. The OD-13 decisions must be entered there, or the next regeneration will reset them to "—" | Product (catalogue owner) | Update the external working copy · let the repository copy become the master | Update the working copy, then regenerate | Keeping decisions consistent |
 
 ## Decided
 
 | # | Decision | Decided by | Date | Effect |
 |---|---|---|---|---|
+| OD-01 | Workflow engine: **in-house worker behind `WorkflowGateway` for Phase 2**; switch to Temporal if the platform team already runs it (OD-01a) or if timers outgrow a scheduled scan | Repository owner (adopted recommendation, ADR-017) | 2026-11-11 | Phase 2 LLD |
+| OD-11 | Repository: **enterprise GitHub organisation, private** | Repository owner (adopted recommendation) | 2026-11-11 | Pushing still needs your explicit go-ahead and a remote created by you |
+| OD-13 | **Parity:** HIE-01, HIE-02, HIE-12, PRP-01, GOV-02, GOV-13 (the SLICE-01 set). **Improve:** SEC-01, SEC-02 (a simpler role-and-scope model than DRM, mapped from DRM access groups at migration), brought forward to Phase 1 | Repository owner (adopted recommendation) | 2026-11-11 | Phase 1 and 2 LLDs design these in full. Recorded here and in `TRACEABILITY.md` until the catalogue is regenerated (OD-28) |
+| OD-14 | Accept the phase placement proposed in `TRACEABILITY.md` (marked `*`), plus SEC-01/SEC-02 moved to Phase 1 | Repository owner (adopted recommendation) | 2026-11-11 | `BUILD_PROTOCOL.md` phase table updated in design step 5 (wiring) |
+| OD-15 | Hosting direction: container platform with managed PostgreSQL 16 supporting point-in-time recovery | Repository owner (adopted recommendation) | 2026-11-11 | Platform to confirm (OD-15a) |
+| OD-16 | Evidence and export storage direction: object storage with server-side encryption and retention lock | Repository owner (adopted recommendation) | 2026-11-11 | Platform/Security to confirm (OD-16a) |
+| OD-17 | ADR-014 least-privilege database roles: **adopt** before the first shared environment | Repository owner (adopted recommendation) | 2026-11-11 | Phase 1; Security/Audit-Risk to confirm (OD-17a) |
+| OD-18 | Control gaps: **fix before the first shared environment**, editing V1–V6 where the object is defined (rule 6 allows it now) and adding new files for new objects; one ADR per group of fixes; pgTAP tests for every fix; D-21 error codes at the same time. `mdm`-side gaps (D-04, D-05, D-07, D-29, D-36) in Phase 1; `wf`-side gaps (D-06, D-12, D-13, D-14, D-15, D-33) in Phase 2 | Repository owner (adopted recommendation) | 2026-11-11 | Phase 1 and 2 LLDs; Audit-Risk review per fix (OD-18a) |
+| OD-19 | Rule and derivation engines beyond `sql`: **CEL evaluated in Java**; `python` stays unused unless a DRM formula cannot be expressed otherwise | Repository owner (adopted recommendation) | 2026-11-11 | Phase 5 (a CEL library is a dependency to approve then) |
+| OD-20 | Events: **outbox polling first** (ADR-016); add a broker relay when a consumer needs it | Repository owner (adopted recommendation) | 2026-11-11 | Phase 2, Phase 8 |
+| OD-21 | Search (QRY-03): **PostgreSQL full-text and `pg_trgm` first**, benchmark at `MAX_NODES_PER_HIERARCHY` | Repository owner (adopted recommendation) | 2026-11-11 | Phase 5 (QRY-03 itself still undecided) |
+| OD-22 | Time: **one configured business time zone** (ADR-018) | Repository owner (adopted recommendation) | 2026-11-11 | Value still needed (OD-22a) |
 | OD-23 | Testcontainers vs Docker Engine 29: **option A**, restore the `testcontainers.version` 1.21.4 pin in `services/mdm-api/pom.xml` | Repository owner | 2026-11-11 | Phase 0 increment P0-2 |
-| OD-24 | Duplicates: **delete both** `docs/adr/ADR-012-web-ui-stack.md` and `knowledge/capabilities.md` | Repository owner | 2026-11-11 | Done in Phase 0 P0-1; `docs/capabilities.md` and Accepted ADR-012 are the only copies |
-| — | CI change approved: the `api` job uses `./mvnw -B verify` from `services/mdm-api` (Phase 0 P0-5); optional P0-6 (Git Bash path fix in `db-test.sh`) included | Repository owner | 2026-11-11 | Phase 0 |
-| OD-27 | Landing page: **combination** of the three prototype options. Home (search and overview) is the default start page; Hierarchies opens the workspace (tree + node panel) on the last hierarchy used; Worklist opens the GOV-13 queue; each user may choose their start page. Prototype: `docs/design/phase-3-steward-ui/prototypes/landing.html` | Product owner (repository owner) | 2026-11-11 | Phase 3 LLD §12 builds on it. Needs: a server-side user preference for the start page and last hierarchy used (the prototype uses browser storage only); a Home summary API (worklist top 5, own requests, hierarchies, AI suggestions, governance figures), all paged or bounded |
+| OD-24 | Duplicates: **delete both** `docs/adr/ADR-012-web-ui-stack.md` and `knowledge/capabilities.md` | Repository owner | 2026-11-11 | Done in Phase 0 P0-1 |
+| — | CI change approved: the `api` job uses `./mvnw -B verify` (Phase 0 P0-5); optional P0-6 included | Repository owner | 2026-11-11 | Phase 0 |
+| OD-26 | Identity: users provisioned from IdP groups; the system actor and AI agent accounts are created only by migration or by an admin request under maker-checker | Repository owner (adopted recommendation) | 2026-11-11 | Phase 1 (interim actor), Phase 7, Phase 9 |
+| OD-27 | Landing page: **combination** of the three prototype options. Home is the default start page; Hierarchies opens the workspace on the last hierarchy used; Worklist opens the GOV-13 queue; each user may choose their start page. Prototype: `docs/design/phase-3-steward-ui/prototypes/landing.html` | Product owner (repository owner) | 2026-11-11 | Phase 3 LLD §12. Needs a server-side user preference and a bounded Home summary API |
+| — | Architecture overview and pattern catalogue (first version) **approved**; ADR-013, ADR-015, ADR-016, ADR-018 **Accepted**; ADR-014, ADR-017 **Accepted** with the confirmations above; `CLAUDE.md` commands switch to the Maven wrapper; basic RBAC in Phase 1 | Repository owner (adopted recommendation) | 2026-11-11 | Design track continues with the Phase 1 LLD |
 
 ## Assumptions (named parameters)
 
@@ -54,7 +67,8 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | `CONCURRENT_STEWARDS` | 200 | Load tests | Product |
 | `CHANGE_REQUESTS_PER_DAY` | 2 000 | Load tests, commit-policy caps | Product |
 | `P95_CHILDREN_PAGE_MS` / `P95_NODE_DETAIL_MS` / `P95_WORKLIST_MS` | 300 / 500 / 500 | Performance targets | Product / Platform |
-| `BUSINESS_TIME_ZONE` | none assumed (OD-22) | As-of defaults, day boundaries | Product |
+| `P95_SUBMIT_MS` / `P95_APPLY_MS` (requests of ≤ 50 items) | 2 000 / 2 000 | Phase 1 command latency | Product / Platform |
+| `BUSINESS_TIME_ZONE` | none assumed (OD-22a); `UTC` in the `local` and `test` profiles only | As-of defaults, day boundaries | Product |
 | `TX_RETRY_MAX` | 3 | Serialization-failure retries | Architecture |
 | `IDEMPOTENCY_KEY_TTL` | 24 h | Idempotent POSTs | Architecture |
 | `OUTBOX_SAFETY_LAG` / `OUTBOX_BATCH_SIZE` / `OUTBOX_RETENTION_DAYS` / `OUTBOX_LAG_ALERT` | 2 s / 500 / 30 / 5 min | Event consumers (ADR-016) | Architecture / Platform |
@@ -65,14 +79,18 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | `API_DEPRECATION_MONTHS` | 6 | API versioning | Architecture |
 | `AUDIT_RETENTION_YEARS` | none assumed (OD-25) | Retention | Audit-Risk |
 
-## Proposed ADRs awaiting review
+## ADR status
 
-| ADR | Title | Owner | Note |
+| ADR | Title | Status | Note |
 |---|---|---|---|
-| ADR-013 | mdm-api as a modular monolith with ports and adapters | Architecture | |
-| ADR-014 | Least-privilege database roles per layer | Security / Audit-Risk | = OD-17 |
-| ADR-015 | API conventions | Architecture | Changes the response shape of the existing read endpoints within v1 |
-| ADR-016 | Transactional outboxes with per-consumer offsets | Architecture | |
-| ADR-017 | Workflow orchestration engine | Architecture / Platform | Decision open = OD-01 |
-| ADR-018 | Time handling | Product / Architecture | Needs OD-22 |
-| ADR-005 to ADR-009 | (existing, Proposed) | as listed in `docs/adr/README.md` | Unchanged by this design |
+| ADR-013 | mdm-api as a modular monolith with ports and adapters | Accepted 2026-11-11 | |
+| ADR-014 | Least-privilege database roles per layer | Accepted 2026-11-11 (repository owner) | Security/Audit-Risk confirmation pending (OD-17a); amended by ADR-019 |
+| ADR-015 | API conventions | Accepted 2026-11-11 | |
+| ADR-016 | Transactional outboxes with per-consumer offsets | Accepted 2026-11-11 | |
+| ADR-017 | Workflow orchestration engine | Accepted 2026-11-11: in-house worker for Phase 2 | OD-01a |
+| ADR-018 | Time handling | Accepted 2026-11-11 | Zone value OD-22a |
+| ADR-019 | Apply and decide as security-definer SQL functions; bridge-written clearance | Proposed (Phase 1 LLD) | Refines P-09 and ADR-014 |
+| ADR-020 | Database error codes for guards | Proposed (Phase 1 LLD) | D-21 |
+| ADR-021 | Phase 1 control fixes in `mdm` | Proposed (Phase 1 LLD) | OD-18 group 1; Audit-Risk review OD-18a |
+| ADR-022 | Role-and-scope entitlements, Phase 1 model | Proposed (Phase 1 LLD) | SEC-01/SEC-02 Improve |
+| ADR-005 to ADR-009 | (existing) | Proposed | Unchanged by this design |

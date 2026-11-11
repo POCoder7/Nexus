@@ -1,19 +1,22 @@
 # Design state
 
-- **Current item:** Overview + Patterns (protocol steps 1 and 2)
+- **Current item:** Phase 1 LLD (protocol step 3)
 - **Status:** Awaiting review
-- **Session date:** 2026-11-11
+- **Session date:** 2026-11-11 (overview and patterns approved the same day; Phase 0 built and approved first)
 
 ## Documents
 | Document | Status | Confidence | Last updated |
 |---|---|---|---|
-| architecture/overview.md | First version, awaiting review | Medium | 2026-11-11 |
-| architecture/patterns.md | First version (25 entries), awaiting review | Medium | 2026-11-11 |
+| architecture/overview.md | Approved; updated for ADR-019 (apply in SQL) | Medium | 2026-11-11 |
+| architecture/patterns.md | Approved (25 entries); P-07, P-09 updated for ADR-019 | Medium | 2026-11-11 |
 | design/UI_STANDARD.md | Written by a human (needs design-system details) | Medium | 2026-11-11 |
-| design/TRACEABILITY.md | First version: all 91 capabilities + PROG + SLICE-01 | Medium (phase placement partly proposed) | 2026-11-11 |
-| design/OPEN_DECISIONS.md | Extended (OD-13 to OD-26, assumptions, ADRs to review) | — | 2026-11-11 |
-| adr/ADR-013 … ADR-018 | Proposed | — | 2026-11-11 |
-| design/phase-0..9 LLDs | Not started | — | — |
+| design/TRACEABILITY.md | All 91 capabilities; OD-13 decisions and Phase 1 LLD links applied | Medium | 2026-11-11 |
+| design/OPEN_DECISIONS.md | Recommendations adopted by the owner moved to Decided; remaining open items listed | — | 2026-11-11 |
+| adr/ADR-013 … ADR-018 | Accepted (014 and 017 with confirmations pending) | — | 2026-11-11 |
+| adr/ADR-019 … ADR-022 | Proposed with the Phase 1 LLD | — | 2026-11-11 |
+| design/phase-0 | Not written: Phase 0 was built first by your instruction (sequence A); its plan, test report and summary are in `docs/phases/phase-0/` | — | 2026-11-11 |
+| design/phase-1-core-write-path/LLD.md | Draft, awaiting review | Medium (High for data/apply; Low for pending VAL semantics) | 2026-11-11 |
+| design/phase-2..9 LLDs | Not started | — | — |
 | design/phase-3-steward-ui/prototypes/landing.html | Landing-page prototype; combined design chosen (OD-27) | Prototype only: placeholder tokens, synthetic data | 2026-11-11 |
 | design/CONSISTENCY_REVIEW.md | Not started | — | — |
 
@@ -154,25 +157,26 @@ append-only triggers as listed; maker-checker and human-only decisions; policy h
 one-way kill switch, frozen approved policies and models; 35 pgTAP tests.
 
 ## Decisions blocking design (see OPEN_DECISIONS.md)
-- **OD-13** Capability decisions for the Phase 1–3 scope: all undecided, so those LLDs can only be outlines. **Blocks Phase 1 LLD.**
-- **OD-18** Fixing the control gaps D-04 to D-07, D-12 to D-15, D-29, D-33 (guard and migration changes). Blocks the Phase 1 and 2 data design.
-- OD-14 phase placement · OD-01 workflow engine (Phase 2) · OD-06 authentication (Phase 9, interim identity from Phase 1) ·
-  OD-07 AI provider (Phase 7) · OD-15 hosting · OD-16 object storage · OD-19 rules engines · OD-20 event transport ·
-  OD-22 business time zone · OD-23 Phase 0 baseline · OD-02/03/04 design system (Phase 3).
+- **OD-09** remaining capability decisions: the rest of Phases 1–2 (HIE-06, PRP-02, PRP-03, VAL-01–03, AUD-01, AUD-02, GOV-03–09) are outline only until decided. Blocks detail in the Phase 2 LLD most.
+- **OD-22a** value of `BUSINESS_TIME_ZONE`: Phase 1 is designed with it as a required setting.
+- **OD-01a** whether Temporal or Camunda is already run by the platform team: affects the Phase 2 engine adapter only.
+- **OD-17a / OD-18a** Security and Audit-Risk confirmations: block merging the Phase 1 fix migrations and the first shared environment, not the design.
+- **OD-28** the external capability working copy must receive the OD-13 decisions.
+- OD-02 to OD-07: Phase 3 and later.
 
-## Self-review (DESIGN_PROTOCOL §5) for this stop
-- *Implementable without a design question?* Not applicable at overview level; the overview fixes the cross-cutting
-  rules (errors, paging, time, concurrency, events, security layers) that each LLD will apply. Open points are OD rows, not gaps in the text.
-- *Existing behaviour verified?* Yes: every "exists" statement in `overview.md` and `patterns.md` was checked against
-  V1–V6, `db/tests/`, the Java sources, `pom.xml`, `application.yml` and `ci.yml` in this session.
-- *Weakens a control, crosses the layer boundary, contradicts an Accepted ADR?* No weakening. Proposals that touch
-  guards (OD-18, ADR-014, the ERRCODE and day-boundary inputs) are left for a human. One tension with Accepted
-  ADR-011 is raised, not resolved (Python rules, OD-19).
-- *Assumptions named and listed?* Yes: 23 named parameters in `OPEN_DECISIONS.md`.
-- *Acceptance criteria covered?* Every capability has planned tests derived from its draft criterion in
-  `TRACEABILITY.md`; case-level design (positive, negative, control, boundary) belongs to each LLD §13.
-- *Confidence honest?* Medium for the overview and patterns; scope for Phases 1–5 is mostly undecided (OD-13), stated plainly.
+## Self-review (DESIGN_PROTOCOL §5) for the Phase 1 LLD
+- *Implementable without a design question?* Yes for the decided scope: tables, columns, guards, function signatures,
+  privileges, endpoints, payloads, error codes, algorithms and tests are specified. Open points are named assumptions (A-1 to A-9) with their effect if wrong.
+- *Existing code verified?* Yes. The LLD was checked against V1–V6 and the tests while writing; this check found and fixed
+  that the new status guard would break two `lives_ok` tests and that the app login could no longer seed
+  `HierarchyApiTest`. Both are now explicit setup changes (§13), with no assertion weakened.
+- *Weakens a control, crosses the layer, contradicts an Accepted ADR?* No weakening. No `mdm` → `wf` reference (the
+  clearance table is in `mdm` and written by the bridge). ADR-019 amends Accepted ADR-014 (two owner roles, clearance
+  table); it is Proposed and flagged for review rather than applied silently.
+- *Assumptions listed?* A-1 to A-9 in the LLD; `P95_SUBMIT_MS` / `P95_APPLY_MS` added to OPEN_DECISIONS.
+- *Acceptance criteria covered?* Every in-scope capability and every PROG fix has P/N/C/B cases (§13). HIE-02 parity with DRM needs golden data (Phase 4 framework); cases are written now and marked pending.
+- *Confidence honest?* Medium overall; Low for validation semantics (pending decision), stated in §2.
 
 ## Next action
-Human review of: this file, `architecture/overview.md`, `architecture/patterns.md`, ADR-013 to ADR-018,
-`TRACEABILITY.md`, `OPEN_DECISIONS.md`. Then protocol step 3: Phase 0 LLD.
+Human review of `docs/design/phase-1-core-write-path/LLD.md` and ADR-019 to ADR-022. On approval: Phase 2 LLD
+(workflow and the `wf`-side control fixes), then stop again. The Phase 1 *build* waits until the design track is complete (your sequence B before C).

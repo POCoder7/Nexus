@@ -1,6 +1,6 @@
 # ADR-018: Time handling — business dates in a configured business time zone, UTC recorded time
 
-- **Status:** Proposed
+- **Status:** Accepted (repository owner, 2026-11-11). The zone value is still open (OD-22a)
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** VER-03, NEW-01, GOV-07, GOV-12

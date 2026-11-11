@@ -117,7 +117,7 @@ flowchart LR
     vr[ValidationRunner<br/>Phase 1]
     aps[ApplyService<br/>Phase 1]
     wg[[WorkflowGateway port<br/>Phase 2]]
-    src[[ApprovedItemsSource port<br/>Phase 1]]
+    src[(mdm.apply_change_request<br/>SQL, ADR-019)]
   end
   subgraph engines[Strategies]
     re[[RuleEngine port<br/>sql · cel]]
@@ -146,7 +146,7 @@ Ports and their adapters (ADR-013):
 
 | Port | Adapters | Phase |
 |---|---|---|
-| `ApprovedItemsSource` | `WorkflowBridgeItems` (reads `wf_bridge.v_items_to_apply`); `CoreMakerCheckerItems` (requests approved directly in `mdm`, used when no workflow covers them) | 1–2 |
+| *(replaced by ADR-019)* | Apply is the `SECURITY DEFINER` function `mdm.apply_change_request`; it uses all items of a core-approved request, or only items the bridge recorded in `mdm.change_item_clearance` for a workflow-governed one. `ApplyService` in Java only orchestrates | 1–2 |
 | `WorkflowGateway` | `SqlWorkflowGateway` (calls `wf.start_instance` etc.); engine adapter per OD-01 | 2 |
 | `RuleEngine` / `DerivationEngine` | `SqlRuleEngine` (exists in SQL as the `sql` engine); `CelRuleEngine` (open: OD-19) | 1, 5 |
 | `CurrentActor` | `LocalDevActor` (profile `local` only, synthetic user); `OidcActor` (OD-06) | 1, 9 |
@@ -236,8 +236,8 @@ Step responsibilities and failure handling:
 | Audit | Triggers | Inseparable from the write (same transaction) |
 | Events | Outbox relay | Retried until delivered; consumers deduplicate on event id |
 
-Without workflow (core only, ADR-003): the request is decided directly in `mdm` under `trg_cr_maker_checker`, and
-`CoreMakerCheckerItems` feeds the same `ApplyService`. Which requests may skip workflow is a configuration decision
+Without workflow (core only, ADR-003): the request is decided directly in `mdm` through `mdm.decide_change_request`
+under `trg_cr_maker_checker`, and the same `mdm.apply_change_request` applies it (ADR-019). Which requests may skip workflow is a configuration decision
 per hierarchy (planned, Phase 1 LLD); by default every request goes through workflow once Phase 2 exists.
 
 ## 7. Transactions and consistency

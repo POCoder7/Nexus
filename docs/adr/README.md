@@ -14,11 +14,15 @@
 | ADR-010 | Track the programme in Excel for now | Accepted |
 | ADR-011 | Technology stack | Accepted |
 | ADR-012 | UI framework — Angular with the organisation's design system | Accepted |
-| ADR-013 | mdm-api as a modular monolith with ports and adapters | Proposed |
-| ADR-014 | Least-privilege database roles per layer | Proposed (Security, Audit-Risk review) |
-| ADR-015 | API conventions — keyset paging, Problem Details, concurrency, idempotency, versioning | Proposed |
-| ADR-016 | Transactional outboxes with per-consumer offsets | Proposed |
-| ADR-017 | Workflow orchestration engine (decision open, OD-01) | Proposed |
-| ADR-018 | Time handling — business time zone, UTC recorded time | Proposed |
+| ADR-013 | mdm-api as a modular monolith with ports and adapters | Accepted |
+| ADR-014 | Least-privilege database roles per layer | Accepted (Security, Audit-Risk confirmation pending) |
+| ADR-015 | API conventions — keyset paging, Problem Details, concurrency, idempotency, versioning | Accepted |
+| ADR-016 | Transactional outboxes with per-consumer offsets | Accepted |
+| ADR-017 | Workflow orchestration engine — in-house worker for Phase 2 | Accepted |
+| ADR-018 | Time handling — business time zone, UTC recorded time | Accepted (zone value open) |
+| ADR-019 | Apply and decide as security-definer SQL functions; bridge-written clearance | Proposed |
+| ADR-020 | Database error codes for guards | Proposed |
+| ADR-021 | Phase 1 control fixes in `mdm` | Proposed (Audit-Risk review) |
+| ADR-022 | Role-and-scope entitlements, Phase 1 model | Proposed |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.

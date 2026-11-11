@@ -1,6 +1,6 @@
 # ADR-015: API conventions — keyset paging, Problem Details, concurrency, idempotency, versioning
 
-- **Status:** Proposed
+- **Status:** Accepted (repository owner, 2026-11-11)
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** PROG, HIE-12, ADM-02

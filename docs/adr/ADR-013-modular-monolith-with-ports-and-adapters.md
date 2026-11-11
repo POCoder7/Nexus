@@ -1,6 +1,6 @@
 # ADR-013: mdm-api as a modular monolith with ports and adapters
 
-- **Status:** Proposed
+- **Status:** Accepted (repository owner, 2026-11-11)
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** PROG

@@ -29,9 +29,8 @@
 | ADR-013 to ADR-018 | Modular monolith, DB roles, API conventions, outbox, workflow engine (open), time handling | Proposed in the design track; see `docs/design/OPEN_DECISIONS.md` |
 
 ## Open questions for the human
-1. Review the architecture overview, pattern catalogue and ADR-013 to ADR-018 (design track, first stop).
-2. Should `CLAUDE.md` "Commands" switch to the Maven wrapper? (Not edited; your rules file.)
-3. OD-11: where will the repository live, so CI can run on GitHub?
+1. Review the Phase 1 LLD and ADR-019 to ADR-022 (design track). Overview, patterns and ADR-013 to ADR-018 were approved 2026-11-11.
+2. OD-11 decided (enterprise GitHub organisation, private): create the remote and say when to push; CI runs only after that.
 
 ## Known gaps, stubs and technical debt
 - CI has never run on GitHub (no remote; OD-11).
@@ -40,5 +39,5 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Step B: wait for review of the architecture overview and pattern catalogue
-(`docs/design/DESIGN_STATE.md` next action), followed by the Phase 1 LLD.
+Step B (design track) in progress: see `docs/design/DESIGN_STATE.md`. The Phase 1 build starts only after the
+design track is complete and its LLD is approved (sequence B before C).

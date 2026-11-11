@@ -1,6 +1,6 @@
-# ADR-017: Workflow orchestration engine (decision open)
+# ADR-017: Workflow orchestration engine
 
-- **Status:** Proposed — **decision belongs to Architecture / Platform (OD-01); not decided here**
+- **Status:** Accepted (repository owner, 2026-11-11): **in-house worker behind `WorkflowGateway` for Phase 2**; switch to Temporal if the platform team already runs it (OD-01a)
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** GOV-01 to GOV-09, GOV-12, GOV-13

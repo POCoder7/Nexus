@@ -1,7 +1,7 @@
 # Traceability: capability → phase → design → planned tests
 
 - **Status:** First version, awaiting review (2026-11-11). Generated from `docs/capabilities.md`; phase LLD sections are filled in as each LLD is written.
-- **Coverage:** 91 capabilities, each listed exactly once, plus PROG and SLICE-01. 2 retired; 77 pending decision (outline design only, per `docs/DESIGN_PROTOCOL.md` §2).
+- **Coverage:** 91 capabilities, each listed exactly once, plus PROG and SLICE-01. 2 retired; 69 pending decision (outline design only, per `docs/DESIGN_PROTOCOL.md` §2).
 - **Phase** is the primary phase from `docs/BUILD_PROTOCOL.md` §2. A `*` marks a placement this design **proposes** because the build protocol lists the capability in no phase, or because it fits an earlier phase better (OD-14). **Also in** shows other phases that contribute.
 - **Planned tests** come from the draft acceptance criteria and golden test sources in the catalogue; positive, negative, control and boundary cases are detailed in each LLD §13.
 
@@ -9,7 +9,7 @@
 
 | ID | Title | Decision | Phase | Also in | Design status | LLD section | Planned tests |
 |---|---|---|---|---|---|---|---|
-| PROG | Programme / foundation work | — | 0 | all | In scope | phase-0 LLD §13 (not yet written) | db-test and mvn verify green locally and in CI; Maven wrapper committed; layer-rule check (no `wf.` in V1–V3 or `mdm` Java modules). |
+| PROG | Programme / foundation work | — | 0 | all | Phase 0 built and approved; Phase 1 control fixes | Phase 0: `docs/phases/phase-0/`; Phase 1 LLD §13 (PROG rows) | db-test and mvn verify green locally and in CI; Maven wrapper committed; layer-rule check (no `wf.` in V1–V3 or `mdm` Java modules). |
 | SLICE-01 | First vertical slice: browse, add leaf under governance | Spec draft | 3 | 1, 2 | In scope (spec Draft) | phase-3 LLD §13 (not yet written) | E2E: browse, add leaf, submit, commit, verify (UI_STANDARD §10); as-of day before shows no leaf; requester cannot commit own request; shadow policy evaluation recorded; golden inherited values on the chosen masked hierarchy. |
 
 ## Capabilities
@@ -23,21 +23,21 @@
 | VER-05 | Version variables | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP (slice and status rules) · JUnit API · golden. Criterion: Exports and jobs using a variable resolve to the right version after it changes. Golden: Export runs before/after a variable change. |
 | VER-06 | Load, unload, backup and restore versions | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP (slice and status rules) · JUnit API · golden. Criterion: Point-in-time restore tested; users never load/unload versions. Golden: Operational DR test. |
 | VER-07 | Version-level properties | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP (slice and status rules) · JUnit API · golden. Criterion: Version-level properties display and export as in DRM. Golden: Version property values. |
-| HIE-01 | Hierarchies, top nodes and groups | — | 1 | 5 (HIE-* in protocol) | Pending decision — outline only | phase-1 LLD §13 (not yet written) | pgTAP guards · JUnit apply + API · golden exports. Criterion: All hierarchies load with the same top node, group and node count as DRM. Golden: Hierarchy list + node counts. |
-| HIE-02 | Add, insert, move, remove, delete | — | 1 | 5 (HIE-* in protocol) | Pending decision — outline only | phase-1 LLD §13 (not yet written) | pgTAP guards · JUnit apply + API · golden exports. Criterion: Each action produces the same resulting tree as DRM. Golden: Before/after exports for scripted action sets. |
+| HIE-01 | Hierarchies, top nodes and groups | Parity (OD-13) | 1 | 5 (HIE-* in protocol) | In scope (Parity) | phase-1 LLD §13 | pgTAP guards · JUnit apply + API · golden exports. Criterion: All hierarchies load with the same top node, group and node count as DRM. Golden: Hierarchy list + node counts. |
+| HIE-02 | Add, insert, move, remove, delete | Parity (OD-13) | 1 | 5 (HIE-* in protocol) | In scope (Parity) | phase-1 LLD §13 | pgTAP guards · JUnit apply + API · golden exports. Criterion: Each action produces the same resulting tree as DRM. Golden: Before/after exports for scripted action sets. |
 | HIE-03 | Shared nodes | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP guards · JUnit apply + API · golden exports. Criterion: Shared nodes display, export and validate as in DRM. Golden: Hierarchy exports containing shared nodes. |
 | HIE-04 | Orphans | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP guards · JUnit apply + API · golden exports. Criterion: Orphan list matches DRM. Golden: DRM orphan list. |
 | HIE-05 | Leaf / limb and promotion | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP guards · JUnit apply + API · golden exports. Criterion: Adding a child under a leaf is blocked; promotion works. Golden: Validation results. |
-| HIE-06 | Inactivate / reactivate nodes | — | 1 | 5 (HIE-* in protocol) | Pending decision — outline only | phase-1 LLD §13 (not yet written) | pgTAP guards · JUnit apply + API · golden exports. Criterion: Inactive nodes included/excluded per export settings exactly as DRM. Golden: Exports with include-inactive on and off. |
+| HIE-06 | Inactivate / reactivate nodes | — | 1 | 5 (HIE-* in protocol) | Pending decision — outline only | phase-1 LLD §13 / §15 (outline) | pgTAP guards · JUnit apply + API · golden exports. Criterion: Inactive nodes included/excluded per export settings exactly as DRM. Golden: Exports with include-inactive on and off. |
 | HIE-07 | Node merge on delete | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP guards · JUnit apply + API · golden exports. Criterion: References repoint to the target node and the merge is logged. Golden: DRM merge log. |
 | HIE-08 | Sibling sort order | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP guards · JUnit apply + API · golden exports. Criterion: Export row order matches DRM exactly. Golden: Hierarchy exports. |
 | HIE-09 | Node types | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP guards · JUnit apply + API · golden exports. Criterion: Correct properties shown and validated per node type. Golden: Validation results by node type. |
 | HIE-10 | Domains | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP guards · JUnit apply + API · golden exports. Criterion: Domain rules enforced identically. Golden: Domain validation results. |
 | HIE-11 | Model after (clone node) | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP guards · JUnit apply + API · golden exports. Criterion: Clone has the source's property values except its name. |
-| HIE-12 | Browse and edit large hierarchies | — | 3 | 5 (HIE-* in protocol) | Pending decision — outline only | phase-3 LLD §13 (not yet written) | performance at MAX_NODES_PER_HIERARCHY / MAX_SIBLINGS · UI component + E2E. Criterion: Largest hierarchy loads and expands within the NFR targets. Golden: Performance test with production volumes. |
-| PRP-01 | Global and local properties | — | 1 |  | Pending decision — outline only | phase-1 LLD §13 (not yet written) | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Every property migrated with the correct scope; values match. Golden: Property value extract. |
-| PRP-02 | Property data types | — | 1 |  | Pending decision — outline only | phase-1 LLD §13 (not yet written) | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Type rules enforced; values round-trip exactly. Golden: Property value extract. |
-| PRP-03 | List properties | — | 1 |  | Pending decision — outline only | phase-1 LLD §13 (not yet written) | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Only listed values accepted; lists match DRM. Golden: List definitions. |
+| HIE-12 | Browse and edit large hierarchies | Parity (OD-13) | 3 | 5 (HIE-* in protocol) | In scope (Parity) | phase-3 LLD §13 (not yet written) | performance at MAX_NODES_PER_HIERARCHY / MAX_SIBLINGS · UI component + E2E. Criterion: Largest hierarchy loads and expands within the NFR targets. Golden: Performance test with production volumes. |
+| PRP-01 | Global and local properties | Parity (OD-13) | 1 |  | In scope (Parity) | phase-1 LLD §13 | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Every property migrated with the correct scope; values match. Golden: Property value extract. |
+| PRP-02 | Property data types | — | 1 |  | Pending decision — outline only | phase-1 LLD §13 / §15 (outline) | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Type rules enforced; values round-trip exactly. Golden: Property value extract. |
+| PRP-03 | List properties | — | 1 |  | Pending decision — outline only | phase-1 LLD §13 / §15 (outline) | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Only listed values accepted; lists match DRM. Golden: List definitions. |
 | PRP-04 | Lookup properties | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Lookup results match DRM for every node. Golden: Derived value extract. |
 | PRP-05 | Inheritance and overrides | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Inherited values match DRM for every node in every hierarchy. Golden: Inherited value extract. |
 | PRP-06 | Derived properties (formulas/scripts) | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Each in-use derived property returns DRM's value for all nodes. Golden: Derived value extract (key golden test). |
@@ -45,9 +45,9 @@
 | PRP-08 | Property categories | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Same grouping in the UI. |
 | PRP-09 | Property-level edit permissions | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Unauthorised edits rejected. Golden: Security test cases. |
 | PRP-10 | Hierarchy-level properties | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP type/scope · JUnit resolution with provenance · golden. Criterion: Values display and export as in DRM. Golden: Hierarchy property values. |
-| VAL-01 | Real-time validations | — | 1 |  | Pending decision — outline only | phase-1 LLD §13 (not yet written) | JUnit ValidationRunner · pgTAP rule contract · golden. Criterion: Invalid edits blocked with an equivalent message. Golden: DRM outcomes for scripted edits. |
-| VAL-02 | Batch validations | — | 1 |  | Pending decision — outline only | phase-1 LLD §13 (not yet written) | JUnit ValidationRunner · pgTAP rule contract · golden. Criterion: Batch results match DRM. Golden: DRM batch validation output. |
-| VAL-03 | Validation levels and assignments | — | 1 |  | Pending decision — outline only | phase-1 LLD §13 (not yet written) | JUnit ValidationRunner · pgTAP rule contract · golden. Criterion: Each rule applies in exactly the same scope. Golden: Validation output by scope. |
+| VAL-01 | Real-time validations | — | 1 |  | Pending decision — outline only | phase-1 LLD §13 / §15 (outline) | JUnit ValidationRunner · pgTAP rule contract · golden. Criterion: Invalid edits blocked with an equivalent message. Golden: DRM outcomes for scripted edits. |
+| VAL-02 | Batch validations | — | 1 |  | Pending decision — outline only | phase-1 LLD §13 / §15 (outline) | JUnit ValidationRunner · pgTAP rule contract · golden. Criterion: Batch results match DRM. Golden: DRM batch validation output. |
+| VAL-03 | Validation levels and assignments | — | 1 |  | Pending decision — outline only | phase-1 LLD §13 / §15 (outline) | JUnit ValidationRunner · pgTAP rule contract · golden. Criterion: Each rule applies in exactly the same scope. Golden: Validation output by scope. |
 | VAL-04 | Formula / script validations | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | JUnit ValidationRunner · pgTAP rule contract · golden. Criterion: Each rule converted with automated tests. Golden: Validation outputs. |
 | QRY-01 | Property queries | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | JUnit · golden. Criterion: Same node set returned for each saved query. Golden: Query results. |
 | QRY-02 | Compares | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | JUnit · golden. Criterion: Same differences reported. Golden: DRM compare output. |
@@ -69,7 +69,7 @@
 | BLD-02 | Remove vs mark-for-removal | Retire | — |  | Retired (out of scope) | — | — |
 | BLD-03 | Scenario / restructure versions | — | 5* |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | —. Criterion: Scenario can be built, compared and applied or discarded. |
 | GOV-01 | Workflow models | Parity | 2 |  | In scope (Parity) | phase-2 LLD §13 (not yet written) | pgTAP guards (positive, negative, control) · JUnit API · golden request histories. Criterion: Every in-use model configured and routing identically. Golden: Request histories. |
-| GOV-02 | Submit / Enrich / Approve / Commit stages | — | 2 |  | Pending decision — outline only | phase-2 LLD §13 (not yet written) | pgTAP guards (positive, negative, control) · JUnit API · golden request histories. Criterion: Stages behave as in DRG. Golden: Request histories. |
+| GOV-02 | Submit / Enrich / Approve / Commit stages | Parity (OD-13) | 2 |  | In scope (Parity) | phase-2 LLD §13 (not yet written) | pgTAP guards (positive, negative, control) · JUnit API · golden request histories. Criterion: Stages behave as in DRG. Golden: Request histories. |
 | GOV-03 | Workflow tasks and editable properties | — | 2 |  | Pending decision — outline only | phase-2 LLD §13 (not yet written) | pgTAP guards (positive, negative, control) · JUnit API · golden request histories. Criterion: Only permitted edits allowed per stage. Golden: Request histories. |
 | GOV-04 | Conditional stages and request splitting | — | 2 |  | Pending decision — outline only | phase-2 LLD §13 (not yet written) | pgTAP guards (positive, negative, control) · JUnit API · golden request histories. Criterion: Same routing and splits as DRG. Golden: Request histories. |
 | GOV-05 | Separation of duties | — | 2 |  | Pending decision — outline only | phase-2 LLD §13 (not yet written) | pgTAP guards (positive, negative, control) · JUnit API · golden request histories. Criterion: SoD violations blocked. Golden: Security test cases. |
@@ -80,16 +80,16 @@
 | GOV-10 | Bulk requests from file | — | 4* |  | Pending decision — outline only | phase-4 LLD §13 (not yet written) | pgTAP guards (positive, negative, control) · JUnit API · golden request histories. Criterion: Bulk requests created and routed correctly. |
 | GOV-11 | Request comments and attachments | — | 2* |  | Pending decision — outline only | phase-2 LLD §13 (not yet written) | pgTAP guards (positive, negative, control) · JUnit API · golden request histories. Criterion: Comments and files retained with the request. |
 | GOV-12 | Straight-through commit | Improve | 2 | 3 (label "Committed by policy") | In scope (Improve) | phase-2 LLD §13 (not yet written) | pgTAP policy guards (exist: 11 in 02_workflow_invariants.sql) + apply_commit_policy shadow/active · JUnit engine call · shadow evidence report. Criterion: Eligible requests commit automatically after validations; ineligible ones route to a human; every auto-commit is logged with the policy that allowed it. Golden: Request histories. |
-| GOV-13 | Worklist views and flags | — | 2 | 3 (UI) | Pending decision — outline only | phase-2 LLD §13 (not yet written) | JUnit worklist filters + paging · E2E (Phase 3) · golden worklist samples. Criterion: Each filter returns the same requests as DRM for a sample user. Golden: Worklist samples. |
+| GOV-13 | Worklist views and flags | Parity (OD-13) | 2 | 3 (UI) | In scope (Parity) | phase-2 LLD §13 (not yet written) | JUnit worklist filters + paging · E2E (Phase 3) · golden worklist samples. Criterion: Each filter returns the same requests as DRM for a sample user. Golden: Worklist samples. |
 | GOV-14 | Request tags | — | 5* |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP guards (positive, negative, control) · JUnit API · golden request histories. Criterion: Tags can be added, searched and reported on. |
 | GOV-15 | Governance analytics | — | 5* |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP guards (positive, negative, control) · JUnit API · golden request histories. Criterion: Same metrics available as today, refreshed at least daily. Golden: Analytics exports. |
 | GOV-16 | Alerts | — | 2* |  | Pending decision — outline only | phase-2 LLD §13 (not yet written) | pgTAP guards (positive, negative, control) · JUnit API · golden request histories. Criterion: Users see alerts for their requests; volume is actionable. |
-| SEC-01 | Users and roles | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | JUnit negative authorisation · pgTAP SET ROLE denials. Criterion: Each role can do exactly what it should. Golden: Security test cases. |
-| SEC-02 | Node access groups | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | JUnit negative authorisation · pgTAP SET ROLE denials. Criterion: Access matches DRM per user. Golden: Access matrix sample. |
+| SEC-01 | Users and roles | Improve (OD-13) | 1* | 5 (full), 9 (IdP) | In scope (Improve) | phase-1 LLD §13 | JUnit negative authorisation · pgTAP SET ROLE denials. Criterion: Each role can do exactly what it should. Golden: Security test cases. |
+| SEC-02 | Node access groups | Improve (OD-13) | 1* | 5 (DRM mapping) | In scope (Improve) | phase-1 LLD §13 | JUnit negative authorisation · pgTAP SET ROLE denials. Criterion: Access matches DRM per user. Golden: Access matrix sample. |
 | SEC-03 | Property access | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | JUnit negative authorisation · pgTAP SET ROLE denials. Criterion: Access matches DRM. Golden: Security test cases. |
 | SEC-04 | Object access | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | JUnit negative authorisation · pgTAP SET ROLE denials. Criterion: Visibility matches DRM. |
 | SEC-05 | Authentication / SSO | — | 9 | 5 (SEC-* in protocol) | Pending decision — outline only | phase-9 LLD §13 (not yet written) | integration with the IdP (OD-06) · negative sign-in tests. Criterion: Users sign in with corporate SSO. |
-| AUD-01 | Transaction history | — | 1 | 5 (AUD-* in protocol) | Pending decision — outline only | phase-1 LLD §13 (not yet written) | pgTAP append-only · JUnit traceability. Criterion: Every change traceable to actor and request. Golden: Transaction log sample. |
+| AUD-01 | Transaction history | — | 1 | 5 (AUD-* in protocol) | Pending decision — outline only | phase-1 LLD §13 / §15 (outline) | pgTAP append-only · JUnit traceability. Criterion: Every change traceable to actor and request. Golden: Transaction log sample. |
 | AUD-02 | Request history | — | 2* | 5 (AUD-* in protocol) | Pending decision — outline only | phase-2 LLD §13 (not yet written) | pgTAP append-only · JUnit traceability. Criterion: Complete, immutable request history. Golden: Request histories. |
 | AUD-03 | Job and export run history | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | pgTAP append-only · JUnit traceability. Criterion: Every run logged with outcome and file hash. Golden: Job history. |
 | AUD-04 | Audit retention | — | 5 |  | Pending decision — outline only | phase-5 LLD §13 (not yet written) | retention job test (pending decision). Criterion: History retained for the required period. |
@@ -97,7 +97,7 @@
 | ADM-02 | Web service API | — | 8* |  | Pending decision — outline only | phase-8 LLD §13 (not yet written) | integration tests. Criterion: Every current integration has an equivalent API. Golden: Integration test suite. |
 | ADM-03 | Batch client automation | — | 8* |  | Pending decision — outline only | phase-8 LLD §13 (not yet written) | integration tests. Criterion: Every scheduled job reproduced or retired. Golden: Job outputs. |
 | ADM-04 | Downstream integrations | — | 4 |  | Pending decision — outline only | phase-4 LLD §13 (not yet written) | parallel-run reconciliation per consumer. Criterion: Every consumer cut over with a passing parallel run. Golden: Reconciliation results. |
-| NEW-01 | Any-date history without rebuild | New | 1* |  | In scope (New) | phase-1 LLD §13 (not yet written) | pgTAP + JUnit as-of reads at any (asOf, recordedAsOf). Criterion: Any date/time queryable instantly. |
+| NEW-01 | Any-date history without rebuild | New | 1* |  | In scope (New) | phase-1 LLD §13 | pgTAP + JUnit as-of reads at any (asOf, recordedAsOf). Criterion: Any date/time queryable instantly. |
 | NEW-02 | Ownership graph and UBO | New | 6 |  | In scope (New) | phase-6 LLD §13 (not yet written) | pgTAP deterministic path math · JUnit cross-holding solve · compliance-verified synthetic samples. Criterion: UBOs computed with paths and evidence. Golden: Compliance-verified samples. |
 | NEW-03 | AI document-to-graph extraction | New | 7 |  | In scope (New) | phase-7 LLD §13 (not yet written) | stubbed-provider JUnit · accuracy harness on labelled synthetic documents. Criterion: Extraction accuracy meets agreed threshold; every fact cites evidence. Golden: Labelled document set. |
 | NEW-04 | AI change-request drafting | New | 7 |  | In scope (New) | phase-7 LLD §13 (not yet written) | stubbed-provider JUnit · acceptance-rate evaluation on synthetic history. Criterion: Drafts accepted without edits at agreed rate. Golden: Historical requests. |
@@ -112,11 +112,11 @@
 
 | Phase | Capabilities |
 |---|---|
-| Phase 1 | 11 |
+| Phase 1 | 13 |
 | Phase 2 | 14 |
 | Phase 3 | 2 |
 | Phase 4 | 4 |
-| Phase 5 | 39 |
+| Phase 5 | 37 |
 | Phase 6 | 1 |
 | Phase 7 | 4 |
 | Phase 8 | 12 |
@@ -126,5 +126,5 @@
 ## Differences from the build protocol phase table (for OD-14)
 
 - In no phase in `BUILD_PROTOCOL.md`; placement proposed here: BLD-03 → 5, GOV-08 → 2, GOV-10 → 4, GOV-11 → 2, GOV-14 → 5, GOV-15 → 5, GOV-16 → 2, ADM-01 → 9, ADM-02 → 8, ADM-03 → 8, NEW-01 → 1, NEW-07 → 8, NEW-08 → 5, NEW-10 → 3.
-- Moved earlier: AUD-02 (request history is `wf.instance_action`, built in Phase 2) from 5 to 2.
+- Moved earlier by OD-13/OD-14: SEC-01 and SEC-02 from 5 to 1 (basic roles and scopes). AUD-02 (request history is `wf.instance_action`, built in Phase 2) from 5 to 2.
 - Listed in two phases in the protocol; primary chosen here: HIE-01/02/06 → 1, HIE-12 → 3, AUD-01 → 1, SEC-05 → 9 (the `*` ranges in Phase 5 mean "the rest"), GOV-13 → 2 (API; UI in 3), NEW-09 → 8 (reconciliation; golden framework in 4).

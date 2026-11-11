@@ -1,6 +1,6 @@
 # ADR-014: Least-privilege database roles per layer
 
-- **Status:** Proposed (touches Audit/Risk controls: needs Security and Audit-Risk review)
+- **Status:** Accepted by the repository owner (2026-11-11); Security and Audit-Risk confirmation pending (OD-17a). Amended by ADR-019
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** PROG, GOV-12, AUD-01, SEC-01
