@@ -382,6 +382,25 @@ SELECT coalesce((SELECT separation_of_duties FROM me), false)
 $$;
 
 -- Node access: every item in the instance must fall under the stage's scope (if any).
+-- Is p_node the top node or below it in the hierarchy on p_on (through primary or shared placements)?
+-- Walks up from the node instead of down from the top (D-10): O(depth × parents) per node, independent of the size
+-- of the sub-tree. Bounded by max_hierarchy_depth (D-09).
+CREATE FUNCTION wf.node_under(p_hierarchy uuid, p_node uuid, p_top uuid, p_on date)
+RETURNS boolean LANGUAGE sql STABLE SET search_path = wf, mdm, public AS $$
+WITH RECURSIVE up(node_id, depth) AS (
+  SELECT p_node, 0
+  UNION
+  SELECT r.parent_node_id, up.depth + 1
+  FROM mdm.hierarchy_relationship r JOIN up ON r.child_node_id = up.node_id
+  WHERE r.hierarchy_id = p_hierarchy AND r.valid_period @> p_on AND upper_inf(r.recorded_period)
+    AND up.depth < (SELECT coalesce(max(setting_value::int), 50) FROM mdm.system_setting WHERE setting_key = 'max_hierarchy_depth')
+)
+SELECT p_node IS NOT NULL AND EXISTS (SELECT 1 FROM up WHERE up.node_id = p_top)
+$$;
+
+-- Node access: every item of the instance must fall under one of the stage's scopes (if it has any), on the
+-- request's effective date (D-11), not on the day the check runs. Same rule as before: the item's node or its target
+-- parent is the scope's top node or below it in the scope's hierarchy.
 CREATE FUNCTION wf.items_in_scope(p_instance_stage_id uuid)
 RETURNS boolean LANGUAGE sql STABLE SET search_path = wf, mdm, public AS $$
 SELECT NOT EXISTS (SELECT 1
@@ -391,16 +410,17 @@ SELECT NOT EXISTS (SELECT 1
     OR NOT EXISTS (
          SELECT 1
          FROM wf.instance_stage ist
-         JOIN wf.instance_item ii ON ii.instance_id = ist.instance_id
-         JOIN mdm.change_item ci  ON ci.change_item_id = ii.change_item_id
+         JOIN wf.instance_item ii    ON ii.instance_id = ist.instance_id
+         JOIN mdm.change_item ci     ON ci.change_item_id = ii.change_item_id
+         JOIN mdm.change_request cr  ON cr.change_request_id = ci.change_request_id
          WHERE ist.instance_stage_id = p_instance_stage_id
            AND coalesce(ci.node_id, ci.target_parent_id) IS NOT NULL
            AND NOT EXISTS (
              SELECT 1
              FROM wf.stage_access_scope sc
-             CROSS JOIN LATERAL mdm.hierarchy_tree(sc.hierarchy_id, current_date, now(), sc.top_node_id) t
              WHERE sc.stage_id = ist.stage_id
-               AND t.node_id IN (ci.node_id, ci.target_parent_id)))
+               AND (wf.node_under(sc.hierarchy_id, ci.node_id, sc.top_node_id, cr.effective_from)
+                    OR wf.node_under(sc.hierarchy_id, ci.target_parent_id, sc.top_node_id, cr.effective_from))))
 $$;
 
 -- Can this user act on this stage right now?
@@ -555,8 +575,10 @@ WHERE ist.instance_stage_id = p_instance_stage_id
         WHERE c2.change_request_id = ci.change_request_id AND c2.node_id = ci.node_id
           AND c2.property_id = tp.property_id AND c2.action = 'set_property'
           AND jsonb_typeof(c2.payload->'value') IS DISTINCT FROM 'null')
-  AND coalesce(jsonb_typeof(       -- ...and not already stored
-        mdm.property_value_asof(ci.node_id, tp.property_id, ci.hierarchy_id, current_date, now())), 'null') = 'null'
+  AND coalesce(jsonb_typeof(       -- ...and not already stored on the request's effective date (D-11)
+        mdm.property_value_asof(ci.node_id, tp.property_id, ci.hierarchy_id,
+                                (SELECT cr.effective_from FROM mdm.change_request cr WHERE cr.change_request_id = ci.change_request_id),
+                                now())), 'null') = 'null'
 $$;
 
 -- Does a change item match a stage condition? Proposed values in the request win over stored values.
@@ -603,7 +625,8 @@ BEGIN
         AND c2.property_id = pid AND c2.action = 'set_property'
       ORDER BY c2.seq DESC LIMIT 1;
       IF NOT FOUND THEN
-        v := mdm.property_value_asof(ci.node_id, pid, ci.hierarchy_id, current_date, now());
+        v := mdm.property_value_asof(ci.node_id, pid, ci.hierarchy_id,   -- stored value on the effective date (D-11)
+               (SELECT cr.effective_from FROM mdm.change_request cr WHERE cr.change_request_id = ci.change_request_id), now());
       END IF;
       IF v = 'null'::jsonb THEN v := NULL; END IF;
       RETURN coalesce(CASE p_condition->>'op'

@@ -251,6 +251,7 @@ wf_bridge.add_enrichment_item(p_stage uuid, p_user uuid, ...) SECURITY DEFINER (
 evaluated at the request's `effective_from` instead of `current_date`. Same for `wf.missing_required_properties` and
 `wf.item_condition_matches` (`current_date` → `effective_from`). A pgTAP test runs old and new `items_in_scope` on the
 same fixtures and asserts equal results before the old one is replaced.
+*Built in 2-4:* `wf.node_under(hierarchy, node, top, day)` walks up through primary and shared placements (bounded by `max_hierarchy_depth`); `items_in_scope` uses it at the request's `effective_from`. The old whole-tree rule is kept only inside `db/tests/17_scope.sql`, which compares both on 28 stage/request cases (shared placements, new nodes through their parent, scopes in a second hierarchy, mixed items) and finds no difference; a node moved into a scope after the effective date shows the new date rule. `missing_required_properties` and `item_condition_matches` read stored values at `effective_from` too.
 
 ### 4.9 Worklist (D-10, GOV-13) — new, V9
 ```sql
