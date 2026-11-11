@@ -1,6 +1,6 @@
 # ADR-030: Ownership calculation — exact rational solve, methodology per regime, recorded determinations
 
-- **Status:** Proposed (Phase 6 LLD). The methodology per regime (OD-35) and personal-data handling (OD-34) are **not** decided here
+- **Status:** Accepted (repository owner, 2026-11-11). The methodology per regime (OD-35) and personal-data handling (OD-34) remain open
 - **Date:** 2026-11-11
 - **Deciders:** <names / roles>
 - **Capabilities:** NEW-02

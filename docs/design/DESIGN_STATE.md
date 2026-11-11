@@ -1,6 +1,6 @@
 # Design state
 
-- **Current item:** Phase 6 LLD (protocol step 3)
+- **Current item:** Phase 7 LLD (protocol step 3)
 - **Status:** Awaiting review
 - **Session date:** 2026-11-11 (overview and patterns approved the same day; Phase 0 built and approved first)
 
@@ -18,15 +18,17 @@
 | adr/ADR-025 | Accepted | — | 2026-11-11 |
 | adr/ADR-026, ADR-027 | 026 Accepted (OD-29 open); 027 Proposed (OD-31, OD-32 open) | — | 2026-11-11 |
 | adr/ADR-028, ADR-029 | Accepted | — | 2026-11-11 |
-| adr/ADR-030 | Proposed with the Phase 6 LLD (OD-34, OD-35 open) | — | 2026-11-11 |
+| adr/ADR-030 | Accepted (OD-34, OD-35 open) | — | 2026-11-11 |
+| adr/ADR-031 | Proposed with the Phase 7 LLD (OD-07 open) | — | 2026-11-11 |
 | design/phase-0 | Not written: Phase 0 was built first by your instruction (sequence A); its plan, test report and summary are in `docs/phases/phase-0/` | — | 2026-11-11 |
 | design/phase-1-core-write-path/LLD.md | Approved 2026-11-11 (two small corrections made while writing Phase 2: validation also in `in_review`; writing guard triggers run as owner) | Medium | 2026-11-11 |
 | design/phase-2-governance/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
 | design/phase-3-steward-ui/LLD.md | Approved 2026-11-11 | Medium (structure); Low (visual detail) | 2026-11-11 |
 | design/phase-4-data-loading-and-parity/LLD.md | Approved 2026-11-11 | Medium (design); Low (extract format unknown) | 2026-11-11 |
 | design/phase-5-remaining-parity/LLD.md | Approved 2026-11-11 | Medium (designed); Low (outlines) | 2026-11-11 |
-| design/phase-6-ownership-and-ubo/LLD.md | Draft, awaiting review | Medium (methodology and personal data open) | 2026-11-11 |
-| design/phase-7..9 LLDs | Not started | — | — |
+| design/phase-6-ownership-and-ubo/LLD.md | Approved 2026-11-11 | Medium | 2026-11-11 |
+| design/phase-7-ai-assistance/LLD.md | Draft, awaiting review | Medium (architecture, guards); Low (accuracy, latency, cost until OD-07) | 2026-11-11 |
+| design/phase-8..9 LLDs | Not started | — | — |
 | design/phase-3-steward-ui/prototypes/landing.html | Landing-page prototype; combined design chosen (OD-27) | Prototype only: placeholder tokens, synthetic data | 2026-11-11 |
 | design/CONSISTENCY_REVIEW.md | Not started | — | — |
 
@@ -174,17 +176,19 @@ one-way kill switch, frozen approved policies and models; 35 pgTAP tests.
 - **OD-28** external capability working copy.
 - **OD-29a, OD-31a, OD-32a** confirmations by Audit-Risk and Security of the adopted load-run, masking and storage choices.
 - **OD-34, OD-35** personal data in the ownership graph; UBO methodology per regime (Phase 6 build).
+- **OD-07, OD-36, OD-37** AI provider and inference location; prompt retention; accuracy thresholds (Phase 7 build beyond the stub).
 
-## Self-review (DESIGN_PROTOCOL §5) for the Phase 6 LLD
-- *Implementable without a design question?* Yes for data, solver, API, determinations, evidence and UI. The control-chain strategy waits for OD-35; access and retention details wait for OD-34.
-- *Existing code verified?* Against V2: `ownership_edge` columns and CHECKs, nominee look-through and share-class aggregation in
-  `effective_ownership`, cycle flagging and exclusion, `ubo_control_prong` relations, empty `ubo_threshold`, starter rules.
-  The worked example was checked by hand against what `effective_ownership` returns today (30 %) and the exact solve (3/8).
-- *Weakens a control, crosses the layer, contradicts an Accepted ADR?* No. All calculation is deterministic code (rule 4);
-  ownership changes stay human-decided (V6 hard limits); thresholds and determinations become governed and append-only.
-- *Assumptions listed?* G-1 to G-6; Phase 6 parameters in OPEN_DECISIONS.
-- *Acceptance criteria covered?* NEW-02 criteria and every exit criterion have cases; "compliance-verified samples" are synthetic structures confirmed by Compliance.
-- *Confidence honest?* Medium; methodology and personal data are open and stated.
+## Self-review (DESIGN_PROTOCOL §5) for the Phase 7 LLD
+- *Implementable without a design question?* Yes with the stub provider: boundary, schemas, validation, governance tables,
+  guards, flows, harness and UI are specified. The real provider adapter waits for OD-07; thresholds for model approval wait for OD-37.
+- *Existing code verified?* Against V1 (`ai_model`/`ai_confidence` CHECK, maker-checker AI rule), V2 (AI edge evidence CHECK,
+  `OWN_AI_LOW_CONFIDENCE`), V4 (`ai_suggestion` action, actor-kind guard), V6 (AI-originated and AI-contributed checks). Found while
+  writing: AI drafts could not be submitted under the Phase 1 rule (requester only); fixed by letting only the prompting human submit, recorded in ADR-031.
+- *Weakens a control, crosses the layer, contradicts an Accepted ADR?* No. New rules strengthen maker-checker (`prompted_by`),
+  require rationale, gate model versions. Consistent with ADR-008 and ADR-011; CLAUDE.md rule 4 kept (no AI calculation; NL answers are query results).
+- *Assumptions listed?* H-1 to H-6; Phase 7 parameters in OPEN_DECISIONS.
+- *Acceptance criteria covered?* NEW-03 to NEW-06 each have P/N/C cases and an evaluation metric tied to OD-37.
+- *Confidence honest?* Medium for design; Low for model-dependent quality, stated.
 
 ## Next action
-Human review of `docs/design/phase-6-ownership-and-ubo/LLD.md` and ADR-030. On approval: Phase 7 LLD (AI assistance), then stop.
+Human review of `docs/design/phase-7-ai-assistance/LLD.md` and ADR-031. On approval: Phase 8 LLD (exports and reconciliation), then stop.

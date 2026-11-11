@@ -16,7 +16,7 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-04 | Does the design system provide a tree and a virtual-scrolling data grid? | UX | — | Use them if they exist; otherwise build on Angular CDK | Phase 3 scope |
 | OD-05 | Approved graph-visualisation library for the ownership view | Architecture / Security | — | — | Phase 6 |
 | OD-06 | Authentication and authorisation provider and Angular library | Security | — | Organisation SSO (OIDC/SAML) | Phase 9; any shared environment (Phase 1 API refuses to start outside `local`/`test` without it) |
-| OD-07 | AI model and provider, and where inference runs | Architecture / Security / Audit-Risk | — | — | Phase 7 |
+| OD-07 | AI model and provider, and where inference runs; whether data naming real people may be sent to it | Architecture / Security / Audit-Risk | External provider API · provider hosted in the organisation's cloud tenancy · self-hosted model inside the network | One that runs inside the organisation's network or tenancy, so ownership documents never leave it; the design works with any (provider adapter) | Phase 7 build beyond the stub provider |
 | OD-08 | Audit/Risk sign-off on policy-governed straight-through commit (ADR-005) | Audit-Risk | Keep STP under approved policies · require human approval for all | Keep STP, shadow mode first | Activating any commit policy |
 | OD-09 | Remaining capabilities marked "—" (75 after OD-13) | Product | Parity · Improve · Retire | Decide from discovery usage evidence; next: the rest of Phases 1–2 (HIE-06, PRP-02, PRP-03, VAL-01–03, AUD-01, AUD-02, GOV-03–09) | Detailed design of those capabilities (outline only until decided) |
 | OD-10 | Production volumes and performance targets (NFRs) | Product / Platform | — | Parameterise (full list in "Assumptions" below) | Phases 3–5 performance design |
@@ -31,6 +31,8 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-32a | Security confirmation that masked golden datasets live in an internal artefact store, not git (owner adopted, ADR-027) | Security | Confirm · request changes | Confirm, and name the store | Golden tests in CI |
 | OD-34 | Personal data in the ownership graph: who may see natural-person nodes, UBO results and evidence; retention of evidence and determinations | Privacy / Security / Audit-Risk | — | Ownership roles only; downloads audited; `retention_until` per document type; no deletion until decided | Phase 6 build (access matrix, retention fields) |
 | OD-35 | UBO calculation methodology per regime (ADR-030) | Compliance / Audit-Risk | Multiplicative with exact cross-holdings · control chain · both per regime | Both available; Compliance sets `method` on each threshold row | Phase 6 build of `ControlChainStrategy`; any determination |
+| OD-36 | Retention of AI prompts and responses (default: hashes and template ids only) | Security / Audit-Risk / Privacy | Hashes only · full content for `AI_CONTENT_RETENTION_DAYS` · full content permanently | Hashes only by default; full content for a limited period only if investigations need it | Phase 7 build (`ai_invocation` content columns) |
+| OD-37 | Accuracy thresholds per AI capability (catalogue: "agreed threshold / rate / recall") | Product / Audit-Risk | — | Set before any model version is approved: `AI_EXTRACTION_MIN_F1`, `AI_DRAFT_MIN_ACCEPT_RATE`, `AI_ANOMALY_MIN_RECALL`, `AI_NLQ_MIN_EQUIVALENCE` | Approving any model version |
 | OD-28 | `docs/capabilities.md` says it is regenerated from a working copy outside the repository. The OD-13 decisions must be entered there, or the next regeneration will reset them to "—" | Product (catalogue owner) | Update the external working copy · let the repository copy become the master | Update the working copy, then regenerate | Keeping decisions consistent |
 
 ## Decided
@@ -45,6 +47,7 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-31 | Masking: **rank-preserving pseudonyms** for names and codes, one tool for extracts and DRM outputs | Repository owner (adopted recommendation) | 2026-11-11 | Confirmation pending (OD-31a) |
 | OD-32 | Golden datasets in an **internal artefact store**; only synthetic self-tests in git | Repository owner (adopted recommendation) | 2026-11-11 | Confirmation pending (OD-32a) |
 | OD-33 | **ADR-009 accepted** (golden testing as the parity standard) | Repository owner (adopted recommendation) | 2026-11-11 | Phase 4, 5, 8 |
+| — | **Phase 6 LLD approved**; ADR-030 Accepted (methodology OD-35 and personal data OD-34 open) | Repository owner | 2026-11-11 | Design track continues with Phase 7 |
 | — | **Phase 5 LLD approved**; ADR-028, ADR-029 Accepted | Repository owner | 2026-11-11 | Design track continues with Phase 6 |
 | — | **Phase 4 LLD approved**; ADR-026 Accepted including the Phase 1 amendment (`add_hierarchy`, `update_node`); its approval model stays open (OD-29); ADR-027 stays Proposed (OD-31, OD-32) | Repository owner | 2026-11-11 | Design track continues with Phase 5 |
 | — | **Phase 3 LLD approved**; ADR-025 Accepted (its dependencies and the UI CI job are approved in the Phase 3 build plan) | Repository owner | 2026-11-11 | Design track continues with Phase 4 |
@@ -94,6 +97,8 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | `OWNERSHIP_MAX_COMPONENT` / `OWNERSHIP_MAX_DEPTH` / `OWNERSHIP_GRAPH_MAX_NODES` | 2 000 / 25 / 300 | Ownership solver and view (Phase 6) | Compliance / Architecture |
 | `UBO_MAX_PATHS` / `P95_UBO_MS` / `UBO_TIMEOUT_S` | 50 / 1 000 / 30 | UBO responses (Phase 6) | Compliance / Product |
 | `EVIDENCE_MAX_MB` | 50 | Evidence uploads (Phase 6) | Security |
+| `AI_TIMEOUT_S` / `AI_SCAN_BATCH` / `AI_SCAN_MAX_SUGGESTIONS` / `AI_INVALID_ALERT_PCT` | 60 / 1 000 / 500 / 5 % | AI calls (Phase 7) | Architecture |
+| `AI_EXTRACT_P95_S` / `AI_DRAFT_P95_S` / `AI_NLQ_P95_S` | 60 / 15 / 5 | AI latency (Phase 7) | Product |
 | `TX_RETRY_MAX` | 3 | Serialization-failure retries | Architecture |
 | `IDEMPOTENCY_KEY_TTL` | 24 h | Idempotent POSTs | Architecture |
 | `OUTBOX_SAFETY_LAG` / `OUTBOX_BATCH_SIZE` / `OUTBOX_RETENTION_DAYS` / `OUTBOX_LAG_ALERT` | 2 s / 500 / 30 / 5 min | Event consumers (ADR-016) | Architecture / Platform |
@@ -123,7 +128,8 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | ADR-026 | Governed migration load runs; `add_hierarchy` and `update_node` | Accepted 2026-11-11 (approval model open, OD-29) | Amends the Phase 1 LLD |
 | ADR-028 | Sandboxes as draft requests with a trial-apply overlay | Accepted 2026-11-11 | NEW-08 |
 | ADR-029 | Role grants as governed change actions | Accepted 2026-11-11 | SEC-01, SEC-02 |
-| ADR-030 | Ownership calculation: exact rational solve, methodology per regime, recorded determinations | Proposed (Phase 6 LLD) | NEW-02; methodology OD-35 |
+| ADR-030 | Ownership calculation: exact rational solve, methodology per regime, recorded determinations | Accepted 2026-11-11 | Methodology OD-35 open |
+| ADR-031 | AI service boundary, model governance, prompted-by maker-checker | Proposed (Phase 7 LLD) | OD-07, OD-36, OD-37 open |
 | ADR-027 | Golden datasets: masking and storage | Accepted 2026-11-11 (owner); Security/Audit-Risk confirmation pending | OD-31a, OD-32a |
 | ADR-009 | Golden testing as the parity standard | Accepted 2026-11-11 (OD-33) | |
 | ADR-005 to ADR-008 | (existing) | Proposed | Unchanged by this design |
