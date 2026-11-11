@@ -192,3 +192,12 @@ REVOKE EXECUTE ON FUNCTION wf.record_stage_decision(uuid, uuid, text, text), wf.
 GRANT EXECUTE ON FUNCTION wf.record_stage_decision(uuid, uuid, text, text), wf.claim_stage(uuid, uuid),
                           wf.unclaim_stage(uuid, uuid), wf.close_instance(uuid, wf.instance_status, uuid, text) TO nexus_api;
 GRANT EXECUTE ON FUNCTION wf.close_instance(uuid, wf.instance_status, uuid, text) TO nexus_wf;
+
+-- -----------------------------------------------------------------------------
+-- Bridge (2-6, ADR-023): enrichment items are written only by wf_bridge.add_enrichment_item, owned by nexus_bridge.
+-- -----------------------------------------------------------------------------
+GRANT INSERT ON mdm.change_item TO nexus_bridge;              -- guarded: only while in_review, only this role (V1)
+GRANT INSERT ON wf.instance_item, wf.instance_action TO nexus_bridge;
+ALTER FUNCTION wf_bridge.add_enrichment_item(uuid, uuid, mdm.change_action, uuid, uuid, uuid, uuid, jsonb) OWNER TO nexus_bridge;
+REVOKE EXECUTE ON FUNCTION wf_bridge.add_enrichment_item(uuid, uuid, mdm.change_action, uuid, uuid, uuid, uuid, jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION wf_bridge.add_enrichment_item(uuid, uuid, mdm.change_action, uuid, uuid, uuid, uuid, jsonb) TO nexus_api;

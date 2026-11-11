@@ -245,6 +245,7 @@ wf_bridge.add_enrichment_item(p_stage uuid, p_user uuid, ...) SECURITY DEFINER (
   require wf.can_act(p_stage, p_user) and stage_type = 'enrich'; INSERT mdm.change_item (seq = max+1);
   INSERT wf.instance_item; require wf.item_allowed_in_stage(new item, p_stage) else N1013
 ```
+*Built in 2-6:* the draft-only exception for `nexus_bridge` needed the guard split in two: `trg_change_item_draft_only` now runs as the caller (`SECURITY INVOKER`) so `current_user` is the real writer, and the row-version bump moved to a separate owner-run AFTER trigger `trg_change_item_row_version`. The rule is unchanged for every other role (tests show the API still cannot add items to a request in review, and nobody can delete them). The bridge sets `governed_by_workflow` on every sync while instances exist; `nexus_bridge` gains `INSERT` on `mdm.change_item`, `wf.instance_item` and `wf.instance_action` for enrichment. `mdm.decide_change_request` refuses items in a `requires_workflow` hierarchy with the new code `N2107` (`change_request.workflow_required`).
 
 ### 4.8 Node-access scope and dates (D-10, D-11) — edit V4
 `wf.items_in_scope` today walks the whole tree (`mdm.hierarchy_tree`) per scope per call. Rewrite with the same rule

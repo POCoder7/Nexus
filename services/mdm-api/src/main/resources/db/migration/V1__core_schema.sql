@@ -353,7 +353,9 @@ CREATE TABLE hierarchy (
   top_node_id        uuid NOT NULL REFERENCES node,
   allow_shared_nodes boolean NOT NULL DEFAULT false,
   sort_seq           int,
-  is_active          boolean NOT NULL DEFAULT true
+  is_active          boolean NOT NULL DEFAULT true,
+  -- B-3 (Phase 2): changes to this hierarchy must go through a workflow; core-mode decisions are refused
+  requires_workflow  boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE hierarchy_relationship (
@@ -565,14 +567,19 @@ CREATE TABLE change_item (
 -- Items can be added, changed or removed only while their request is a draft (D-07), so an approval always
 -- refers to exactly the items that are applied. Each change bumps the request's row_version (ETag).
 -- SECURITY DEFINER (owned by the migration owner): callers need no UPDATE right on change_request for the bump.
+-- One exception (ADR-023, Phase 2): enrichment items may be inserted while the request is in_review, only by the
+-- workflow bridge (wf_bridge.add_enrichment_item, owned by nexus_bridge). mdm names the role, not a wf object.
+-- The check runs with the caller's rights (SECURITY INVOKER) so current_user is the real writer; the row_version bump
+-- is a separate owner-run trigger, so callers still need no UPDATE right on change_request.
 CREATE FUNCTION trg_change_item_draft_only() RETURNS trigger
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
+LANGUAGE plpgsql SET search_path = mdm, public AS $$
 DECLARE
   v_cr     uuid := CASE WHEN TG_OP = 'DELETE' THEN OLD.change_request_id ELSE NEW.change_request_id END;
   v_status cr_status;
 BEGIN
   SELECT status INTO v_status FROM mdm.change_request WHERE change_request_id = v_cr;
-  IF v_status IS DISTINCT FROM 'draft' AND v_status IS NOT NULL THEN
+  IF v_status IS DISTINCT FROM 'draft' AND v_status IS NOT NULL
+     AND NOT (TG_OP = 'INSERT' AND v_status = 'in_review' AND current_user = 'nexus_bridge') THEN
     RAISE EXCEPTION 'Change request % is % and its items can no longer change', v_cr, v_status
       USING ERRCODE = 'N2102', HINT = 'change_request.not_draft';
   END IF;
@@ -580,11 +587,21 @@ BEGIN
     RAISE EXCEPTION 'An item cannot move to another change request'
       USING ERRCODE = 'N2102', HINT = 'change_item.request_fixed';
   END IF;
-  UPDATE mdm.change_request SET row_version = row_version WHERE change_request_id = v_cr;   -- bump via trg_cr_row_version
   RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
 END $$;
 CREATE TRIGGER change_item_draft_only BEFORE INSERT OR UPDATE OR DELETE ON change_item
   FOR EACH ROW EXECUTE FUNCTION trg_change_item_draft_only();
+
+-- Every item change bumps the request's row_version (ETag). Owner-run, so callers need no UPDATE right for it.
+CREATE FUNCTION trg_change_item_row_version() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
+BEGIN
+  UPDATE mdm.change_request SET row_version = row_version   -- bump via trg_cr_row_version
+  WHERE change_request_id = CASE WHEN TG_OP = 'DELETE' THEN OLD.change_request_id ELSE NEW.change_request_id END;
+  RETURN NULL;
+END $$;
+CREATE TRIGGER change_item_row_version AFTER INSERT OR UPDATE OR DELETE ON change_item
+  FOR EACH ROW EXECUTE FUNCTION trg_change_item_row_version();
 
 -- -----------------------------------------------------------------------------
 -- Validations  (DRM Validations, rewritten as versioned, testable rules)
@@ -1493,6 +1510,11 @@ BEGIN
   IF r.governed_by_workflow THEN
     RAISE EXCEPTION 'Change request % is governed by a workflow; it is decided there', p_change_request_id
       USING ERRCODE = 'N2104', HINT = 'change_request.governed';
+  END IF;
+  IF EXISTS (SELECT 1 FROM mdm.change_item ci JOIN mdm.hierarchy h ON h.hierarchy_id = ci.hierarchy_id
+             WHERE ci.change_request_id = p_change_request_id AND h.requires_workflow) THEN
+    RAISE EXCEPTION 'Change request % changes a hierarchy that requires a workflow; it cannot be decided in core mode', p_change_request_id
+      USING ERRCODE = 'N2107', HINT = 'change_request.workflow_required';
   END IF;
   IF r.status <> 'submitted' THEN
     RAISE EXCEPTION 'Change request % is % and cannot be decided', p_change_request_id, r.status
