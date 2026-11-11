@@ -590,8 +590,10 @@ END $$;
 CREATE TRIGGER audit_log_append_only BEFORE UPDATE OR DELETE ON audit_log
   FOR EACH ROW EXECUTE FUNCTION trg_append_only();
 
+-- SECURITY DEFINER: audit rows are written with the owner's rights, so no application role needs (or has)
+-- INSERT on audit_log, and none can write audit rows of its own making (ADR-014).
 CREATE FUNCTION trg_audit_row() RETURNS trigger
-LANGUAGE plpgsql SET search_path = mdm, public AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
 BEGIN
   INSERT INTO audit_log (actor_id, change_request_id, table_name, action, old_row, new_row)
   VALUES (nullif(current_setting('mdm.actor_id', true), '')::uuid,

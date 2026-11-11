@@ -17,8 +17,10 @@
 CREATE SCHEMA IF NOT EXISTS wf_bridge;
 SET search_path = wf_bridge, wf, mdm, public;
 
+-- SECURITY DEFINER, owned by nexus_bridge (V7): the only role allowed to write decision columns on
+-- mdm.change_request (ADR-014, ADR-019, D-04). Callers (the workflow role) cannot write mdm themselves.
 CREATE FUNCTION wf_bridge.sync_change_request(p_change_request_id uuid)
-RETURNS mdm.cr_status LANGUAGE plpgsql SET search_path = wf_bridge, wf, mdm, public AS $$
+RETURNS mdm.cr_status LANGUAGE plpgsql SECURITY DEFINER SET search_path = wf_bridge, wf, mdm, public AS $$
 DECLARE
   n_open      int;
   n_committed int;

@@ -3,14 +3,8 @@ package com.mdm.api;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.UUID;
 
@@ -20,17 +14,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Runs the real Flyway migrations (V1–V6) against PostgreSQL in a container,
- * then exercises the read API. Requires a running container runtime.
+ * Runs the real Flyway migrations against PostgreSQL in a container, then exercises the read API with the
+ * application's least-privilege login (see {@link PostgresIntegrationTest}). Requires a running container runtime.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Testcontainers
-class HierarchyApiTest {
-
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+class HierarchyApiTest extends PostgresIntegrationTest {
 
     static final UUID TOP = UUID.fromString("00000000-0000-0000-0000-000000000101");
     static final UUID CHILD_A = UUID.fromString("00000000-0000-0000-0000-000000000102");
@@ -40,11 +27,10 @@ class HierarchyApiTest {
     @Autowired
     MockMvc mvc;
 
-    @Autowired
-    JdbcClient jdbc;
-
     @BeforeEach
     void seed() {
+        // Seeding writes facts directly, which the API login may not do (ADR-014): use the owner connection.
+        JdbcClient jdbc = ownerJdbc();
         Integer exists = jdbc.sql("SELECT count(*) FROM mdm.hierarchy WHERE hierarchy_code = 'TEST'")
                 .query(Integer.class).single();
         if (exists > 0) {
