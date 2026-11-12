@@ -29,13 +29,18 @@ class NodePropertiesApiTest extends PostgresIntegrationTest {
         if (jdbc.sql("SELECT count(*) FROM mdm.hierarchy WHERE hierarchy_code = 'PROP_H'").query(Integer.class).single() == 0) {
             jdbc.sql("INSERT INTO mdm.node (node_id, node_kind) VALUES (:t, 'structural'), (:c, 'legal_entity')")
                     .param("t", TOP).param("c", CHILD).update();
-            jdbc.sql("INSERT INTO mdm.node_attr (node_id, node_name) VALUES (:t, 'Prop top'), (:c, 'Prop child')")
+            // Valid from the business day (ADR-018), not the UTC session date the column default uses.
+            jdbc.sql("""
+                    INSERT INTO mdm.node_attr (node_id, node_name, valid_period)
+                    VALUES (:t, 'Prop top', daterange(mdm.business_today(), NULL)),
+                           (:c, 'Prop child', daterange(mdm.business_today(), NULL))
+                    """)
                     .param("t", TOP).param("c", CHILD).update();
             jdbc.sql("INSERT INTO mdm.hierarchy (hierarchy_code, hierarchy_name, top_node_id) VALUES ('PROP_H', 'Properties', :t)")
                     .param("t", TOP).update();
             jdbc.sql("""
-                    INSERT INTO mdm.hierarchy_relationship (hierarchy_id, parent_node_id, child_node_id)
-                    SELECT hierarchy_id, :t, :c FROM mdm.hierarchy WHERE hierarchy_code = 'PROP_H'
+                    INSERT INTO mdm.hierarchy_relationship (hierarchy_id, parent_node_id, child_node_id, valid_period)
+                    SELECT hierarchy_id, :t, :c, daterange(mdm.business_today(), NULL) FROM mdm.hierarchy WHERE hierarchy_code = 'PROP_H'
                     """).param("t", TOP).param("c", CHILD).update();
             jdbc.sql("""
                     INSERT INTO mdm.property_definition (property_code, label, category_code, data_type, scope, inheritance, default_value)
@@ -43,8 +48,9 @@ class NodePropertiesApiTest extends PostgresIntegrationTest {
                            ('NT.Seg', 'Segment', 'Finance', 'string', 'global', 'none', '"Unassigned"')
                     """).update();
             jdbc.sql("""
-                    INSERT INTO mdm.property_value (node_id, property_id, value)
-                    SELECT :t, property_id, '"EUR"' FROM mdm.property_definition WHERE property_code = 'NT.Ccy'
+                    INSERT INTO mdm.property_value (node_id, property_id, value, valid_period)
+                    SELECT :t, property_id, '"EUR"', daterange(mdm.business_today(), NULL)
+                    FROM mdm.property_definition WHERE property_code = 'NT.Ccy'
                     """).param("t", TOP).update();
         }
         grant(USER, "VIEWER", "PROP_H", null);

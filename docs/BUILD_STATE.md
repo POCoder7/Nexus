@@ -1,8 +1,8 @@
 # Build state
 
-- **Current phase:** 2 — Governance
-- **Step in loop:** Awaiting approval to proceed (Phase 2 test gate passed with gaps) — branch `feature/GOV-02-phase-2-governance`
-- **Baseline:** db-test **pass** 319/319 · mvnw verify **pass** 100/100 (Phase 2 gate, code at `f2a4f07` + gap tests, 2026-11-11)
+- **Current phase:** 3 — Steward UI
+- **Step in loop:** Plan (awaiting approval): `docs/phases/phase-3/PLAN.md`; branch `feature/NEW-10-phase-3-steward-ui`
+- **Baseline:** db-test **pass** 319/319 · mvnw verify **pass** 100/100 after a test-fixture fix (time-zone window, see the Phase 3 plan) · UI tests: none yet, Node.js not installed (2026-11-12)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -10,9 +10,15 @@
 |---|---|---|---|
 | 0 — Foundation | Pass locally; approved by the repository owner. Gap: CI not yet run on GitHub (OD-11) | `docs/phases/phase-0/SUMMARY.md` | 2026-11-11 |
 | 1 — Core write path | Pass with gaps; **approved by the repository owner** (performance not measured; test gaps listed in the report; CI not run, OD-11) | `docs/phases/phase-1/SUMMARY.md`, `TEST_REPORT.md` | 2026-11-11 |
-| 2 — Governance | **Pass with gaps, awaiting approval** (Camunda contract run and performance deferred; AI eligibility test with Phase 7; golden in Phase 4; CI not run) | `docs/phases/phase-2/SUMMARY.md`, `TEST_REPORT.md` | 2026-11-11 |
+| 2 — Governance | Pass with gaps; **approved by the repository owner** 2026-11-12 (Camunda contract run and performance deferred; AI eligibility test with Phase 7; golden in Phase 4; CI not run) | `docs/phases/phase-2/SUMMARY.md`, `TEST_REPORT.md` | 2026-11-11 |
 
 ## Current phase progress
+### Phase 3 progress
+| Increment | Capability | Status | Tests | Notes |
+|---|---|---|---|---|
+| Orient + plan | PROG | Plan written, awaiting approval | baseline green | fixtures in `HierarchyApiTest` and `NodePropertiesApiTest` now set `valid_period` from `mdm.business_today()` (they failed between 00:00 UTC and midnight New York) |
+
+### Phase 1 progress
 | Increment | Capability | Status | Tests | Notes |
 |---|---|---|---|---|
 | 1-1 Error codes + Problem Details | PROG | Done `95091fc` | pgTAP 03 (10), JUnit 11 | 68 guards coded; registry extended |
@@ -57,9 +63,13 @@
 
 
 ## Open questions for the human
-1. **Phase 2 gate: approve, or ask for changes.** Review first: guards and migrations changed in V1, V4–V9 (ADR-023 Audit-Risk review, OD-18a), the LLD *Built in …* notes, the defects found and fixed, and the explicit gaps in `docs/phases/phase-2/TEST_REPORT.md`.
-2. OD-11: recommended now, before Phase 2 (prove CI green on the Phase 1 baseline). Waiting for a private repository URL; the first push still needs your go-ahead.
-3. OD-18a: Audit-Risk review of ADR-021 **skipped for now** by the repository owner (2026-11-11). ADR-021 still asks for it before merge to `main`; merging needs the review or your explicit waiver.
+1. **Phase 3 plan:** approve, or ask for changes (`docs/phases/phase-3/PLAN.md`, including the 3-5 split).
+2. **Node.js 24 LTS** is not installed: you install it, or allow `winget install OpenJS.NodeJS.LTS`.
+3. **UI dependencies** (Angular, CDK, `ng-openapi-gen`, Storybook with its test runner and axe, Playwright with axe, Stylelint, `pg_trgm`) from the public npm registry on this machine: approve?
+4. **CI change:** add a `ui` job to `.github/workflows/ci.yml`: approve?
+5. OD-11: waiting for a private repository URL; the first push still needs your go-ahead.
+6. OD-18a: Audit-Risk review of ADR-021 and ADR-023 **skipped for now** by the repository owner (2026-11-11); merging to `main` needs the review or your explicit waiver.
+7. OD-02 to OD-04 (design system): open; the UI uses placeholder tokens and adapters until they are answered.
 
 ## Scope changes
 - **Camunda contract run deferred to the end of the build** by the repository owner on 2026-11-11 (Docker has 3.7 GiB; the Camunda test runtime needs Elasticsearch + Camunda). Adapter, BPMN and tests are written (`-Dcamunda`).
@@ -73,9 +83,10 @@
 - Running the API locally uses the docker-compose owner account; only tests run as the least-privilege login (documented in DEVELOPER_SETUP).
 - Perf finding (1-11, before deferral): one statement inserting many placements into a large hierarchy whose statistics are stale runs the cycle-check trigger with an "empty table" plan (measured 29 s per 5 000 rows from empty vs 1.2 s with current statistics; one guarded insert under a 50 000-child parent about 21 ms). Guards unchanged. Phase 4 bulk loading must refresh statistics between batches; the generator does.
 - CI has never run on GitHub (no remote; OD-11).
+- Column defaults `daterange(current_date, NULL)` (V1, V2) use the UTC session date, not the business day. Production fact writes set the period through `mdm.apply_fact`, so only direct inserts (test fixtures, owner scripts) are affected; fixtures must set `valid_period` explicitly.
 - Mockito dynamic-agent warning in tests (future JDKs will block it).
 - `scripts/check-setup.*` still requires a local `mvn`.
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Stopped at the Phase 2 gate. On approval: Phase 3 (steward UI) orient and plan (needs tooling approval, ADR-025, and OD-02 to OD-04). Deferred to the end: performance tests, Camunda contract run.
+Stopped for approval of the Phase 3 plan. On approval, and once Node.js is installed: increment 3-1 (backend: V10, `/me` extension, preferences, `/home`, search and path, submit-form, client errors). Deferred to the end: performance tests (Phases 1–3), Camunda contract run.
