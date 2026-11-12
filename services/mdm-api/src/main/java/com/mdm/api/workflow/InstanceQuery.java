@@ -26,6 +26,7 @@ public class InstanceQuery {
 
     public record StageView(UUID instanceStageId, int seq, int iteration, String label, String type, String status,
                             Boolean included, Instant dueAt, UUID claimedBy, Instant claimExpiresAt, boolean youCanAct,
+                            /* the server's reason when an open stage is not yours to decide (wf.why_cannot_act), Phase 3 */ String whyNot,
                             List<DecisionView> decisions) {
     }
 
@@ -50,14 +51,16 @@ public class InstanceQuery {
     public Optional<InstanceView> find(UUID instanceId, Actor viewer) {
         List<StageView> stages = jdbc.sql("""
                 SELECT ist.instance_stage_id, ist.seq, ist.iteration, ws.label, ws.stage_type::text AS type, ist.status::text AS status,
-                       ist.included, ist.due_at, ist.claimed_by, ist.claim_expires_at, wf.can_act(ist.instance_stage_id, :viewer) AS can_act
+                       ist.included, ist.due_at, ist.claimed_by, ist.claim_expires_at, wf.can_act(ist.instance_stage_id, :viewer) AS can_act,
+                       CASE WHEN ist.status IN ('active', 'claimed')
+                            THEN (SELECT w.message FROM wf.why_cannot_act(ist.instance_stage_id, :viewer) w LIMIT 1) END AS why_not
                 FROM wf.instance_stage ist JOIN wf.workflow_stage ws ON ws.stage_id = ist.stage_id
                 WHERE ist.instance_id = :i ORDER BY ist.seq, ist.iteration
                 """).param("i", instanceId).param("viewer", viewer.userId())
                 .query((rs, n) -> new StageView(rs.getObject("instance_stage_id", UUID.class), rs.getInt("seq"), rs.getInt("iteration"),
                         rs.getString("label"), rs.getString("type"), rs.getString("status"), (Boolean) rs.getObject("included"),
                         instant(rs.getTimestamp("due_at")), rs.getObject("claimed_by", UUID.class),
-                        instant(rs.getTimestamp("claim_expires_at")), rs.getBoolean("can_act"),
+                        instant(rs.getTimestamp("claim_expires_at")), rs.getBoolean("can_act"), rs.getString("why_not"),
                         decisions(rs.getObject("instance_stage_id", UUID.class))))
                 .list();
         List<PolicyEvaluationView> evaluations = jdbc.sql("""

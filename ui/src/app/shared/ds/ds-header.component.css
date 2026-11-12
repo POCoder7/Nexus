@@ -1,0 +1,24 @@
+.ds-header {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-4);
+  padding: var(--nx-space-3) var(--nx-space-5);
+  background: var(--nx-color-action-primary);
+  color: var(--nx-color-text-inverse);
+}
+
+.ds-header__app {
+  font-size: var(--nx-font-size-heading-3);
+  font-weight: var(--nx-font-weight-strong);
+}
+
+.ds-header__env {
+  padding: 0 var(--nx-space-3);
+  border: var(--nx-border-width) solid var(--nx-color-text-inverse);
+  border-radius: var(--nx-radius-2);
+  font-size: var(--nx-font-size-label);
+}
+
+.ds-header__spacer {
+  flex: 1;
+}

@@ -1,0 +1,21 @@
+<section class="nx-card" [attr.aria-labelledby]="'nx-decision-title'" data-testid="decision-panel">
+  <h2 id="nx-decision-title">{{ t.title }}</h2>
+  @if (!stage()) {
+    <p class="nx-muted">{{ t.nothingOpen }}</p>
+  } @else if (stage()!.youCanAct) {
+    <ds-field [label]="t.comment" for="nx-decision-comment" [error]="commentError()">
+      <textarea id="nx-decision-comment" rows="3" [ngModel]="comment()" (ngModelChange)="comment.set($event)"
+                [attr.aria-invalid]="!!commentError()"
+                [attr.aria-describedby]="commentError() ? 'nx-decision-comment-error' : null"></textarea>
+    </ds-field>
+    <div class="actions">
+      <ds-button variant="primary" [disabled]="busy()" (pressed)="send('approve')">{{ approveLabel() }}</ds-button>
+      <ds-button variant="danger" [disabled]="busy()" (pressed)="send('reject')">{{ t.reject }}</ds-button>
+    </div>
+  } @else {
+    <p data-testid="decision-reason"><span aria-hidden="true">ℹ </span>{{ reason() ?? t.unavailable }}</p>
+  }
+  @if (error(); as e) {
+    <p class="nx-error-text" role="alert" data-testid="decision-error">{{ e.detail }}</p>
+  }
+</section>

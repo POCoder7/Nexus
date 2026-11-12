@@ -1,0 +1,28 @@
+<section class="history" [attr.aria-label]="t.label(nodeName())" aria-live="polite" [attr.aria-busy]="loading()" data-testid="node-history">
+  @if (error(); as e) {
+    <p class="nx-error-text" role="alert">{{ e.detail }}</p>
+  }
+  @if (!loading() && events().length === 0 && !error()) {
+    <p class="nx-muted">{{ t.empty }}</p>
+  }
+  <ol class="events">
+    @for (e of events(); track track($index, e)) {
+      <li class="event" [class.event--superseded]="!!e.recordedTo" [attr.data-kind]="e.kind">
+        <div class="event__head">
+          <ds-badge [tone]="e.recordedTo ? 'neutral' : 'info'">{{ t.kinds[e.kind ?? ''] ?? e.kind }}</ds-badge>
+          <span class="event__summary">{{ summary(e) }}</span>
+        </div>
+        <div class="event__meta nx-muted">
+          <span>{{ validText(e) }}</span>
+          <span>{{ t.recorded((e.recordedFrom | nxInstant), e.recordedTo ? (e.recordedTo | nxInstant) : null) }}</span>
+          @if (e.changeRequestId) {
+            <a [routerLink]="['/requests', e.changeRequestId]">{{ t.request }}: {{ e.changeRequestTitle ?? e.changeRequestId }}</a>
+          }
+        </div>
+      </li>
+    }
+  </ol>
+  @if (cursor()) {
+    <ds-button [disabled]="loading()" (pressed)="more()">{{ t.more }}</ds-button>
+  }
+</section>

@@ -5,13 +5,13 @@ Everything that existed now runs, locally on Windows and in the Bash commands CI
 
 | Commit | Increment |
 |---|---|
-| `5ae1707` | P0-1a Protocols, capability catalogue, UI standard, ADR-012 committed; duplicate `knowledge/capabilities.md` deleted (OD-24) |
-| `e53847b` | P0-1b Design orient work committed (overview, patterns, traceability, open decisions, ADR-013 to ADR-018, prototype); superseded draft ADR-012 deleted before commit (OD-24) |
-| (`0c192e7`, existing) | P0-2 Testcontainers 1.21.4 pin restored in the working tree (OD-23 option A); identical to the committed version, so no new commit |
-| `09c7cd9` | P0-3 Maven wrapper (3.9.9) |
-| `2595c9f` | P0-4 Shell scripts executable |
-| `48847eb` | P0-5 CI uses the wrapper |
-| `cf3fe35` | P0-6 `db-test.sh` works in Git Bash |
+| `737f3ea` | P0-1a Protocols, capability catalogue, UI standard, ADR-012 committed; duplicate `knowledge/capabilities.md` deleted (OD-24) |
+| `5326bf1` | P0-1b Design orient work committed (overview, patterns, traceability, open decisions, ADR-013 to ADR-018, prototype); superseded draft ADR-012 deleted before commit (OD-24) |
+| (`4202370`, existing) | P0-2 Testcontainers 1.21.4 pin restored in the working tree (OD-23 option A); identical to the committed version, so no new commit |
+| `87ce6ea` | P0-3 Maven wrapper (3.9.9) |
+| `131ec84` | P0-4 Shell scripts executable |
+| `6e9fde1` | P0-5 CI uses the wrapper |
+| `1c73e90` | P0-6 `db-test.sh` works in Git Bash |
 | P0-7 commit | Records: README, data model, developer setup, CHANGELOG, this summary, test report, build state |
 
 ## Decisions taken
@@ -38,4 +38,4 @@ None new. Phase 0 changed no application code.
 
 ## What the next step needs
 Per your sequence, step B (the design track) follows. Its first stop, the architecture overview and pattern catalogue
-(committed in `e53847b`), is still awaiting your review. Then the Phase 1 LLD, which depends on OD-13 (capability decisions for Phases 1–3) and OD-18.
+(committed in `5326bf1`), is still awaiting your review. Then the Phase 1 LLD, which depends on OD-13 (capability decisions for Phases 1–3) and OD-18.

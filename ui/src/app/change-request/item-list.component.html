@@ -1,0 +1,50 @@
+<div class="modes" role="group" [attr.aria-label]="d.modeLabel">
+  <button type="button" [attr.aria-pressed]="mode() === 'side'" (click)="mode.set('side')">{{ d.sideBySide }}</button>
+  <button type="button" [attr.aria-pressed]="mode() === 'inline'" (click)="mode.set('inline')">{{ d.inline }}</button>
+</div>
+
+@if (mode() === 'side') {
+  <table dsTable [attr.aria-label]="label()" data-testid="item-list">
+    <thead>
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">{{ label() }}</th>
+        <th scope="col">{{ t.before }}</th>
+        <th scope="col">{{ t.after }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of items(); track item.id) {
+        <tr [id]="'nx-item-' + item.seq" [attr.data-change]="kind(item)">
+          <td class="nx-identifier">{{ item.seq }}</td>
+          <td>
+            <span [class]="'change change--' + kind(item)"><span aria-hidden="true">{{ icon(item) }} </span>{{ kindLabel(item) }}</span>
+            {{ describe(item) }}
+            @for (f of findingsFor(item); track f.ruleCode + (f.message ?? '')) {
+              <p class="finding" role="note"><span aria-hidden="true">✕ </span>{{ f.message }}</p>
+            }
+          </td>
+          <td>{{ before(item) }}</td>
+          <td>{{ after(item) }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+} @else {
+  <ol class="inline" [attr.aria-label]="label()" data-testid="item-list">
+    @for (item of items(); track item.id) {
+      <li [attr.data-change]="kind(item)">
+        <p class="inline__head">
+          <span class="nx-identifier">{{ item.seq }}.</span>
+          <span [class]="'change change--' + kind(item)"><span aria-hidden="true">{{ icon(item) }} </span>{{ kindLabel(item) }}</span>
+          {{ describe(item) }}
+        </p>
+        <p class="line line--removed"><span aria-hidden="true">− </span><span class="nx-visually-hidden">{{ t.before }}: </span>{{ before(item) }}</p>
+        <p class="line line--added"><span aria-hidden="true">+ </span><span class="nx-visually-hidden">{{ t.after }}: </span>{{ after(item) }}</p>
+        @for (f of findingsFor(item); track f.ruleCode + (f.message ?? '')) {
+          <p class="finding" role="note"><span aria-hidden="true">✕ </span>{{ f.message }}</p>
+        }
+      </li>
+    }
+  </ol>
+}

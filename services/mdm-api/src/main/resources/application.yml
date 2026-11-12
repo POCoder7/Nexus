@@ -48,6 +48,8 @@ springdoc:
   api-docs:
     enabled: false
   packages-to-scan: com.mdm.api
+  # every endpoint answers JSON (or Problem Details JSON); '*/*' made the generated UI client read bodies as blobs (P-27)
+  default-produces-media-type: application/json
 
 ---
 spring:

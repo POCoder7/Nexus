@@ -1,0 +1,24 @@
+.ds-tabs {
+  display: flex;
+  gap: var(--nx-space-2);
+  border-bottom: var(--nx-border-width) solid var(--nx-color-border-default);
+}
+
+.ds-tabs__tab {
+  padding: var(--nx-space-3) var(--nx-space-4);
+  border: none;
+  border-bottom: var(--nx-focus-width) solid transparent;
+  background: transparent;
+  color: var(--nx-color-text-secondary);
+  cursor: pointer;
+}
+
+.ds-tabs__tab[aria-selected="true"] {
+  border-bottom-color: var(--nx-color-action-primary);
+  color: var(--nx-color-text-primary);
+  font-weight: var(--nx-font-weight-strong);
+}
+
+.ds-tabs__panel {
+  padding-top: var(--nx-space-4);
+}

@@ -1,0 +1,79 @@
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--nx-color-surface-panel);
+}
+
+th,
+td {
+  padding: var(--nx-density-cell-padding);
+  border-bottom: var(--nx-border-width) solid var(--nx-color-border-default);
+  text-align: left;
+  vertical-align: top;
+}
+
+thead th {
+  font-size: var(--nx-font-size-label);
+  color: var(--nx-color-text-secondary);
+}
+
+.group th {
+  padding-top: var(--nx-space-4);
+  background: var(--nx-color-surface-page);
+  font-size: var(--nx-font-size-label);
+}
+
+.label {
+  display: block;
+}
+
+.code {
+  font-size: var(--nx-font-size-label);
+  color: var(--nx-color-text-secondary);
+}
+
+.value--none {
+  color: var(--nx-color-text-secondary);
+}
+
+.provenance {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--nx-space-2);
+  font-size: var(--nx-font-size-label);
+}
+
+.provenance--stored {
+  color: var(--nx-color-provenance-stored);
+}
+
+.provenance--inherited {
+  color: var(--nx-color-provenance-inherited);
+}
+
+.provenance--derived {
+  color: var(--nx-color-provenance-derived);
+}
+
+.provenance--default {
+  color: var(--nx-color-provenance-default);
+}
+
+.edit {
+  margin-left: var(--nx-space-3);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--nx-color-text-link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.source {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--nx-color-text-link);
+  text-decoration: underline;
+  cursor: pointer;
+}

@@ -8,21 +8,21 @@ the engine only drives order and time, and is replaceable (ADR-035).
 
 | Commit | Increment |
 |---|---|
-| `2115e54` | Plan; ADR-035 engine-neutral workflow driver |
-| `19f92c9` | 2-1 Business-day functions, `wf` day boundaries, activation guard (OD-08) |
-| `2409c90` | 2-2 Bitemporal group membership, `wf.is_member`, governed membership changes, configuration audit |
-| `6f7de5b` | 2-3 Claims (D-12), close rules (D-13), `wf.record_stage_decision` |
-| `fefe066` | 2-4 Node-access scope by ancestor walk at the effective date (D-10, D-11) |
-| `20f3de4` | 2-5 Policy row lock for the daily cap (D-14) |
-| `b30010f` | 2-6 Bridge: decider attribution (D-06), clearance, enrichment items, `requires_workflow` |
-| `72bf7d0` | 2-7 Model definitions, four-eyes activation, stage progression |
-| `33fcb1e` | 2-8a Submit with a workflow model, urgent flag, governed withdraw |
-| `9308ee5`, `8298a6e` | 2-8b Stage decisions, claims, enrichment, instance view, refusals in words; unique operation ids |
-| `7fdcdfc` | 2-8c Model and commit-policy administration endpoints |
-| `f621347` | 2-9 Worklist: nine views, counts, search, paging |
-| `6f610e2` | 2-10a Engine-neutral ports, outbox offsets, relay, in-process driver, contract suite |
-| `d928ecb` | 2-10b Camunda adapter (written; run on Camunda deferred) |
-| `f2a4f07` | 2-11 Reconciler and resume from database state |
+| `597492d` | Plan; ADR-035 engine-neutral workflow driver |
+| `aaebdd1` | 2-1 Business-day functions, `wf` day boundaries, activation guard (OD-08) |
+| `0b971f1` | 2-2 Bitemporal group membership, `wf.is_member`, governed membership changes, configuration audit |
+| `1345834` | 2-3 Claims (D-12), close rules (D-13), `wf.record_stage_decision` |
+| `96d6684` | 2-4 Node-access scope by ancestor walk at the effective date (D-10, D-11) |
+| `7ebe806` | 2-5 Policy row lock for the daily cap (D-14) |
+| `40e1c80` | 2-6 Bridge: decider attribution (D-06), clearance, enrichment items, `requires_workflow` |
+| `e39d28f` | 2-7 Model definitions, four-eyes activation, stage progression |
+| `9944844` | 2-8a Submit with a workflow model, urgent flag, governed withdraw |
+| `c99dea1`, `138c50f` | 2-8b Stage decisions, claims, enrichment, instance view, refusals in words; unique operation ids |
+| `5aecb5f` | 2-8c Model and commit-policy administration endpoints |
+| `3fba8dc` | 2-9 Worklist: nine views, counts, search, paging |
+| `08f8ce6` | 2-10a Engine-neutral ports, outbox offsets, relay, in-process driver, contract suite |
+| `26f76cb` | 2-10b Camunda adapter (written; run on Camunda deferred) |
+| `2a814a8` | 2-11 Reconciler and resume from database state |
 | 2-12 commit | Records, `20_workflow_gaps.sql`, test report, this summary |
 
 ## Decisions taken

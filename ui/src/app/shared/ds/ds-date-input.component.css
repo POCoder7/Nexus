@@ -1,0 +1,15 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nx-space-3);
+}
+
+.ds-date__label {
+  font-size: var(--nx-font-size-label);
+}
+
+input {
+  padding: var(--nx-space-1) var(--nx-space-3);
+  border: var(--nx-border-width) solid var(--nx-color-border-strong);
+  border-radius: var(--nx-radius-1);
+}

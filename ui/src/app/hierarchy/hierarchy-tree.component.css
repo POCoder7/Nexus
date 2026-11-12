@@ -1,0 +1,79 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.viewport {
+  flex: 1;
+  min-height: 0;
+}
+
+.tree:focus-visible {
+  outline: var(--nx-focus-width) solid var(--nx-color-border-focus);
+  outline-offset: calc(-1 * var(--nx-focus-width));
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-2);
+  padding-right: var(--nx-space-3);
+  font-size: var(--nx-font-size-body-compact);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--nx-color-surface-hover);
+}
+
+.row--selected {
+  background: var(--nx-color-surface-selected);
+  font-weight: var(--nx-font-weight-strong);
+}
+
+.tree:focus-visible .row--focused {
+  outline: var(--nx-focus-width) solid var(--nx-color-border-focus);
+  outline-offset: calc(-1 * var(--nx-focus-width));
+}
+
+.row--drop {
+  outline: var(--nx-focus-width) dashed var(--nx-color-action-primary);
+  outline-offset: calc(-1 * var(--nx-focus-width));
+}
+
+.twisty {
+  display: inline-flex;
+  justify-content: center;
+  width: var(--nx-size-icon);
+  flex: 0 0 var(--nx-size-icon);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tag {
+  padding: 0 var(--nx-space-2);
+  border: var(--nx-border-width) solid var(--nx-color-border-default);
+  border-radius: var(--nx-radius-1);
+  font-size: var(--nx-font-size-label);
+  font-weight: var(--nx-font-weight-regular);
+  color: var(--nx-color-text-secondary);
+}
+
+.action {
+  color: var(--nx-color-text-link);
+  text-decoration: underline;
+}
+
+.muted {
+  color: var(--nx-color-text-secondary);
+}
+
+.error {
+  color: var(--nx-color-status-error);
+}

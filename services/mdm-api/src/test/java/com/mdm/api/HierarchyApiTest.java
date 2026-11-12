@@ -45,17 +45,19 @@ class HierarchyApiTest extends PostgresIntegrationTest {
                   (:top, 'structural'), (:a, 'legal_entity'), (:b, 'legal_entity'), (:g, 'legal_entity')
                 """).param("top", TOP).param("a", CHILD_A).param("b", CHILD_B).param("g", GRANDCHILD).update();
         jdbc.sql("""
-                INSERT INTO mdm.node_attr (node_id, node_name, description) VALUES
-                  (:top, 'Top', 'Top node'), (:a, 'Child A', 'First child'),
-                  (:b, 'Child B', 'Second child'), (:g, 'Grandchild', 'Under A')
+                INSERT INTO mdm.node_attr (node_id, node_name, description, valid_period)
+                SELECT v.id, v.name, v.descr, daterange(mdm.business_today(), NULL)
+                FROM (VALUES (CAST(:top AS uuid), 'Top', 'Top node'), (CAST(:a AS uuid), 'Child A', 'First child'),
+                             (CAST(:b AS uuid), 'Child B', 'Second child'), (CAST(:g AS uuid), 'Grandchild', 'Under A'))
+                     AS v(id, name, descr)
                 """).param("top", TOP).param("a", CHILD_A).param("b", CHILD_B).param("g", GRANDCHILD).update();
         jdbc.sql("""
                 INSERT INTO mdm.hierarchy (hierarchy_code, hierarchy_name, purpose, top_node_id)
                 VALUES ('TEST', 'Test hierarchy', 'legal_consolidation', :top)
                 """).param("top", TOP).update();
         jdbc.sql("""
-                INSERT INTO mdm.hierarchy_relationship (hierarchy_id, parent_node_id, child_node_id, sort_order)
-                SELECT h.hierarchy_id, v.parent, v.child, v.sort
+                INSERT INTO mdm.hierarchy_relationship (hierarchy_id, parent_node_id, child_node_id, sort_order, valid_period)
+                SELECT h.hierarchy_id, v.parent, v.child, v.sort, daterange(mdm.business_today(), NULL)
                 FROM mdm.hierarchy h,
                      (VALUES (CAST(:top AS uuid), CAST(:b AS uuid), 2),
                              (CAST(:top AS uuid), CAST(:a AS uuid), 1),

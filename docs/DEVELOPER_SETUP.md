@@ -10,6 +10,7 @@ Goal: fresh laptop to green tests in under a day.
 | Maven | 3.9+ (optional) | The Maven wrapper is committed: `services/mdm-api/mvnw` (`mvnw.cmd` on Windows) downloads and uses Maven 3.9.9. `scripts/check-setup` still checks for a local `mvn` |
 | Container runtime | Docker Desktop, Rancher Desktop or Podman | Check which is licensed/approved. Needed for the database and Testcontainers. **Windows 11 Home:** Docker Desktop needs WSL 2 — run `wsl --install --no-distribution` in an administrator PowerShell and reboot before starting Docker Desktop |
 | VS Code | latest | Accept the recommended extensions when prompted (`.vscode/extensions.json`) |
+| Node.js | 26 LTS (npm 11) | UI from Phase 3. Windows: `winget install OpenJS.NodeJS.LTS`. Versions in `ui/package.json` are pinned exactly (`ui/.npmrc` `save-exact`) |
 
 ## 2. Corporate network (fill in for your organisation)
 - **Maven mirror**: add your Artifactory/Nexus mirror to `~/.m2/settings.xml`.
@@ -58,6 +59,22 @@ need Camunda and Elasticsearch in Docker, which needs more memory than 4 GB (def
 
 Performance tests (tag `perf`) are excluded from the default build and deferred to the end of the build; run them with
 `./mvnw -B verify -Dperf`.
+
+Steward UI (Phase 3 onwards), from `ui/`:
+```
+npm ci                         # install the pinned toolchain (public npm registry here; point ~/.npmrc at your mirror)
+npx playwright install chromium
+npm start                      # dev server on http://localhost:4200, proxies /api to http://localhost:8080 (NEXUS_API_URL)
+npm run lint                   # Stylelint token rules + their self-test
+npm run api:check              # generated client matches docs/api/openapi.json (npm run api:generate after an API change)
+npm test                       # unit and component tests (Vitest)
+npm run build                  # production build + compressed budgets + "no dev identity in the bundle" check
+npm run build-storybook; npm run test:storybook   # every story, with axe
+npx playwright test            # SLICE-01 journeys: builds the API jar, fresh database nexus_e2e, synthetic seed, API on 8180
+```
+Locally the UI identifies you with the development user picker in the header (local and test builds only): pick a synthetic
+login from `ui/e2e/seed.sql` (for example `e2e_steward`) or one you created as above. The production build has no picker.
+Design-system packages (OD-02) will come only from the internal registry and are never committed.
 
 Known issues:
 - **"Could not find a valid Docker environment" with Docker Engine 29 or later.** Testcontainers older than 1.21.4

@@ -1,0 +1,77 @@
+.modes {
+  display: flex;
+  gap: var(--nx-space-2);
+  margin-bottom: var(--nx-space-3);
+}
+
+.modes button {
+  padding: var(--nx-space-2) var(--nx-space-4);
+  border: var(--nx-border-width) solid var(--nx-color-border-strong);
+  border-radius: var(--nx-radius-1);
+  background: var(--nx-color-surface-panel);
+  color: var(--nx-color-text-primary);
+  cursor: pointer;
+}
+
+.modes button[aria-pressed="true"] {
+  border-color: var(--nx-color-action-primary);
+  background: var(--nx-color-surface-selected);
+  font-weight: var(--nx-font-weight-strong);
+}
+
+.change {
+  margin-right: var(--nx-space-2);
+  padding: 0 var(--nx-space-2);
+  border: var(--nx-border-width) solid currentcolor;
+  border-radius: var(--nx-radius-1);
+  font-size: var(--nx-font-size-label);
+}
+
+.change--added {
+  color: var(--nx-color-change-added);
+}
+
+.change--removed {
+  color: var(--nx-color-change-removed);
+}
+
+.change--modified {
+  color: var(--nx-color-change-modified);
+}
+
+.change--moved {
+  color: var(--nx-color-change-moved);
+}
+
+.finding {
+  margin: var(--nx-space-2) 0 0;
+  font-size: var(--nx-font-size-label);
+  color: var(--nx-color-status-error);
+}
+
+.inline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inline p {
+  margin: 0;
+}
+
+.line {
+  padding: var(--nx-space-1) var(--nx-space-3);
+}
+
+.line--removed {
+  border-left: var(--nx-focus-width) solid var(--nx-color-change-removed);
+  color: var(--nx-color-change-removed);
+}
+
+.line--added {
+  border-left: var(--nx-focus-width) solid var(--nx-color-change-added);
+  color: var(--nx-color-change-added);
+}

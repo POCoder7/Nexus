@@ -1,0 +1,22 @@
+.picker {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-3);
+  font-size: var(--nx-font-size-label);
+}
+
+input {
+  width: 10rem;
+  padding: var(--nx-space-2) var(--nx-space-3);
+  border: var(--nx-border-width) solid var(--nx-color-border-default);
+  border-radius: var(--nx-radius-1);
+}
+
+button {
+  padding: var(--nx-space-2) var(--nx-space-3);
+  border: var(--nx-border-width) solid var(--nx-color-text-inverse);
+  border-radius: var(--nx-radius-1);
+  background: transparent;
+  color: var(--nx-color-text-inverse);
+  cursor: pointer;
+}

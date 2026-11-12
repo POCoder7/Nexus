@@ -1,0 +1,15 @@
+fieldset {
+  max-width: 30rem;
+  margin: 0;
+}
+
+legend {
+  padding: 0 var(--nx-space-2);
+  font-weight: var(--nx-font-weight-strong);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-3);
+}

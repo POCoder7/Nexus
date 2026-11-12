@@ -1,0 +1,12 @@
+<div class="ds-tabs" role="tablist" [attr.aria-label]="label()">
+  @for (tab of tabs(); track tab.id; let i = $index) {
+    <button type="button" role="tab" class="ds-tabs__tab" [id]="idPrefix() + '-' + tab.id"
+            [attr.aria-selected]="current() === tab.id" [attr.aria-controls]="idPrefix() + '-panel'"
+            [tabindex]="current() === tab.id ? 0 : -1" (click)="selected.set(tab.id)" (keydown)="key($event, i)">
+      {{ tab.label }}
+    </button>
+  }
+</div>
+<div role="tabpanel" class="ds-tabs__panel" [id]="idPrefix() + '-panel'" [attr.aria-labelledby]="idPrefix() + '-' + current()">
+  <ng-content />
+</div>

@@ -112,6 +112,10 @@
           "versionName" : {
             "type" : "string"
           },
+          "workflowInstanceId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
           "workflowModelCode" : {
             "type" : "string"
           }
@@ -141,6 +145,24 @@
           },
           "sortOrder" : {
             "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "ClientError" : {
+        "properties" : {
+          "correlationId" : {
+            "type" : "string"
+          },
+          "route" : {
+            "type" : "string"
+          },
+          "status" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "type" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -252,8 +274,53 @@
         },
         "type" : "object"
       },
+      "FormProperty" : {
+        "properties" : {
+          "category" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "dataType" : {
+            "type" : "string"
+          },
+          "defaultValue" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "listValues" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "maxLength" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "readOnly" : {
+            "type" : "boolean"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "scope" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "Grant" : {
         "properties" : {
+          "categoryCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "hierarchyCode" : {
             "type" : "string"
           },
@@ -274,6 +341,27 @@
           },
           "validTo" : {
             "format" : "date",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "HierarchyCard" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "lastUsed" : {
+            "type" : "boolean"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "openRequests" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "purpose" : {
             "type" : "string"
           }
         },
@@ -303,6 +391,113 @@
           },
           "topNodeName" : {
             "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "HistoryEvent" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "allowsChildren" : {
+            "type" : "boolean"
+          },
+          "changeRequestId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "changeRequestTitle" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "hierarchyCode" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "parentId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "parentName" : {
+            "type" : "string"
+          },
+          "primary" : {
+            "type" : "boolean"
+          },
+          "propertyCode" : {
+            "type" : "string"
+          },
+          "propertyLabel" : {
+            "type" : "string"
+          },
+          "recordedFrom" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "recordedTo" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "validFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "validTo" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "value" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          }
+        },
+        "type" : "object"
+      },
+      "HomeView" : {
+        "properties" : {
+          "hierarchies" : {
+            "items" : {
+              "$ref" : "#/components/schemas/HierarchyCard"
+            },
+            "type" : "array"
+          },
+          "policySummary" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ShadowSummaryRow"
+            },
+            "type" : "array"
+          },
+          "requests" : {
+            "$ref" : "#/components/schemas/MyRequests"
+          },
+          "worklist" : {
+            "$ref" : "#/components/schemas/WorklistSummary"
+          }
+        },
+        "type" : "object"
+      },
+      "Impact" : {
+        "properties" : {
+          "descendants" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "descendantsCapped" : {
+            "type" : "boolean"
+          },
+          "isTop" : {
+            "type" : "boolean"
+          },
+          "placements" : {
+            "format" : "int32",
+            "type" : "integer"
           }
         },
         "type" : "object"
@@ -388,6 +583,9 @@
           "action" : {
             "type" : "string"
           },
+          "before" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
           "createdAt" : {
             "format" : "date-time",
             "type" : "string"
@@ -448,6 +646,23 @@
               "$ref" : "#/components/schemas/Grant"
             },
             "type" : "array"
+          },
+          "permissions" : {
+            "additionalProperties" : {
+              "items" : {
+                "enum" : [ "READ", "PROPOSE", "DECIDE", "ADMIN_WORKFLOW", "ADMIN_POLICY", "ADMIN_SYSTEM" ],
+                "type" : "string"
+              },
+              "type" : "array",
+              "uniqueItems" : true
+            },
+            "type" : "object"
+          },
+          "preferences" : {
+            "$ref" : "#/components/schemas/Preferences"
+          },
+          "workingVersion" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -486,6 +701,24 @@
         },
         "type" : "object"
       },
+      "MyRequests" : {
+        "properties" : {
+          "countsByStatus" : {
+            "additionalProperties" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "latest" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ChangeRequestView"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
       "NodeDetail" : {
         "properties" : {
           "active" : {
@@ -512,6 +745,77 @@
               "$ref" : "#/components/schemas/PropertyValue"
             },
             "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "NodePath" : {
+        "properties" : {
+          "path" : {
+            "items" : {
+              "$ref" : "#/components/schemas/NodeRef"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "NodeRef" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "nodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "OwnershipEdge" : {
+        "properties" : {
+          "confidence" : {
+            "type" : "number"
+          },
+          "direct" : {
+            "type" : "boolean"
+          },
+          "economicPct" : {
+            "type" : "number"
+          },
+          "edgeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "nomineeForNodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "otherKind" : {
+            "type" : "string"
+          },
+          "otherName" : {
+            "type" : "string"
+          },
+          "otherNodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "relation" : {
+            "type" : "string"
+          },
+          "shareClass" : {
+            "type" : "string"
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "validFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "votingPct" : {
+            "type" : "number"
           }
         },
         "type" : "object"
@@ -558,6 +862,20 @@
         },
         "type" : "object"
       },
+      "PageHistoryEvent" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/HistoryEvent"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "PageItemView" : {
         "properties" : {
           "items" : {
@@ -586,11 +904,39 @@
         },
         "type" : "object"
       },
+      "PageOwnershipEdge" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/OwnershipEdge"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "PagePolicySummary" : {
         "properties" : {
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/PolicySummary"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PageSearchHit" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SearchHit"
             },
             "type" : "array"
           },
@@ -660,6 +1006,34 @@
           "version" : {
             "format" : "int32",
             "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "Preferences" : {
+        "properties" : {
+          "density" : {
+            "type" : "string"
+          },
+          "lastHierarchyCode" : {
+            "type" : "string"
+          },
+          "startPage" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PreferencesUpdate" : {
+        "properties" : {
+          "density" : {
+            "type" : "string"
+          },
+          "lastHierarchyCode" : {
+            "type" : "string"
+          },
+          "startPage" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -737,6 +1111,55 @@
         },
         "type" : "object"
       },
+      "SearchHit" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "nodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "path" : {
+            "items" : {
+              "$ref" : "#/components/schemas/NodeRef"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "ShadowSummaryRow" : {
+        "properties" : {
+          "decidedRequests" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "policyCode" : {
+            "type" : "string"
+          },
+          "policyVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "possiblyTooStrict" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "tooLoose" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "tooLoosePct" : {
+            "type" : "number"
+          },
+          "wouldAutoCommit" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "StageView" : {
         "properties" : {
           "claimExpiresAt" : {
@@ -781,8 +1204,38 @@
           "type" : {
             "type" : "string"
           },
+          "whyNot" : {
+            "type" : "string"
+          },
           "youCanAct" : {
             "type" : "boolean"
+          }
+        },
+        "type" : "object"
+      },
+      "SubmitForm" : {
+        "properties" : {
+          "allowedActions" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "modelCode" : {
+            "type" : "string"
+          },
+          "modelVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "properties" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FormProperty"
+            },
+            "type" : "array"
           }
         },
         "type" : "object"
@@ -906,6 +1359,24 @@
           }
         },
         "type" : "object"
+      },
+      "WorklistSummary" : {
+        "properties" : {
+          "counts" : {
+            "additionalProperties" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "top" : {
+            "items" : {
+              "$ref" : "#/components/schemas/WorklistRow"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
       }
     }
   },
@@ -939,7 +1410,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PagePolicySummary"
                 }
@@ -965,7 +1436,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/Created"
                 }
@@ -1077,7 +1548,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageModelSummary"
                 }
@@ -1103,7 +1574,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/Created"
                 }
@@ -1173,7 +1644,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageChangeRequestView"
                 }
@@ -1199,7 +1670,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChangeRequestView"
                 }
@@ -1226,7 +1697,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChangeRequestView"
                 }
@@ -1268,7 +1739,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChangeRequestView"
                 }
@@ -1311,7 +1782,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChangeRequestView"
                 }
@@ -1354,7 +1825,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageItemView"
                 }
@@ -1396,7 +1867,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ItemView"
                 }
@@ -1477,7 +1948,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "type" : "object"
                 }
@@ -1504,7 +1975,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ValidationReport"
                 }
@@ -1550,7 +2021,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChangeRequestView"
                 }
@@ -1560,6 +2031,27 @@
           }
         },
         "tags" : [ "change-request-controller" ]
+      }
+    },
+    "/api/v1/client-errors" : {
+      "post" : {
+        "operationId" : "reportClientError",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ClientError"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "client-error-controller" ]
       }
     },
     "/api/v1/hierarchies" : {
@@ -1601,7 +2093,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageHierarchySummary"
                 }
@@ -1643,7 +2135,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HierarchySummary"
                 }
@@ -1709,7 +2201,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageChildNode"
                 }
@@ -1721,15 +2213,226 @@
         "tags" : [ "hierarchy-controller" ]
       }
     },
+    "/api/v1/hierarchies/{code}/nodes/{nodeId}/impact" : {
+      "get" : {
+        "operationId" : "getNodeImpact",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "nodeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recordedAsOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Impact"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "hierarchy-controller" ]
+      }
+    },
+    "/api/v1/hierarchies/{code}/nodes/{nodeId}/path" : {
+      "get" : {
+        "operationId" : "getNodePath",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "nodeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recordedAsOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NodePath"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "hierarchy-controller" ]
+      }
+    },
+    "/api/v1/hierarchies/{code}/search" : {
+      "get" : {
+        "operationId" : "searchHierarchy",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "q",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recordedAsOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageSearchHit"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "hierarchy-controller" ]
+      }
+    },
+    "/api/v1/home" : {
+      "get" : {
+        "operationId" : "getHome",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HomeView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "home-controller" ]
+      }
+    },
     "/api/v1/me" : {
       "get" : {
         "operationId" : "getMe",
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/MeView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "me-controller" ]
+      }
+    },
+    "/api/v1/me/preferences" : {
+      "put" : {
+        "operationId" : "updatePreferences",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PreferencesUpdate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Preferences"
                 }
               }
             },
@@ -1777,7 +2480,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/NodeDetail"
                 }
@@ -1787,6 +2490,174 @@
           }
         },
         "tags" : [ "node-controller" ]
+      }
+    },
+    "/api/v1/nodes/{nodeId}/history" : {
+      "get" : {
+        "operationId" : "getNodeHistory",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "nodeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "hierarchy",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageHistoryEvent"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "node-history-controller" ]
+      }
+    },
+    "/api/v1/nodes/{nodeId}/holdings" : {
+      "get" : {
+        "operationId" : "listNodeHoldings",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "nodeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recordedAsOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageOwnershipEdge"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "node-history-controller" ]
+      }
+    },
+    "/api/v1/nodes/{nodeId}/owners" : {
+      "get" : {
+        "operationId" : "listNodeOwners",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "nodeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recordedAsOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageOwnershipEdge"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "node-history-controller" ]
       }
     },
     "/api/v1/workflow/instances/{instanceId}" : {
@@ -1804,7 +2675,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/InstanceView"
                 }
@@ -1814,6 +2685,39 @@
           }
         },
         "tags" : [ "workflow-controller" ]
+      }
+    },
+    "/api/v1/workflow/models/{code}/submit-form" : {
+      "get" : {
+        "operationId" : "getSubmitForm",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "hierarchy",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubmitForm"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "submit-form-controller" ]
       }
     },
     "/api/v1/workflow/stages/{stageId}/claim" : {
@@ -1890,7 +2794,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/DecisionResult"
                 }
@@ -1927,7 +2831,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ItemView"
                 }
@@ -1984,7 +2888,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/WorklistPage"
                 }

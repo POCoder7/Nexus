@@ -1,0 +1,24 @@
+<section class="nx-page">
+  <h1>{{ t.title }}</h1>
+  <fieldset class="nx-card">
+    <legend>{{ t.startPage }}</legend>
+    @for (p of startPages; track p) {
+      <label class="option">
+        <input type="radio" name="startPage" [value]="p" [checked]="prefs.startPage() === p" (change)="save({ startPage: p })" />
+        {{ t.startPages[p] }}
+      </label>
+    }
+  </fieldset>
+  <fieldset class="nx-card">
+    <legend>{{ t.density }}</legend>
+    @for (d of densities; track d) {
+      <label class="option">
+        <input type="radio" name="density" [value]="d" [checked]="prefs.density() === d" (change)="save({ density: d })" />
+        {{ t.densities[d] }}
+      </label>
+    }
+  </fieldset>
+  @if (error(); as e) {
+    <p class="nx-error-text" role="alert">{{ e.detail }}</p>
+  }
+</section>

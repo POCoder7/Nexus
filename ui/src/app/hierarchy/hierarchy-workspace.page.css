@@ -1,0 +1,117 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.workspace {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.master {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-3);
+  width: 26rem;
+  min-width: var(--nx-size-tree-min);
+  max-width: 60%;
+  padding: var(--nx-space-4);
+  border-right: var(--nx-border-width) solid var(--nx-color-border-default);
+  background: var(--nx-color-surface-panel);
+  resize: horizontal;
+  overflow: hidden;
+}
+
+.title {
+  font-size: var(--nx-font-size-heading-2);
+}
+
+.search {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-2);
+}
+
+.search label {
+  font-size: var(--nx-font-size-label);
+}
+
+.search input {
+  padding: var(--nx-space-2) var(--nx-space-3);
+  border: var(--nx-border-width) solid var(--nx-color-border-strong);
+  border-radius: var(--nx-radius-1);
+}
+
+.message {
+  margin: 0;
+  font-size: var(--nx-font-size-label);
+  color: var(--nx-color-text-secondary);
+}
+
+.hits {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: var(--nx-z-dropdown);
+  max-height: 20rem;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+  border: var(--nx-border-width) solid var(--nx-color-border-strong);
+  background: var(--nx-color-surface-raised);
+  box-shadow: var(--nx-elevation-2);
+}
+
+.hits li {
+  display: flex;
+  flex-direction: column;
+  padding: var(--nx-space-3);
+  cursor: pointer;
+}
+
+.hits li.active,
+.hits li:hover {
+  background: var(--nx-color-surface-selected);
+}
+
+.hit-path {
+  font-size: var(--nx-font-size-label);
+  color: var(--nx-color-text-secondary);
+}
+
+.tree {
+  flex: 1;
+  min-height: 0;
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-2);
+}
+
+.detail {
+  flex: 1;
+  min-width: 0;
+  padding: var(--nx-space-5);
+  overflow: auto;
+}
+
+@media (max-width: 64rem) {
+  .workspace {
+    flex-direction: column;
+  }
+
+  .master {
+    width: auto;
+    max-width: none;
+    height: 50%;
+    resize: none;
+    border-right: none;
+    border-bottom: var(--nx-border-width) solid var(--nx-color-border-default);
+  }
+}

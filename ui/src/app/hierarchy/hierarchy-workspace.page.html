@@ -1,0 +1,50 @@
+<div class="workspace">
+  <section class="master" [attr.aria-label]="t.treeLabel(store.hierarchy()?.name ?? code())">
+    <h1 class="title">{{ store.hierarchy()?.name ?? code() }}</h1>
+    <div class="search" role="search">
+      <label for="nx-tree-search">{{ t.searchLabel }}</label>
+      <input id="nx-tree-search" type="search" autocomplete="off" role="combobox" aria-autocomplete="list"
+             [attr.aria-expanded]="hits().length > 0" aria-controls="nx-tree-search-results"
+             [attr.aria-activedescendant]="activeHit() >= 0 ? 'nx-hit-' + activeHit() : null"
+             [value]="query()" (input)="onQuery($any($event.target).value)" (keydown)="onSearchKey($event)" />
+      @if (searchMessage(); as m) {
+        <p class="message" role="status" data-testid="search-message">{{ m }}</p>
+      }
+      @if (hits().length > 0) {
+        <ul id="nx-tree-search-results" class="hits" role="listbox" [attr.aria-label]="t.searchLabel">
+          @for (hit of hits(); track hit.nodeId; let i = $index) {
+            <li [id]="'nx-hit-' + i" role="option" [attr.aria-selected]="i === activeHit()" [class.active]="i === activeHit()"
+                (click)="choose(hit)" (mousedown)="$event.preventDefault()">
+              <span class="hit-name">{{ hit.name }}</span>
+              <span class="hit-path">{{ hitPath(hit) }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+    @if (store.error(); as e) {
+      <div class="nx-card" role="alert">
+        <p class="nx-error-text">{{ e.detail }}</p>
+        <ds-button (pressed)="store.open(code(), context.slice())">{{ common.retry }}</ds-button>
+      </div>
+    } @else if (store.visibleRows().length === 0) {
+      <div class="skeleton" aria-hidden="true">
+        <div class="nx-skeleton"></div><div class="nx-skeleton"></div><div class="nx-skeleton"></div>
+      </div>
+    } @else {
+      <nx-hierarchy-tree class="tree" [rows]="store.visibleRows()" [selectedId]="store.selectedId()"
+                         [label]="t.treeLabel(store.hierarchy()?.name ?? code())" [rowHeight]="rowHeight()"
+                         (expand)="store.expand($event)" (collapse)="store.collapse($event)" (select)="onSelect($event)"
+                         [dragEnabled]="canPropose() && !context.isHistorical()" (dropMove)="onDropMove($event)"
+                         (loadMore)="store.loadPage($event)" (expandSiblings)="expandSiblings($event)" />
+    }
+  </section>
+  <section class="detail">
+    <nx-node-panel [detail]="nodeStore.detail()" [path]="nodeStore.path()" [sourceNames]="nodeStore.sourceNames()"
+                   [loading]="nodeStore.loading()" [error]="nodeStore.error()" [readOnly]="context.isHistorical()"
+                   [canPropose]="canPropose()" [isTop]="nodeStore.detail()?.nodeId === store.topId()"
+                   [hierarchyCode]="code()" [slice]="context.slice()" [canEditCategory]="canEditCategory"
+                   (addChild)="addChild()" (requestChange)="openChange($event.mode, $event.property)" (openNode)="openNode($event)"
+                   (retry)="store.selectedId() && nodeStore.load(store.selectedId()!, code(), context.slice())" />
+  </section>
+</div>

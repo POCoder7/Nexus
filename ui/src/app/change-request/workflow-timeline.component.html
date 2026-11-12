@@ -1,0 +1,34 @@
+<div class="timeline" aria-live="polite" data-testid="workflow-timeline">
+  <ol class="stages" [attr.aria-label]="t.label">
+    @for (s of stages(); track s.instanceStageId ?? s.seq) {
+      <li class="stage" [attr.data-stage-type]="s.type" [attr.data-stage-status]="s.status">
+        <div class="stage__head">
+          <span class="stage__name">{{ t.stage(s.seq ?? 0, s.label ?? '') }}</span>
+          <ds-badge [tone]="tone(s.status)">{{ status(s.status) }}</ds-badge>
+        </div>
+        @for (d of s.decisions ?? []; track $index) {
+          <p class="decision">
+            {{ d.decision }} — {{ t.decidedBy }} {{ who(d.decidedBy) }}, {{ d.decidedAt | nxInstant }}
+            @if (d.comment) {
+              <q>{{ d.comment }}</q>
+            }
+          </p>
+        }
+      </li>
+    }
+  </ol>
+  @if (evaluations().length > 0) {
+    <h3 class="evaluations-title">{{ t.evaluations }}</h3>
+    <ul class="evaluations" data-testid="policy-evaluations">
+      @for (e of evaluations(); track $index) {
+        <li>
+          <span aria-hidden="true">⚖ </span>{{ t.evaluation(e.policyCode ?? '', outcome(e)) }}
+          <span class="nx-muted">{{ e.evaluatedAt | nxInstant }}</span>
+          @if ((e.failedChecks ?? []).length > 0) {
+            <span class="nx-muted">({{ (e.failedChecks ?? []).join(', ') }})</span>
+          }
+        </li>
+      }
+    </ul>
+  }
+</div>

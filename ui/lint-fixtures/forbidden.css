@@ -1,0 +1,16 @@
+/* Lint self-test: every declaration below must be refused (scripts/lint-selftest.mjs). */
+.bad-colour {
+  color: #ff0000;
+}
+
+.bad-function {
+  background: rgb(255 0 0);
+}
+
+.bad-size {
+  font-size: 14px;
+}
+
+.bad-font {
+  font-family: serif;
+}

@@ -1,0 +1,63 @@
+.ownership {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-3);
+}
+
+.ownership p {
+  margin: 0;
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.link {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--nx-color-text-link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.diagram {
+  margin: 0;
+  overflow-x: auto;
+}
+
+.diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.box {
+  fill: var(--nx-color-surface-panel);
+  stroke: var(--nx-color-border-strong);
+}
+
+.box--self {
+  fill: var(--nx-color-surface-selected);
+  stroke: var(--nx-color-action-primary);
+}
+
+.edge {
+  stroke: var(--nx-color-border-strong);
+}
+
+.name,
+.pct {
+  dominant-baseline: middle;
+  text-anchor: middle;
+  fill: var(--nx-color-text-primary);
+  font-size: var(--nx-font-size-label);
+}
+
+.name--self {
+  font-weight: var(--nx-font-weight-strong);
+}
+
+.pct {
+  fill: var(--nx-color-text-secondary);
+}

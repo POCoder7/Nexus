@@ -26,7 +26,10 @@ public class ChangeRequestRepository {
                    cr.effective_from, cr.origin, cr.created_at, cr.submitted_at, cr.decided_by, cr.decided_at,
                    cr.decision_note, cr.decision_basis::text AS decision_basis, cr.applied_at, cr.apply_error,
                    (SELECT count(*) FROM mdm.change_item ci WHERE ci.change_request_id = cr.change_request_id) AS item_count,
-                   cr.row_version, cr.workflow_model_code, cr.is_urgent, cr.governed_by_workflow
+                   cr.row_version, cr.workflow_model_code, cr.is_urgent, cr.governed_by_workflow,
+                   -- the root workflow instance, for the request page (Phase 3 LLD §5.1); the API reads wf, it never writes it
+                   (SELECT wi.instance_id FROM wf.workflow_instance wi
+                    WHERE wi.change_request_id = cr.change_request_id AND wi.parent_instance_id IS NULL) AS workflow_instance_id
             FROM mdm.change_request cr
             JOIN mdm.version v ON v.version_id = cr.version_id
             """;
@@ -47,12 +50,21 @@ public class ChangeRequestRepository {
                 rs.getObject("decided_by", UUID.class), instant(rs.getTimestamp("decided_at")), rs.getString("decision_note"),
                 rs.getString("decision_basis"), instant(rs.getTimestamp("applied_at")), rs.getString("apply_error"),
                 rs.getInt("item_count"), rs.getInt("row_version"), rs.getString("workflow_model_code"),
-                rs.getBoolean("is_urgent"), rs.getBoolean("governed_by_workflow"));
-        this.itemMapper = (rs, i) -> new ItemView(
-                rs.getObject("change_item_id", UUID.class), rs.getInt("seq"), rs.getString("action"),
-                rs.getString("hierarchy_code"), rs.getObject("node_id", UUID.class),
-                rs.getObject("target_parent_id", UUID.class), rs.getString("property_code"),
-                json(rs.getString("payload")), instant(rs.getTimestamp("created_at")));
+                rs.getBoolean("is_urgent"), rs.getBoolean("governed_by_workflow"),
+                rs.getObject("workflow_instance_id", UUID.class));
+        this.itemMapper = (rs, i) -> {
+            JsonNode payload = json(rs.getString("payload"));
+            return new ItemView(
+                    rs.getObject("change_item_id", UUID.class), rs.getInt("seq"), rs.getString("action"),
+                    rs.getString("hierarchy_code"), rs.getObject("node_id", UUID.class),
+                    rs.getObject("target_parent_id", UUID.class), rs.getString("property_code"),
+                    payload, before(payload), instant(rs.getTimestamp("created_at")));
+        };
+    }
+
+    /** The state an item assumes ({@code payload.expected}, Phase 1 LLD §7.3): the "before" side of the request page. */
+    private static JsonNode before(JsonNode payload) {
+        return payload == null || !payload.has("expected") ? null : payload.get("expected");
     }
 
     private static Instant instant(Timestamp t) {

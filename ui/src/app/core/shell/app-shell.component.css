@@ -1,0 +1,113 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.skip {
+  position: absolute;
+  left: var(--nx-space-3);
+  top: calc(-1 * var(--nx-space-8));
+  z-index: var(--nx-z-overlay);
+  padding: var(--nx-space-3);
+  background: var(--nx-color-surface-raised);
+}
+
+.skip:focus {
+  top: var(--nx-space-3);
+}
+
+.user {
+  font-size: var(--nx-font-size-label);
+}
+
+.context-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nx-space-6);
+  padding: var(--nx-space-2) var(--nx-space-5);
+  border-bottom: var(--nx-border-width) solid var(--nx-color-border-default);
+  background: var(--nx-color-surface-panel);
+}
+
+.context-bar__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nx-space-3);
+}
+
+.context-bar__label {
+  font-size: var(--nx-font-size-label);
+  color: var(--nx-color-text-secondary);
+}
+
+.historical,
+.load-error {
+  padding: var(--nx-space-3) var(--nx-space-5);
+  border-bottom: var(--nx-border-width) solid var(--nx-color-status-warning);
+  background: var(--nx-color-surface-banner);
+  color: var(--nx-color-text-primary);
+}
+
+.load-error {
+  border-bottom-color: var(--nx-color-status-error);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.nav {
+  flex: 0 0 var(--nx-size-nav);
+  border-right: var(--nx-border-width) solid var(--nx-color-border-default);
+  background: var(--nx-color-surface-panel);
+}
+
+.nav ul {
+  margin: 0;
+  padding: var(--nx-space-4) 0;
+  list-style: none;
+}
+
+.nav a {
+  display: block;
+  padding: var(--nx-space-3) var(--nx-space-5);
+  color: var(--nx-color-text-primary);
+  text-decoration: none;
+}
+
+.nav a:hover {
+  background: var(--nx-color-surface-hover);
+}
+
+.nav a.active {
+  background: var(--nx-color-surface-selected);
+  font-weight: var(--nx-font-weight-strong);
+}
+
+.count {
+  margin-left: var(--nx-space-3);
+  padding: 0 var(--nx-space-3);
+  border: var(--nx-border-width) solid var(--nx-color-border-strong);
+  border-radius: var(--nx-radius-2);
+  font-size: var(--nx-font-size-label);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.main:focus {
+  outline: none;
+}
+
+@media (max-width: 64rem) {
+  .nav {
+    flex-basis: auto;
+  }
+}

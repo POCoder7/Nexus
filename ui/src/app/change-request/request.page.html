@@ -1,0 +1,54 @@
+<section class="nx-page">
+  @if (error(); as e) {
+    <h1>{{ t.title(id()) }}</h1>
+    <div class="nx-card" role="alert">
+      <p>{{ e.status === 404 ? t.notFound : e.detail }}</p>
+      @if (e.correlationId) {
+        <p class="nx-muted">{{ common.correlationId }}: <span class="nx-identifier">{{ e.correlationId }}</span></p>
+      }
+    </div>
+  } @else if (request(); as r) {
+    <header class="head">
+      <h1>{{ r.title }}</h1>
+      <div class="facts">
+        <nx-copy-id [value]="r.id!" />
+        <ds-badge [tone]="tone(r.status)" data-testid="request-status">{{ statuses[r.status ?? ''] ?? r.status }}</ds-badge>
+        @if (committedByPolicy() !== null) {
+          <ds-badge tone="info" data-testid="committed-by-policy">{{ t.committedByPolicy(committedByPolicy()!) }}</ds-badge>
+        }
+      </div>
+      <dl class="meta">
+        <div><dt>{{ t.requester }}</dt><dd>{{ isMine() ? names()[r.requesterId!] : r.requesterId }}</dd></div>
+        <div><dt>{{ t.effectiveFrom }}</dt><dd>{{ r.effectiveFrom | nxDate }}</dd></div>
+        @if (r.workflowModelCode) {
+          <div><dt>{{ t.model }}</dt><dd class="nx-identifier">{{ r.workflowModelCode }}</dd></div>
+        }
+      </dl>
+      @if (r.applyError) {
+        <p class="nx-error-text" role="alert">{{ r.applyError }}</p>
+      }
+    </header>
+
+    <div class="columns">
+      <div class="main-col">
+        <h2>{{ t.items }}</h2>
+        <nx-item-list [items]="items()" [label]="t.items" />
+      </div>
+      <div class="side-col">
+        <h2>{{ t.timeline }}</h2>
+        @if (instance(); as i) {
+          <nx-workflow-timeline [stages]="i.stages ?? []" [evaluations]="i.policyEvaluations ?? []" [names]="names()" />
+          @if (r.status === 'in_review' || openStage()) {
+            <nx-decision-panel [stage]="openStage()" [reason]="openStage()?.whyNot ?? null" [busy]="deciding()"
+                               [error]="decisionError()" (decide)="decide($event)" />
+          }
+        } @else {
+          <p class="nx-muted">{{ t.coreMode }}</p>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="nx-skeleton" aria-hidden="true"></div>
+    <span class="nx-visually-hidden">{{ common.loading }}</span>
+  }
+</section>

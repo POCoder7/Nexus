@@ -1,0 +1,41 @@
+@if (rows().length === 0 && !loading()) {
+  <p class="empty" role="status">{{ emptyText() }}</p>
+} @else {
+  <div class="table" role="table" [attr.aria-label]="t.title" [attr.aria-busy]="loading()" [attr.aria-rowcount]="rows().length + 1"
+       data-testid="worklist-table">
+    <div role="rowgroup">
+      <div class="row head" role="row" aria-rowindex="1">
+        <span role="columnheader">{{ t.columns.title }}</span>
+        <span role="columnheader">{{ t.columns.stage }}</span>
+        <span role="columnheader">{{ t.columns.status }}</span>
+        <span role="columnheader">{{ t.columns.due }}</span>
+        <span role="columnheader">{{ t.columns.model }}</span>
+      </div>
+    </div>
+    <!-- focusable so keyboard users can scroll it (axe scrollable-region-focusable) -->
+    <cdk-virtual-scroll-viewport class="viewport" [itemSize]="rowHeight()" role="rowgroup" tabindex="0"
+                                 [style.height.px]="rowHeight() * (rows().length < 12 ? rows().length : 12)">
+      <div *cdkVirtualFor="let row of rows(); trackBy: track; let i = index" class="row" role="row" [attr.aria-rowindex]="i + 2"
+           [style.height.px]="rowHeight()" [attr.data-request-id]="row.changeRequestId">
+        <span role="cell" class="title">
+          <a href="#" (click)="$event.preventDefault(); open.emit(row)">{{ row.title }}</a>
+          @if (row.isUrgent) {
+            <ds-badge tone="warning">{{ t.urgent }}</ds-badge>
+          }
+        </span>
+        <span role="cell">{{ row.stageLabel }}</span>
+        <span role="cell">
+          <ds-badge [tone]="tone(row)">{{ statuses[row.stageStatus ?? ''] ?? row.stageStatus }}</ds-badge>
+          @if (row.isOverdue) {
+            <ds-badge tone="error">{{ t.overdue }}</ds-badge>
+          }
+        </span>
+        <span role="cell">{{ row.dueAt ? (row.dueAt | nxInstant) : t.noDue }}</span>
+        <span role="cell" class="nx-identifier">{{ row.modelCode }}</span>
+      </div>
+    </cdk-virtual-scroll-viewport>
+  </div>
+}
+@if (hasMore()) {
+  <div class="more"><ds-button [disabled]="loading()" (pressed)="loadMore.emit()">{{ t.loadMore }}</ds-button></div>
+}

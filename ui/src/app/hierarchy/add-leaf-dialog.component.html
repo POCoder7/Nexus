@@ -1,0 +1,79 @@
+<ds-dialog-frame [title]="t.title(data.parentName)" [titleId]="titleId" [closeLabel]="common.close" (closed)="close()">
+  <form id="nx-add-leaf-form" class="form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    @if (summary().length > 0 || serverError()) {
+      <div id="nx-add-leaf-summary" class="summary" role="alert" tabindex="-1" data-testid="add-leaf-summary">
+        @if (summary().length > 0) {
+          <p>{{ t.errorSummary }}</p>
+          <ul>
+            @for (e of summary(); track e.field) {
+              <li><a [href]="'#' + fieldId(e.field)" (click)="focusField(e.field, $event)">{{ e.message }}</a></li>
+            }
+          </ul>
+        }
+        @if (serverError(); as se) {
+          <p>{{ se.detail }}</p>
+          @if (se.correlationId) {
+            <p class="nx-muted">{{ common.correlationId }}: <span class="nx-identifier">{{ se.correlationId }}</span></p>
+          }
+        }
+      </div>
+    }
+
+    <ds-field [label]="t.name" [for]="fieldId('name')" [required]="true" [requiredText]="common.required"
+              [error]="errorFor('name', $any(form.controls.name))">
+      <input [id]="fieldId('name')" formControlName="name" autocomplete="off"
+             [attr.aria-invalid]="!!errorFor('name', $any(form.controls.name))"
+             [attr.aria-describedby]="errorFor('name', $any(form.controls.name)) ? fieldId('name') + '-error' : null" />
+    </ds-field>
+    <ds-field [label]="t.description" [for]="fieldId('description')">
+      <textarea [id]="fieldId('description')" formControlName="description" rows="2"></textarea>
+    </ds-field>
+    <ds-field [label]="t.kind" [for]="fieldId('kind')">
+      <select [id]="fieldId('kind')" formControlName="nodeKind">
+        @for (k of kinds; track k) {
+          <option [value]="k">{{ kindLabel(k) }}</option>
+        }
+      </select>
+    </ds-field>
+    <label class="check">
+      <input type="checkbox" formControlName="isLeaf" [attr.aria-describedby]="fieldId('leaf') + '-hint'" />
+      {{ t.isLeaf }}
+      <span class="nx-muted" [id]="fieldId('leaf') + '-hint'">{{ t.isLeafHint }}</span>
+    </label>
+    <ds-field [label]="t.effectiveFrom" [for]="fieldId('effective')" [hint]="lockedDate() ? t.effectiveFromLocked : null">
+      <input type="date" [id]="fieldId('effective')" formControlName="effectiveFrom" />
+    </ds-field>
+
+    @if (loadError(); as le) {
+      <p class="nx-error-text" role="alert">{{ le.detail }}</p>
+    }
+    @if (formProperties().length > 0) {
+      <fieldset class="props" formGroupName="properties">
+        <legend>{{ t.properties }}</legend>
+        @for (p of formProperties(); track p.code) {
+          @let control = form.controls.properties.controls[p.code!];
+          <ds-field [label]="p.label ?? p.code!" [for]="fieldId(p.code!)" [required]="!!p.required" [requiredText]="common.required"
+                    [error]="errorFor(p.code!, $any(control))" [hint]="defaultHint(p)">
+            @if (p.listValues && p.listValues.length > 0) {
+              <select [id]="fieldId(p.code!)" [formControlName]="p.code!" [attr.aria-invalid]="!!errorFor(p.code!, $any(control))"
+                      [attr.aria-describedby]="errorFor(p.code!, $any(control)) ? fieldId(p.code!) + '-error' : null">
+                <option value="">—</option>
+                @for (lv of p.listValues; track lv) {
+                  <option [value]="lv">{{ lv }}</option>
+                }
+              </select>
+            } @else {
+              <input [id]="fieldId(p.code!)" [formControlName]="p.code!" autocomplete="off"
+                     [attr.maxlength]="p.maxLength ?? null" [attr.aria-invalid]="!!errorFor(p.code!, $any(control))"
+                     [attr.aria-describedby]="errorFor(p.code!, $any(control)) ? fieldId(p.code!) + '-error' : null" />
+            }
+          </ds-field>
+        }
+      </fieldset>
+    }
+  </form>
+  <ng-container dialog-actions>
+    <ds-button (pressed)="close()">{{ common.cancel }}</ds-button>
+    <ds-button variant="primary" [disabled]="saving()" (pressed)="save()">{{ t.submit }}</ds-button>
+  </ng-container>
+</ds-dialog-frame>

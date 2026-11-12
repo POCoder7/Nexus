@@ -85,6 +85,118 @@ public class HierarchyRepository {
                 .optional();
     }
 
+    /** A node with its name, as one step of a path or a search hit. */
+    public record NodeRef(UUID nodeId, String name) {
+    }
+
+    /**
+     * HIE-12 in-tree search (Phase 3 LLD §5.1): nodes in the hierarchy at the slice whose name or description contains
+     * {@code text} (case-insensitive; trigram indexes from V10), ordered by (name, id), keyset-paged. A node is "in" the
+     * hierarchy if it is the top node or placed in it (primary or shared). Fetches {@code limit + 1} rows.
+     */
+    public List<NodeRef> search(UUID hierarchyId, String text, Slice slice, List<String> after, int limit) {
+        return jdbc.sql("""
+                SELECT a.node_id, a.node_name
+                FROM mdm.node_attr a
+                WHERE (a.node_name ILIKE :pattern ESCAPE '\\' OR a.description ILIKE :pattern ESCAPE '\\')
+                  AND a.valid_period @> CAST(:asOf AS date)
+                  AND %s
+                  AND (a.node_id = (SELECT top_node_id FROM mdm.hierarchy WHERE hierarchy_id = :h)
+                       OR EXISTS (SELECT 1 FROM mdm.hierarchy_relationship r
+                                  WHERE r.hierarchy_id = :h AND r.child_node_id = a.node_id
+                                    AND r.valid_period @> CAST(:asOf AS date) AND %s))
+                  AND (CAST(:afterName AS text) IS NULL
+                       OR (a.node_name, a.node_id) > (CAST(:afterName AS text), CAST(:afterId AS uuid)))
+                ORDER BY a.node_name, a.node_id
+                LIMIT :limit
+                """.formatted(slice.recorded("a"), slice.recorded("r")))
+                .param("pattern", "%" + likeEscape(text) + "%")
+                .param("asOf", slice.asOf())
+                .param("rec", slice.recBind())
+                .param("h", hierarchyId)
+                .param("afterName", after == null ? null : after.get(0))
+                .param("afterId", after == null ? null : after.get(1))
+                .param("limit", limit + 1)
+                .query((rs, i) -> new NodeRef(rs.getObject("node_id", UUID.class), rs.getString("node_name")))
+                .list();
+    }
+
+    /**
+     * The primary-placement path from the top node down to {@code nodeId} at the slice (both included), used to reveal a
+     * node in the tree (Phase 3 LLD §7.2). Empty when the node is not reachable from the top node on that date.
+     * Depth is bounded as a safety net; the hierarchy guard already prevents cycles.
+     */
+    public List<NodeRef> primaryPath(UUID hierarchyId, UUID nodeId, Slice slice) {
+        List<NodeRef> path = jdbc.sql("""
+                WITH RECURSIVE up(node_id, depth) AS (
+                  SELECT CAST(:node AS uuid), 0
+                  UNION ALL
+                  SELECT r.parent_node_id, up.depth + 1
+                  FROM up
+                  JOIN mdm.hierarchy_relationship r
+                    ON r.child_node_id = up.node_id AND r.hierarchy_id = :h AND r.is_primary
+                   AND r.valid_period @> CAST(:asOf AS date) AND %s
+                  WHERE up.depth < 1000
+                )
+                SELECT up.node_id, a.node_name
+                FROM up
+                LEFT JOIN mdm.node_attr a ON a.node_id = up.node_id AND a.valid_period @> CAST(:asOf AS date) AND %s
+                ORDER BY up.depth DESC
+                """.formatted(slice.recorded("r"), slice.recorded("a")))
+                .param("node", nodeId)
+                .param("h", hierarchyId)
+                .param("asOf", slice.asOf())
+                .param("rec", slice.recBind())
+                .query((rs, i) -> new NodeRef(rs.getObject("node_id", UUID.class), rs.getString("node_name")))
+                .list();
+        UUID top = jdbc.sql("SELECT top_node_id FROM mdm.hierarchy WHERE hierarchy_id = :h").param("h", hierarchyId)
+                .query(UUID.class).single();
+        return !path.isEmpty() && path.get(0).nodeId().equals(top) ? path : List.of();
+    }
+
+    /** What a structural change to a node touches (Phase 3 scope extension; UI_STANDARD §6 impact preview). */
+    public record Impact(long descendants, int placements, boolean isTop, boolean descendantsCapped) {
+    }
+
+    static final int IMPACT_CAP = 100_000;
+
+    /**
+     * Descendants by primary links (what a cascade or a move carries), the number of parents the node is placed under, and
+     * whether it is the top node, at the slice. The count stops at {@link #IMPACT_CAP} so a preview never scans without limit.
+     */
+    public Impact impact(UUID hierarchyId, UUID nodeId, Slice slice) {
+        Long descendants = jdbc.sql("""
+                WITH RECURSIVE down(node_id, depth) AS (
+                  SELECT r.child_node_id, 1 FROM mdm.hierarchy_relationship r
+                  WHERE r.hierarchy_id = :h AND r.parent_node_id = :node AND r.is_primary
+                    AND r.valid_period @> CAST(:asOf AS date) AND %1$s
+                  UNION ALL
+                  SELECT r.child_node_id, down.depth + 1 FROM down
+                  JOIN mdm.hierarchy_relationship r ON r.parent_node_id = down.node_id AND r.hierarchy_id = :h AND r.is_primary
+                   AND r.valid_period @> CAST(:asOf AS date) AND %1$s
+                  WHERE down.depth < 1000
+                )
+                SELECT count(*) FROM (SELECT 1 FROM down LIMIT :cap) d
+                """.formatted(slice.recorded("r")))
+                .param("h", hierarchyId).param("node", nodeId).param("asOf", slice.asOf()).param("rec", slice.recBind())
+                .param("cap", IMPACT_CAP + 1)
+                .query(Long.class).single();
+        Integer placements = jdbc.sql("""
+                SELECT count(*) FROM mdm.hierarchy_relationship r
+                WHERE r.hierarchy_id = :h AND r.child_node_id = :node AND r.valid_period @> CAST(:asOf AS date) AND %s
+                """.formatted(slice.recorded("r")))
+                .param("h", hierarchyId).param("node", nodeId).param("asOf", slice.asOf()).param("rec", slice.recBind())
+                .query(Integer.class).single();
+        boolean top = jdbc.sql("SELECT top_node_id = :node FROM mdm.hierarchy WHERE hierarchy_id = :h")
+                .param("h", hierarchyId).param("node", nodeId).query(Boolean.class).single();
+        return new Impact(Math.min(descendants, IMPACT_CAP), placements, top, descendants > IMPACT_CAP);
+    }
+
+    /** Escapes LIKE wildcards so user text matches literally. */
+    static String likeEscape(String text) {
+        return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
+
     /**
      * One keyset page of a parent's children at a slice, ordered by (sort order, name, node id) — the export
      * order plus the id as a tie-breaker (ADR-015). Fetches {@code limit + 1} rows.

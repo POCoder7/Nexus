@@ -105,7 +105,7 @@ public class StageService {
         ChangeRequestView cr = changeRequests.get(actor, stage.changeRequestId());
         ItemFactory.NewItem item = items.build(cr, cmd, requests.allItems(cr.id()));
         for (ItemFactory.Scope s : item.scopes()) {
-            entitlements.require(actor, Permission.PROPOSE, s.hierarchyId(), s.nodeId());
+            entitlements.require(actor, Permission.PROPOSE, s.hierarchyId(), s.nodeId(), s.categoryCode(), s.propertyEdit());
         }
         UUID itemId;
         try {

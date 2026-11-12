@@ -39,7 +39,7 @@ public class EntitlementService {
 
     public List<Grant> grants(Actor actor, LocalDate on) {
         return jdbc.sql("""
-                SELECT ur.role_code, ur.hierarchy_id, h.hierarchy_code, ur.top_node_id,
+                SELECT ur.role_code, ur.hierarchy_id, h.hierarchy_code, ur.top_node_id, ur.category_codes,
                        lower(ur.valid_period) AS valid_from, upper(ur.valid_period) AS valid_to
                 FROM mdm.user_role ur
                 LEFT JOIN mdm.hierarchy h ON h.hierarchy_id = ur.hierarchy_id
@@ -52,7 +52,8 @@ public class EntitlementService {
                 .param("on", on)
                 .query((rs, i) -> new Grant(rs.getString("role_code"), rs.getObject("hierarchy_id", UUID.class),
                         rs.getString("hierarchy_code"), rs.getObject("top_node_id", UUID.class),
-                        rs.getObject("valid_from", LocalDate.class), rs.getObject("valid_to", LocalDate.class)))
+                        rs.getObject("valid_from", LocalDate.class), rs.getObject("valid_to", LocalDate.class),
+                        categories(rs.getArray("category_codes"))))
                 .list();
     }
 
@@ -81,10 +82,21 @@ public class EntitlementService {
      * or all-hierarchy grants count).
      */
     public void require(Actor actor, Permission permission, UUID hierarchyId, UUID nodeId) {
+        require(actor, permission, hierarchyId, nodeId, null, false);
+    }
+
+    /**
+     * As {@link #require(Actor, Permission, UUID, UUID)}, and for a property edit ({@code propertyEdit}) the grant must also
+     * cover the property's category (ADR-036).
+     */
+    public void require(Actor actor, Permission permission, UUID hierarchyId, UUID nodeId, String categoryCode, boolean propertyEdit) {
         LocalDate today = clock.today();
         for (Grant g : grants(actor, today)) {
             if (!RolePermissions.allows(g.roleCode(), permission)) {
                 continue;
+            }
+            if (propertyEdit && !g.coversCategory(categoryCode)) {
+                continue;   // ADR-036: a category-limited grant covers only its categories' properties
             }
             if (g.allHierarchies()) {
                 return;
@@ -99,8 +111,16 @@ public class EntitlementService {
                 return;
             }
         }
+        if (propertyEdit) {
+            throw new ForbiddenException("entitlement.missing", "You may not edit properties in the "
+                    + (categoryCode == null ? "uncategorised" : categoryCode) + " category here. Ask an administrator for a role that covers it.");
+        }
         throw new ForbiddenException("entitlement.missing", "You don't have the " + describe(permission)
                 + " permission for this part of the hierarchy. Ask an administrator for a role with that scope.");
+    }
+
+    private static java.util.List<String> categories(java.sql.Array array) throws java.sql.SQLException {
+        return array == null ? null : java.util.List.of((String[]) array.getArray());
     }
 
     /** True if any current grant gives {@code permission} somewhere (e.g. "may this actor create a request at all?"). */

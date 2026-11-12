@@ -67,7 +67,11 @@ public class ItemFactory {
                           ObjectNode payload, List<Scope> scopes) {
     }
 
-    public record Scope(UUID hierarchyId, UUID nodeId) {
+    /** {@code propertyEdit}: a set/clear property item, which also needs a grant covering {@code categoryCode} (ADR-036). */
+    public record Scope(UUID hierarchyId, UUID nodeId, String categoryCode, boolean propertyEdit) {
+        public Scope(UUID hierarchyId, UUID nodeId) {
+            this(hierarchyId, nodeId, null, false);
+        }
     }
 
     public NewItem build(ChangeRequestView cr, ItemCommand cmd, List<ItemView> earlier) {
@@ -212,9 +216,10 @@ public class ItemFactory {
             throw ItemValidationException.field("propertyCode", "is required");
         }
         PropertyRow prop = jdbc.sql("""
-                SELECT property_id, scope::text AS scope, origin::text AS origin FROM mdm.property_definition WHERE property_code = :c
+                SELECT property_id, scope::text AS scope, origin::text AS origin, category_code FROM mdm.property_definition WHERE property_code = :c
                 """).param("c", cmd.propertyCode())
-                .query((rs, i) -> new PropertyRow(rs.getObject("property_id", UUID.class), rs.getString("scope"), rs.getString("origin")))
+                .query((rs, i) -> new PropertyRow(rs.getObject("property_id", UUID.class), rs.getString("scope"), rs.getString("origin"),
+                        rs.getString("category_code")))
                 .optional()
                 .orElseThrow(() -> ItemValidationException.field("propertyCode", "unknown property " + cmd.propertyCode()));
         if ("derived".equals(prop.origin())) {
@@ -223,7 +228,9 @@ public class ItemFactory {
         if ("set_property".equals(action) && !payload.has("value")) {
             throw ItemValidationException.field("payload.value", "is required (use null for an explicit blank)");
         }
-        if (!inHierarchy(node, h, d)) {
+        // a node added by an earlier item of this request counts (SLICE-01: a leaf and its required properties in one
+        // request); apply and the trial apply still check every item in order under lock
+        if (!inHierarchy(node, h, d) && !addedEarlier(node, h, earlier)) {
             throw new RuleException("change_item.not_in_hierarchy", "The node is not in " + h.code() + " on " + d + ".");
         }
         UUID valueHierarchy = "local".equals(prop.scope()) ? h.id() : null;
@@ -247,7 +254,7 @@ public class ItemFactory {
             expected.put("present", stored.isPresent());
             expected.set("value", stored.map(this::readJson).orElse(null));
         }
-        return new NewItem(action, h.id(), node, null, prop.id(), payload, List.of(new Scope(h.id(), node)));
+        return new NewItem(action, h.id(), node, null, prop.id(), payload, List.of(new Scope(h.id(), node, prop.category(), true)));
     }
 
     // ------------------------------------------------------------------ helpers
@@ -255,7 +262,7 @@ public class ItemFactory {
     private record HierarchyRow(UUID id, String code) {
     }
 
-    private record PropertyRow(UUID id, String scope, String origin) {
+    private record PropertyRow(UUID id, String scope, String origin, String category) {
     }
 
     private record Placement(UUID primaryParent, Set<UUID> parents) {

@@ -10,7 +10,7 @@
 |---|---|---|---|
 | Migrations + pgTAP (PowerShell) | `scripts\db-test.ps1` | **Pass**: V1–V6 applied; 35/35 tests (18 + 17) | — |
 | Migrations + pgTAP (Bash, as CI runs it) | `bash scripts/db-test.sh` | **Pass**: 35/35 with `MSYS_NO_PATHCONV=1`; fails in Git Bash without it | Git Bash on Windows rewrites `/workspace/...` into a Windows path. Linux CI is not affected |
-| API build + tests | `mvn -B -f services/mdm-api/pom.xml verify` | **Fail**: `HierarchyApiTest` errors before start, "Could not find a valid Docker environment" (HTTP 400 from Docker) | Spring Boot 3.4.5 manages Testcontainers 1.20.x, whose Docker client requests API 1.32; Docker Engine 29 accepts ≥ 1.40. The pin to 1.21.4 (commit `0c192e7`) has been removed in the working tree (uncommitted change to `pom.xml`). With the pin, 6/6 passed earlier today |
+| API build + tests | `mvn -B -f services/mdm-api/pom.xml verify` | **Fail**: `HierarchyApiTest` errors before start, "Could not find a valid Docker environment" (HTTP 400 from Docker) | Spring Boot 3.4.5 manages Testcontainers 1.20.x, whose Docker client requests API 1.32; Docker Engine 29 accepts ≥ 1.40. The pin to 1.21.4 (commit `4202370`) has been removed in the working tree (uncommitted change to `pom.xml`). With the pin, 6/6 passed earlier today |
 | Maven wrapper | — | **Missing** | Only `services/mdm-api/.mvn/wrapper/maven-wrapper.properties` exists; `mvnw` / `mvnw.cmd` not generated |
 | CI workflow | `.github/workflows/ci.yml` (read, not run) | **Would fail** in `db-tests` | `scripts/*.sh` are committed with mode `100644`, so `./scripts/db-test.sh` gets "Permission denied" on Linux. The `api` job would also hit the Testcontainers issue if the runner's Docker is ≥ 29 |
 

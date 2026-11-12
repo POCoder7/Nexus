@@ -7,19 +7,19 @@ and recorded time. Core mode only (no workflow engine yet), with maker-checker a
 
 | Commit | Increment |
 |---|---|
-| `95091fc` | 1-1 Error codes on every guard (ADR-020), `DbErrorTranslator`, Problem Details |
-| `f92fe1a` | 1-2 Change-request controls: requester kind, status transitions, frozen content, draft-only items and deletes, row version, `origin` |
-| `5925522` | 1-3 Database roles and privileges (V7); the app runs as a least-privilege login |
-| `69bf05f` | 1-4 Entitlements by hierarchy and sub-tree (V8), actor port, startup guard, settings, `BusinessClock`, `GET /me` |
-| `592fb46` | 1-5 Keyset paging, `recordedAsOf`, UTC sessions |
-| `6a858f4` | 1-6 Resolved properties with provenance |
-| `27119ab` | 1-7 Change-request drafting API: create, edit, items with expected values, withdraw; ETag; idempotency |
-| `da2d9b7` | 1-8a Apply framework (set-from-D), add / insert / move, stale base, change events |
-| `d10e67c` | 1-8b Apply remove, delete, update node, add hierarchy |
-| `f72d738` | 1-8c Apply set / clear property, item limit by origin |
-| `c1efe3a` | 1-9 Validation by trial apply, submit |
-| `de69b7d` | 1-10 Decision, apply service with retries, sweeper, review queue |
-| `1929735` | 1-11 Performance test scaffold (deferred, not run) |
+| `6cde7c0` | 1-1 Error codes on every guard (ADR-020), `DbErrorTranslator`, Problem Details |
+| `8a29869` | 1-2 Change-request controls: requester kind, status transitions, frozen content, draft-only items and deletes, row version, `origin` |
+| `76ecde7` | 1-3 Database roles and privileges (V7); the app runs as a least-privilege login |
+| `4b356d1` | 1-4 Entitlements by hierarchy and sub-tree (V8), actor port, startup guard, settings, `BusinessClock`, `GET /me` |
+| `411f5f8` | 1-5 Keyset paging, `recordedAsOf`, UTC sessions |
+| `f85b9f9` | 1-6 Resolved properties with provenance |
+| `8267f23` | 1-7 Change-request drafting API: create, edit, items with expected values, withdraw; ETag; idempotency |
+| `d414008` | 1-8a Apply framework (set-from-D), add / insert / move, stale base, change events |
+| `c18dba8` | 1-8b Apply remove, delete, update node, add hierarchy |
+| `e3ee4d6` | 1-8c Apply set / clear property, item limit by origin |
+| `40c837b` | 1-9 Validation by trial apply, submit |
+| `6314e63` | 1-10 Decision, apply service with retries, sweeper, review queue |
+| `9120776` | 1-11 Performance test scaffold (deferred, not run) |
 | 1-12 commit | Records: data model, error-code registry, README, developer setup, CHANGELOG, test report, this summary, build state |
 
 ## Decisions taken

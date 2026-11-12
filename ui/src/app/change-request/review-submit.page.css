@@ -1,0 +1,20 @@
+.errors {
+  border-color: var(--nx-color-status-error);
+}
+
+.errors h2 {
+  color: var(--nx-color-status-error);
+}
+
+.warnings {
+  border-color: var(--nx-color-status-warning);
+}
+
+.actions {
+  display: flex;
+  gap: var(--nx-space-3);
+}
+
+ul {
+  margin: 0;
+}

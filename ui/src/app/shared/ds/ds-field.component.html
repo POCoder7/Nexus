@@ -1,0 +1,15 @@
+<div class="ds-field" [class.ds-field--invalid]="!!error()">
+  <label class="ds-field__label" [for]="for()">
+    {{ label() }}
+    @if (required()) {
+      <span class="ds-field__required">({{ requiredText() }})</span>
+    }
+  </label>
+  @if (hint()) {
+    <span class="ds-field__hint" [id]="for() + '-hint'">{{ hint() }}</span>
+  }
+  <ng-content />
+  @if (error()) {
+    <span class="ds-field__error" [id]="for() + '-error'"><span aria-hidden="true">✕ </span>{{ error() }}</span>
+  }
+</div>

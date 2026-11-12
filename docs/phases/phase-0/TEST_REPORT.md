@@ -1,6 +1,6 @@
 # Phase 0 — Foundation: test report
 
-- **Date:** 2026-11-11 · **Code state:** `cf3fe35` (all Phase 0 code changes; P0-7 only adds documentation)
+- **Date:** 2026-11-11 · **Code state:** `1c73e90` (all Phase 0 code changes; P0-7 only adds documentation)
 - **Machine:** Windows 11 Home, Docker Desktop with Engine 29.9.2 on WSL 2, JDK Temurin 21.0.13, Maven 3.9.9 via the wrapper
 
 ## Commands and results
@@ -20,8 +20,8 @@
 |---|---|---|---|
 | PROG | `scripts/db-test` green locally | Both scripts 35/35 | Pass |
 | PROG | `mvn verify` green locally | Wrapper on Windows and Bash, 6/6 | Pass |
-| PROG | Maven wrapper committed | `09c7cd9` | Pass |
-| PROG | CI workflow valid | `ci.yml` reviewed; both job commands run locally in Bash and pass; scripts executable (`2595c9f`); wrapper used in CI (`48847eb`) | **Pass locally; explicit gap:** no GitHub Actions run yet (no remote, OD-11) |
+| PROG | Maven wrapper committed | `87ce6ea` | Pass |
+| PROG | CI workflow valid | `ci.yml` reviewed; both job commands run locally in Bash and pass; scripts executable (`131ec84`); wrapper used in CI (`6e9fde1`) | **Pass locally; explicit gap:** no GitHub Actions run yet (no remote, OD-11) |
 
 ## Failures and skipped tests
 None. No test was added, removed, disabled or weakened. No migration, trigger or constraint changed.

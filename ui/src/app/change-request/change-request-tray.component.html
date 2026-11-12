@@ -1,0 +1,12 @@
+<aside class="tray" [attr.aria-label]="t.title" [attr.aria-busy]="busy()">
+  <div class="tray__summary">
+    <strong>{{ t.title }}</strong>
+    <span class="tray__count" data-testid="tray-count">{{ t.items(count()) }}</span>
+    <span class="tray__note">{{ t.note }}</span>
+  </div>
+  @if (failedCount() > 0) {
+    <p class="tray__failed" role="alert"><span aria-hidden="true">✕ </span>{{ t.failed(failedCount()) }}</p>
+    <ds-button (pressed)="retry.emit()">{{ t.retry }}</ds-button>
+  }
+  <ds-button variant="primary" [disabled]="count() === 0 || busy()" (pressed)="review.emit()">{{ t.review }}</ds-button>
+</aside>

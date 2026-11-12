@@ -1,0 +1,21 @@
+{
+  "$comment": "UI_STANDARD §3: visual values only from tokens. Colour literals, pixel font sizes and font-family declarations are allowed only in src/styles/tokens.css.",
+  "rules": {
+    "color-no-hex": true,
+    "color-named": "never",
+    "function-disallowed-list": ["rgb", "rgba", "hsl", "hsla", "hwb", "lab", "lch", "oklab", "oklch", "color"],
+    "declaration-property-unit-disallowed-list": { "font-size": ["px", "pt"], "line-height": ["px"] },
+    "property-disallowed-list": ["font-family", "font"],
+    "declaration-no-important": true
+  },
+  "overrides": [
+    {
+      "files": ["src/styles/tokens.css"],
+      "rules": {
+        "color-no-hex": null,
+        "function-disallowed-list": null,
+        "property-disallowed-list": null
+      }
+    }
+  ]
+}
