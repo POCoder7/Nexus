@@ -52,6 +52,6 @@ Capabilities: [docs/capabilities.md](docs/capabilities.md)
 ## Status
 Phase 2 (governance) built, awaiting gate approval: workflow models, stages, worklist, commit policy in shadow mode,
 engine-neutral workflow (Camunda adapter written, its run deferred). Phase 1 (core write path) approved: change requests from draft to applied data in core mode
-(maker-checker), entitlements by hierarchy and sub-tree, bitemporal reads at any date. Migrations V1–V8 apply on a
+(maker-checker), entitlements by hierarchy and sub-tree, bitemporal reads at any date. Migrations V1–V9 apply on a
 fresh PostgreSQL 16 database and all 319 pgTAP tests pass; the API's 100 tests pass (verified 2026-11-11).
 Current progress: [docs/BUILD_STATE.md](docs/BUILD_STATE.md).
