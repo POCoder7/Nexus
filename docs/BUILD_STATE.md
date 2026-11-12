@@ -16,7 +16,8 @@
 ### Phase 3 progress
 | Increment | Capability | Status | Tests | Notes |
 |---|---|---|---|---|
-| Orient + plan | PROG | Plan written, awaiting approval | baseline green | fixtures in `HierarchyApiTest` and `NodePropertiesApiTest` now set `valid_period` from `mdm.business_today()` (they failed between 00:00 UTC and midnight New York) |
+| Orient + plan | PROG | Done `7d2b0a4`; plan approved by the repository owner 2026-11-12 ("complete all of this phase, go with your recommendation": dependencies, Node.js install, CI job approved) | baseline green | fixtures in `HierarchyApiTest` and `NodePropertiesApiTest` now set `valid_period` from `mdm.business_today()` (they failed between 00:00 UTC and midnight New York) |
+| 3-1 Backend: V10, `/me` + preferences, `/home`, search + path, submit-form, request detail, client errors | NEW-10, HIE-12, GOV-03 (infra) | Done (this commit) | pgTAP 21 (13), JUnit `UiSupportApiTest` 11 | `WorklistQuery` extracted for Home; trigram index on description too (LLD names name only); OpenAPI regenerated |
 
 ### Phase 1 progress
 | Increment | Capability | Status | Tests | Notes |

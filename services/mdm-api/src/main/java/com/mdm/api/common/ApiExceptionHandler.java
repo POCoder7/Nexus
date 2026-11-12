@@ -74,6 +74,11 @@ public class ApiExceptionHandler {
         return withCorrelation(p, request);
     }
 
+    @ExceptionHandler(ClientErrorController.TooManyReportsException.class)
+    public ProblemDetail tooManyReports(ClientErrorController.TooManyReportsException ex, HttpServletRequest request) {
+        return withCorrelation(Problems.of(HttpStatus.TOO_MANY_REQUESTS, Problems.RETRY_LATER, ex.getMessage()), request);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail badRequest(IllegalArgumentException ex, HttpServletRequest request) {
         return withCorrelation(Problems.of(HttpStatus.BAD_REQUEST, Problems.INVALID_REQUEST, ex.getMessage()), request);

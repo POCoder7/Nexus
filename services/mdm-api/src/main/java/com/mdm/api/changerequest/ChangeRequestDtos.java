@@ -29,11 +29,13 @@ public final class ChangeRequestDtos {
                                     String origin, Instant createdAt, Instant submittedAt, UUID decidedBy,
                                     Instant decidedAt, String decisionNote, String decisionBasis, Instant appliedAt,
                                     String applyError, int itemCount, int rowVersion, String workflowModelCode,
-                                    boolean isUrgent, boolean governedByWorkflow) {
+                                    boolean isUrgent, boolean governedByWorkflow,
+                                    /* root workflow instance, null in core mode (Phase 3 LLD §5.1) */ UUID workflowInstanceId) {
     }
 
+    /** {@code before} is {@code payload.expected}: the state the item assumes, shown as "before → after" (Phase 3 LLD §5.1). */
     public record ItemView(UUID id, int seq, String action, String hierarchyCode, UUID nodeId, UUID targetParentId,
-                           String propertyCode, JsonNode payload, Instant createdAt) {
+                           String propertyCode, JsonNode payload, JsonNode before, Instant createdAt) {
     }
 
     /** Core-mode decision: {@code approve} or {@code reject}, with an optional note. */
