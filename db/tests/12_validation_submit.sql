@@ -8,7 +8,7 @@ INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
   ('00000000-0000-0000-0000-000000000ca1', 'v_steward', 'Steward', 'human'),
   ('00000000-0000-0000-0000-000000000ca2', 'v_other',   'Other',   'human');
 INSERT INTO mdm.version (version_id, version_name, business_as_of)
-VALUES ('00000000-0000-0000-0000-000000000cb1', 'V_VERSION', current_date);
+VALUES ('00000000-0000-0000-0000-000000000cb1', 'V_VERSION', '2030-01-01');   -- the requests' date, so NEXUS.VERSION_DATE (V11) stays quiet here
 INSERT INTO mdm.node (node_id, node_kind) VALUES
   ('00000000-0000-0000-0000-000000000c01', 'structural'),   -- T top
   ('00000000-0000-0000-0000-000000000c02', 'structural'),   -- A

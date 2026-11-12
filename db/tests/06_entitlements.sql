@@ -4,7 +4,7 @@ SELECT plan(11);
 
 SELECT has_table('mdm', 'role', 'Roles are data');
 SELECT has_table('mdm', 'user_role', 'Grants are data');
-SELECT is((SELECT count(*)::int FROM mdm.role), 6, 'Six Phase 1 roles are seeded');
+SELECT is((SELECT count(*)::int FROM mdm.role), 7, 'Six Phase 1 roles and VERSION_ADMIN (V11, ADR-037) are seeded');
 SELECT is((SELECT setting_value FROM mdm.system_setting WHERE setting_key = 'business_time_zone'),
           'America/New_York', 'The business time zone is recorded once, in the database (CR-01)');
 
