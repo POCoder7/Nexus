@@ -194,6 +194,24 @@
         },
         "type" : "object"
       },
+      "CreateVersion" : {
+        "properties" : {
+          "baseVersion" : {
+            "type" : "string"
+          },
+          "businessAsOf" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "Created" : {
         "properties" : {
           "id" : {
@@ -650,7 +668,7 @@
           "permissions" : {
             "additionalProperties" : {
               "items" : {
-                "enum" : [ "READ", "PROPOSE", "DECIDE", "ADMIN_WORKFLOW", "ADMIN_POLICY", "ADMIN_SYSTEM" ],
+                "enum" : [ "READ", "PROPOSE", "DECIDE", "ADMIN_WORKFLOW", "ADMIN_POLICY", "ADMIN_SYSTEM", "ADMIN_VERSION" ],
                 "type" : "string"
               },
               "type" : "array",
@@ -768,6 +786,27 @@
           "nodeId" : {
             "format" : "uuid",
             "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "OpenRequests" : {
+        "properties" : {
+          "approved" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "draft" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "inReview" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "submitted" : {
+            "format" : "int64",
+            "type" : "integer"
           }
         },
         "type" : "object"
@@ -946,6 +985,32 @@
         },
         "type" : "object"
       },
+      "PageVersionView" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/VersionView"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PersonRef" : {
+        "properties" : {
+          "displayName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "PolicyEvaluationView" : {
         "properties" : {
           "eligible" : {
@@ -1020,6 +1085,9 @@
           },
           "startPage" : {
             "type" : "string"
+          },
+          "workingVersion" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -1033,6 +1101,9 @@
             "type" : "string"
           },
           "startPage" : {
+            "type" : "string"
+          },
+          "workingVersion" : {
             "type" : "string"
           }
         },
@@ -1258,7 +1329,21 @@
           "title" : {
             "type" : "string"
           },
+          "versionName" : {
+            "type" : "string"
+          },
           "workflowModelCode" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "UpdateVersion" : {
+        "properties" : {
+          "description" : {
+            "type" : "string"
+          },
+          "name" : {
             "type" : "string"
           }
         },
@@ -1279,6 +1364,104 @@
           "warnings" : {
             "items" : {
               "$ref" : "#/components/schemas/Finding"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "VersionEdit" : {
+        "properties" : {
+          "allowed" : {
+            "type" : "boolean"
+          },
+          "whyNot" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "VersionTransition" : {
+        "properties" : {
+          "allowed" : {
+            "type" : "boolean"
+          },
+          "to" : {
+            "type" : "string"
+          },
+          "whyNot" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "VersionTransitionRequest" : {
+        "properties" : {
+          "reason" : {
+            "type" : "string"
+          },
+          "to" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "VersionView" : {
+        "properties" : {
+          "baseVersion" : {
+            "type" : "string"
+          },
+          "businessAsOf" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "$ref" : "#/components/schemas/PersonRef"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "edit" : {
+            "$ref" : "#/components/schemas/VersionEdit"
+          },
+          "finalizedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "finalizedBy" : {
+            "$ref" : "#/components/schemas/PersonRef"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "openRequests" : {
+            "$ref" : "#/components/schemas/OpenRequests"
+          },
+          "recordedAsOf" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "revision" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "submittedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "submittedBy" : {
+            "$ref" : "#/components/schemas/PersonRef"
+          },
+          "transitions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/VersionTransition"
             },
             "type" : "array"
           }
@@ -2658,6 +2841,181 @@
           }
         },
         "tags" : [ "node-history-controller" ]
+      }
+    },
+    "/api/v1/versions" : {
+      "get" : {
+        "operationId" : "listVersions",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageVersionView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "version-controller" ]
+      },
+      "post" : {
+        "operationId" : "createVersion",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateVersion"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VersionView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "version-controller" ]
+      }
+    },
+    "/api/v1/versions/{name}" : {
+      "get" : {
+        "operationId" : "getVersion",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "name",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VersionView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "version-controller" ]
+      },
+      "patch" : {
+        "operationId" : "updateVersion",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "name",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateVersion"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VersionView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "version-controller" ]
+      }
+    },
+    "/api/v1/versions/{name}/transitions" : {
+      "post" : {
+        "operationId" : "transitionVersion",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "name",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VersionTransitionRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VersionView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "version-controller" ]
       }
     },
     "/api/v1/workflow/instances/{instanceId}" : {

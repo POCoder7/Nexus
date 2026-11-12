@@ -5,4 +5,5 @@ export interface Preferences {
   density?: string;
   lastHierarchyCode?: string;
   startPage?: string;
+  workingVersion?: string;
 }

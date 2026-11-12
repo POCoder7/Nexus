@@ -67,6 +67,16 @@ export type { ListNodeHoldings$Params as ListNodeHoldings$Params } from './fn/no
 export { listNodeHoldings as listNodeHoldings } from './fn/node-history-controller/list-node-holdings';
 export type { ListNodeOwners$Params as ListNodeOwners$Params } from './fn/node-history-controller/list-node-owners';
 export { listNodeOwners as listNodeOwners } from './fn/node-history-controller/list-node-owners';
+export type { ListVersions$Params as ListVersions$Params } from './fn/version-controller/list-versions';
+export { listVersions as listVersions } from './fn/version-controller/list-versions';
+export type { CreateVersion$Params as CreateVersion$Params } from './fn/version-controller/create-version';
+export { createVersion as createVersion } from './fn/version-controller/create-version';
+export type { GetVersion$Params as GetVersion$Params } from './fn/version-controller/get-version';
+export { getVersion as getVersion } from './fn/version-controller/get-version';
+export type { UpdateVersion$Params as UpdateVersion$Params } from './fn/version-controller/update-version';
+export { updateVersion as updateVersion } from './fn/version-controller/update-version';
+export type { TransitionVersion$Params as TransitionVersion$Params } from './fn/version-controller/transition-version';
+export { transitionVersion as transitionVersion } from './fn/version-controller/transition-version';
 export type { GetWorkflowInstance$Params as GetWorkflowInstance$Params } from './fn/workflow-controller/get-workflow-instance';
 export { getWorkflowInstance as getWorkflowInstance } from './fn/workflow-controller/get-workflow-instance';
 export type { ClaimStage$Params as ClaimStage$Params } from './fn/workflow-controller/claim-stage';

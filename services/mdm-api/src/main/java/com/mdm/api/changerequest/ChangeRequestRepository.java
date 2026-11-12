@@ -161,18 +161,19 @@ public class ChangeRequestRepository {
     }
 
     public void updateDraft(UUID id, String title, String rationale, String riskTier, LocalDate effectiveFrom,
-                            String workflowModelCode, Boolean urgent) {
+                            String workflowModelCode, Boolean urgent, UUID versionId) {
         jdbc.sql("""
                 UPDATE mdm.change_request
                 SET title = coalesce(:title, title), rationale = coalesce(:rationale, rationale),
                     risk_tier = coalesce(CAST(:risk AS mdm.risk_tier), risk_tier),
                     effective_from = coalesce(CAST(:from AS date), effective_from),
                     workflow_model_code = coalesce(CAST(:model AS text), workflow_model_code),
-                    is_urgent = coalesce(CAST(:urgent AS boolean), is_urgent)
+                    is_urgent = coalesce(CAST(:urgent AS boolean), is_urgent),
+                    version_id = coalesce(CAST(:version AS uuid), version_id)
                 WHERE change_request_id = :id
                 """)
                 .param("title", title).param("rationale", rationale).param("risk", riskTier).param("from", effectiveFrom)
-                .param("model", workflowModelCode).param("urgent", urgent)
+                .param("model", workflowModelCode).param("urgent", urgent).param("version", versionId)
                 .param("id", id).update();
     }
 

@@ -16,8 +16,9 @@ public final class ChangeRequestDtos {
                                 String workflowModelCode, Boolean isUrgent) {
     }
 
+    /** Partial update of a draft: a null field keeps the stored value. {@code versionName} moves the draft to another working version (ADR-037). */
     public record UpdateRequest(String title, String rationale, String riskTier, LocalDate effectiveFrom,
-                                String workflowModelCode, Boolean isUrgent) {
+                                String workflowModelCode, Boolean isUrgent, String versionName) {
     }
 
     public record ItemCommand(String action, String hierarchyCode, UUID nodeId, UUID targetParentId, String propertyCode,

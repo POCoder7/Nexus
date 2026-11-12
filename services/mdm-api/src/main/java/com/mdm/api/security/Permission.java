@@ -7,5 +7,7 @@ public enum Permission {
     DECIDE,
     ADMIN_WORKFLOW,
     ADMIN_POLICY,
-    ADMIN_SYSTEM
+    ADMIN_SYSTEM,
+    /** Create versions and move them through their lifecycle (VER-01, VER-02; V11, ADR-037). */
+    ADMIN_VERSION
 }

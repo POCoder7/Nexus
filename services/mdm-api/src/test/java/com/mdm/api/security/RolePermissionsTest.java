@@ -9,7 +9,7 @@ class RolePermissionsTest {
 
     @Test
     void everyRoleCanRead() {
-        for (String role : new String[] {"VIEWER", "STEWARD", "APPROVER", "WORKFLOW_ADMIN", "POLICY_ADMIN", "SYSTEM_ADMIN"}) {
+        for (String role : new String[] {"VIEWER", "STEWARD", "APPROVER", "WORKFLOW_ADMIN", "POLICY_ADMIN", "SYSTEM_ADMIN", "VERSION_ADMIN"}) {
             assertThat(RolePermissions.allows(role, Permission.READ)).as(role).isTrue();
         }
     }
@@ -35,6 +35,9 @@ class RolePermissionsTest {
         assertThat(RolePermissions.allows("POLICY_ADMIN", Permission.ADMIN_POLICY)).isTrue();
         assertThat(RolePermissions.allows("SYSTEM_ADMIN", Permission.ADMIN_SYSTEM)).isTrue();
         assertThat(RolePermissions.allows("WORKFLOW_ADMIN", Permission.ADMIN_SYSTEM)).isFalse();
+        assertThat(RolePermissions.allows("VERSION_ADMIN", Permission.ADMIN_VERSION)).isTrue();
+        assertThat(RolePermissions.allows("VERSION_ADMIN", Permission.PROPOSE)).isFalse();
+        assertThat(RolePermissions.allows("SYSTEM_ADMIN", Permission.ADMIN_VERSION)).isFalse();
     }
 
     @Test

@@ -16,7 +16,8 @@ public final class RolePermissions {
             "APPROVER",       EnumSet.of(Permission.READ, Permission.DECIDE),
             "WORKFLOW_ADMIN", EnumSet.of(Permission.READ, Permission.ADMIN_WORKFLOW),
             "POLICY_ADMIN",   EnumSet.of(Permission.READ, Permission.ADMIN_POLICY),
-            "SYSTEM_ADMIN",   EnumSet.of(Permission.READ, Permission.ADMIN_SYSTEM));
+            "SYSTEM_ADMIN",   EnumSet.of(Permission.READ, Permission.ADMIN_SYSTEM),
+            "VERSION_ADMIN",  EnumSet.of(Permission.READ, Permission.ADMIN_VERSION));
 
     private RolePermissions() {
     }

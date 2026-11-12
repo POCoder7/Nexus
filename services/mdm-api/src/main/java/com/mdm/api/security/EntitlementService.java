@@ -163,6 +163,7 @@ public class EntitlementService {
             case ADMIN_WORKFLOW -> "workflow administration";
             case ADMIN_POLICY -> "policy administration";
             case ADMIN_SYSTEM -> "system administration";
+            case ADMIN_VERSION -> "version administration";
         };
     }
 }

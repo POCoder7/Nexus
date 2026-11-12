@@ -7,5 +7,6 @@ export interface UpdateRequest {
   rationale?: string;
   riskTier?: string;
   title?: string;
+  versionName?: string;
   workflowModelCode?: string;
 }

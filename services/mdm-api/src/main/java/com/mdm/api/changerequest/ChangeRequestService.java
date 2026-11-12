@@ -99,8 +99,11 @@ public class ChangeRequestService {
         if (model != null && !repository.activeModelExists(model)) {
             throw new RuleException("workflow.unknown_model", "There is no active workflow model " + model + ".");
         }
+        // moving a draft: the database refuses a target that is not working (N2703) and any request that is not a draft (N2102)
+        UUID versionId = body.versionName() == null ? null : repository.versionId(body.versionName().trim())
+                .orElseThrow(() -> ItemValidationException.field("versionName", "unknown version " + body.versionName()));
         repository.updateDraft(cr.id(), body.title() == null ? null : body.title().trim(), body.rationale(),
-                body.riskTier() == null ? null : riskTier(body.riskTier(), null), body.effectiveFrom(), model, body.isUrgent());
+                body.riskTier() == null ? null : riskTier(body.riskTier(), null), body.effectiveFrom(), model, body.isUrgent(), versionId);
         return repository.find(id).orElseThrow();
     }
 

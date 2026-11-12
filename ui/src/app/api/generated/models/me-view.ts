@@ -10,7 +10,7 @@ export interface MeView {
   businessToday?: string;
   grants?: Array<Grant>;
   permissions?: {
-[key: string]: Array<'READ' | 'PROPOSE' | 'DECIDE' | 'ADMIN_WORKFLOW' | 'ADMIN_POLICY' | 'ADMIN_SYSTEM'>;
+[key: string]: Array<'READ' | 'PROPOSE' | 'DECIDE' | 'ADMIN_WORKFLOW' | 'ADMIN_POLICY' | 'ADMIN_SYSTEM' | 'ADMIN_VERSION'>;
 };
   preferences?: Preferences;
   workingVersion?: string;

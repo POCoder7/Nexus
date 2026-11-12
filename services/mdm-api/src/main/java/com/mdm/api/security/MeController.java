@@ -1,6 +1,8 @@
 package com.mdm.api.security;
 
 import com.mdm.api.common.BusinessClock;
+import com.mdm.api.common.ItemValidationException;
+import com.mdm.api.common.RuleException;
 import com.mdm.api.common.NotFoundException;
 import com.mdm.api.hierarchy.HierarchyRepository;
 import com.mdm.api.security.PreferencesRepository.Preferences;
@@ -43,19 +45,22 @@ public class MeController {
         this.hierarchies = hierarchies;
     }
 
-    /** {@code workingVersion}: the version new change requests are raised in (latest working version), for the context bar. */
+    /**
+     * {@code workingVersion}: the version new change requests are raised in, for the context bar: the user's chosen
+     * working version while it is still working, otherwise the latest working version (ADR-037).
+     */
     public record MeView(Actor actor, LocalDate businessToday, String businessTimeZone, String workingVersion, Preferences preferences,
                          Map<String, Set<Permission>> permissions, List<Grant> grants) {
     }
 
     /** Partial update: a null field keeps the stored value. */
-    public record PreferencesUpdate(String startPage, String lastHierarchyCode, String density) {
+    public record PreferencesUpdate(String startPage, String lastHierarchyCode, String density, String workingVersion) {
     }
 
     @GetMapping
     public MeView getMe(Actor actor) {
         List<Grant> grants = entitlements.grants(actor);
-        return new MeView(actor, clock.today(), clock.zone().getId(), preferences.workingVersion().orElse(null),
+        return new MeView(actor, clock.today(), clock.zone().getId(), preferences.workingVersion(actor.userId()).orElse(null),
                 preferences.find(actor.userId()), permissions(grants), grants);
     }
 
@@ -77,7 +82,18 @@ public class MeController {
                     .filter(id -> entitlements.canRead(actor, id))
                     .orElseThrow(() -> new NotFoundException("Hierarchy " + body.lastHierarchyCode() + " not found"));
         }
-        preferences.save(actor.userId(), body.startPage(), hierarchyId, body.density());
+        UUID versionId = null;
+        if (body.workingVersion() != null) {
+            PreferencesRepository.VersionStatus v = preferences.versionStatus(body.workingVersion())
+                    .orElseThrow(() -> ItemValidationException.field("workingVersion", "unknown version " + body.workingVersion()));
+            if (!"working".equals(v.status())) {
+                // the same words as the database's N2703: new requests are raised only in working versions
+                throw new RuleException("version.not_working", "Version " + body.workingVersion() + " is " + v.status()
+                        + ", not working: requests cannot be raised in it, moved to it or advanced in it");
+            }
+            versionId = v.id();
+        }
+        preferences.save(actor.userId(), body.startPage(), hierarchyId, body.density(), versionId);
         return preferences.find(actor.userId());
     }
 
