@@ -1,0 +1,12 @@
+.actions {
+  display: flex;
+  gap: var(--nx-space-3);
+}
+
+textarea {
+  width: 100%;
+}
+
+p {
+  margin: 0;
+}

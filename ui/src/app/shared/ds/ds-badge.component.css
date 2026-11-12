@@ -1,0 +1,38 @@
+:host {
+  display: inline-flex;
+}
+
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nx-space-2);
+  padding: 0 var(--nx-space-3);
+  border: var(--nx-border-width) solid currentcolor;
+  border-radius: var(--nx-radius-2);
+  font-size: var(--nx-font-size-label);
+  white-space: nowrap;
+}
+
+.ds-badge--info {
+  color: var(--nx-color-status-info);
+}
+
+.ds-badge--success {
+  color: var(--nx-color-status-success);
+}
+
+.ds-badge--warning {
+  color: var(--nx-color-status-warning);
+}
+
+.ds-badge--error {
+  color: var(--nx-color-status-error);
+}
+
+.ds-badge--pending {
+  color: var(--nx-color-status-pending);
+}
+
+.ds-badge--neutral {
+  color: var(--nx-color-text-secondary);
+}

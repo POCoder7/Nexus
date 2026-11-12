@@ -42,6 +42,12 @@ public class PreferencesRepository {
                 .orElse(Preferences.DEFAULTS);
     }
 
+    /** The latest working version (by business date, then name): where the UI raises new change requests. */
+    public Optional<String> workingVersion() {
+        return jdbc.sql("SELECT version_name FROM mdm.version WHERE status = 'working' ORDER BY business_as_of DESC, version_name LIMIT 1")
+                .query(String.class).optional();
+    }
+
     public Optional<UUID> lastHierarchyId(UUID userId) {
         return jdbc.sql("SELECT last_hierarchy_id FROM mdm.user_preference WHERE user_id = :user AND last_hierarchy_id IS NOT NULL")
                 .param("user", userId).query(UUID.class).optional();

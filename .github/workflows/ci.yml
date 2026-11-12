@@ -27,3 +27,41 @@ jobs:
       - name: Build and test
         working-directory: services/mdm-api
         run: ./mvnw -B verify
+
+  # Phase 3 (ADR-025, approved by the repository owner 2026-11-12): style lint with token rules, contract drift of the
+  # generated client, unit/component tests, production build with budgets and the dev-identity check, every Storybook
+  # story with axe, then the SLICE-01 end-to-end journeys against the API and a throw-away database.
+  ui:
+    name: UI lint, tests, build, stories, end to end
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Install
+        run: npm ci
+      - name: Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: Lint, contract, unit tests, build, stories
+        run: npm run ci
+      - name: End-to-end journeys (SLICE-01)
+        env:
+          CI: 'true'
+        run: npx playwright test
+      - name: Keep the end-to-end report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: ui/e2e-report

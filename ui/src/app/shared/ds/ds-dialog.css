@@ -1,0 +1,36 @@
+.ds-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 85vh;
+  border-radius: var(--nx-radius-2);
+  background: var(--nx-color-surface-raised);
+  box-shadow: var(--nx-elevation-2);
+}
+
+.ds-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--nx-space-4) var(--nx-space-5);
+  border-bottom: var(--nx-border-width) solid var(--nx-color-border-default);
+}
+
+.ds-dialog__close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ds-dialog__body {
+  overflow: auto;
+  padding: var(--nx-space-5);
+}
+
+.ds-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--nx-space-3);
+  padding: var(--nx-space-4) var(--nx-space-5);
+  border-top: var(--nx-border-width) solid var(--nx-color-border-default);
+}

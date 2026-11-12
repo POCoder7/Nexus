@@ -154,6 +154,44 @@ public class HierarchyRepository {
         return !path.isEmpty() && path.get(0).nodeId().equals(top) ? path : List.of();
     }
 
+    /** What a structural change to a node touches (Phase 3 scope extension; UI_STANDARD §6 impact preview). */
+    public record Impact(long descendants, int placements, boolean isTop, boolean descendantsCapped) {
+    }
+
+    static final int IMPACT_CAP = 100_000;
+
+    /**
+     * Descendants by primary links (what a cascade or a move carries), the number of parents the node is placed under, and
+     * whether it is the top node, at the slice. The count stops at {@link #IMPACT_CAP} so a preview never scans without limit.
+     */
+    public Impact impact(UUID hierarchyId, UUID nodeId, Slice slice) {
+        Long descendants = jdbc.sql("""
+                WITH RECURSIVE down(node_id, depth) AS (
+                  SELECT r.child_node_id, 1 FROM mdm.hierarchy_relationship r
+                  WHERE r.hierarchy_id = :h AND r.parent_node_id = :node AND r.is_primary
+                    AND r.valid_period @> CAST(:asOf AS date) AND %1$s
+                  UNION ALL
+                  SELECT r.child_node_id, down.depth + 1 FROM down
+                  JOIN mdm.hierarchy_relationship r ON r.parent_node_id = down.node_id AND r.hierarchy_id = :h AND r.is_primary
+                   AND r.valid_period @> CAST(:asOf AS date) AND %1$s
+                  WHERE down.depth < 1000
+                )
+                SELECT count(*) FROM (SELECT 1 FROM down LIMIT :cap) d
+                """.formatted(slice.recorded("r")))
+                .param("h", hierarchyId).param("node", nodeId).param("asOf", slice.asOf()).param("rec", slice.recBind())
+                .param("cap", IMPACT_CAP + 1)
+                .query(Long.class).single();
+        Integer placements = jdbc.sql("""
+                SELECT count(*) FROM mdm.hierarchy_relationship r
+                WHERE r.hierarchy_id = :h AND r.child_node_id = :node AND r.valid_period @> CAST(:asOf AS date) AND %s
+                """.formatted(slice.recorded("r")))
+                .param("h", hierarchyId).param("node", nodeId).param("asOf", slice.asOf()).param("rec", slice.recBind())
+                .query(Integer.class).single();
+        boolean top = jdbc.sql("SELECT top_node_id = :node FROM mdm.hierarchy WHERE hierarchy_id = :h")
+                .param("h", hierarchyId).param("node", nodeId).query(Boolean.class).single();
+        return new Impact(Math.min(descendants, IMPACT_CAP), placements, top, descendants > IMPACT_CAP);
+    }
+
     /** Escapes LIKE wildcards so user text matches literally. */
     static String likeEscape(String text) {
         return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");

@@ -1,0 +1,58 @@
+<section class="nx-page">
+  <h1>{{ t.title }}</h1>
+  @if (request(); as r) {
+    <p class="nx-muted">{{ r.title }} · <span class="nx-identifier">{{ r.id }}</span> · {{ r.effectiveFrom | nxDate }}</p>
+    @if (r.status !== 'draft') {
+      <p role="status">{{ t.notDraft }} <a [routerLink]="['/requests', r.id]">{{ r.id }}</a></p>
+    }
+  }
+
+  @if (error(); as e) {
+    <div class="nx-card" role="alert">
+      <p class="nx-error-text">{{ e.detail }}</p>
+      @if (e.correlationId) {
+        <p class="nx-muted">{{ common.correlationId }}: <span class="nx-identifier">{{ e.correlationId }}</span></p>
+      }
+    </div>
+  }
+
+  <nx-item-list [items]="items()" [findings]="errors()" [label]="t.items" />
+
+  <div class="findings" aria-live="polite">
+    @if (validating()) {
+      <p class="nx-muted">{{ t.validating }}</p>
+    } @else if (validated()) {
+      @if (errors().length > 0) {
+        <div class="nx-card errors" data-testid="validation-errors">
+          <h2>{{ t.errors }}</h2>
+          <ul>
+            @for (f of errors(); track $index) {
+              <li>{{ f.message }}</li>
+            }
+          </ul>
+        </div>
+      }
+      @if (warnings().length > 0) {
+        <div class="nx-card warnings">
+          <h2>{{ t.warnings }}</h2>
+          <ul>
+            @for (f of warnings(); track $index) {
+              <li>{{ f.message }}</li>
+            }
+          </ul>
+        </div>
+      }
+      @if (errors().length === 0 && warnings().length === 0) {
+        <p data-testid="validation-ok"><span aria-hidden="true">✓ </span>{{ t.noFindings }}</p>
+      }
+    }
+  </div>
+
+  @if (request()?.status === 'draft') {
+    <div class="actions">
+      <ds-button variant="primary" [disabled]="submitting() || validating() || errors().length > 0" (pressed)="submit()">
+        {{ t.submit }}
+      </ds-button>
+    </div>
+  }
+</section>

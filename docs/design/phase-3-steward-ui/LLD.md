@@ -387,3 +387,47 @@ impact preview (HIE-02 UI; Phase 5 with the impact endpoint), AI suggestion card
 Dependencies to approve in the Phase 3 plan (ADR-025): Node.js LTS and npm; Angular CLI and framework at the design
 system's major; Angular CDK; Storybook; Playwright; axe-core; Stylelint; an OpenAPI generator for TypeScript and
 `springdoc-openapi` for the API; `pg_trgm` extension.
+
+## Built in Phase 3 (notes, 2026-11-12)
+Differences from this design found while building; none changes a control, a guard or the scope.
+- **3-5 split** into 3-5a (store and rendering) and 3-5b (keyboard, type-ahead, search reveal), as planned; same content and tests.
+- **3-2:** springdoc and the committed `docs/api/openapi.json` already existed (Phase 1). Added `springdoc.default-produces-media-type:
+  application/json`, because `*/*` made the generated client read every body as a blob. Generator: `ng-openapi-gen` (P-27).
+- **`GET /me` adds `workingVersion`** (latest working version): the context bar shows it (§3.1 `version()`) and a new change
+  request needs a version name, which the UI had no other way to know.
+- **Instance view stages add `whyNot`**, the server's sentence from `wf.why_cannot_act` for an open stage the viewer cannot
+  decide. The decision panel shows it ("You requested or submitted this change …") instead of a UI-made reason (§9: the UI explains, never decides).
+- **Trigram index on descriptions too** (§4 named only `node_name`), since search matches name or description.
+- **Budgets (§10):** Angular measures raw size, the targets are compressed. `scripts/check-prod-build.mjs` enforces
+  `UI_INITIAL_JS_KB` 350 and `UI_ROUTE_JS_KB` 150 on gzip size after every production build; the Angular raw budget
+  (600/900 kB) stays as a backstop. The same script fails the build if the development identity reaches the bundle (§9).
+- **Duplicate names** are found by the server's trial apply at validation, not when the item is added, so the conflict is
+  shown on the item in Review and submit (and blocks submission), not on the dialog's name field (§13 S1-R4).
+- **Worklist model filter** is a text field: listing models is an administrator endpoint, and no non-admin list exists.
+- **Dev identity (C-7):** the picker keeps the synthetic login in session storage in development and test builds only; the
+  production build replaces the file (`fileReplacements`) and the build check proves the header is absent.
+- **Toolchain (ADR-025), pinned exactly, each release at least two weeks old:** Node.js 26 LTS (installed by `winget`),
+  Angular 22.2 and CDK 22.2, Vitest 5 (the CLI's default runner), Storybook 10.6 with the Vite-based Angular framework and
+  the Storybook test runner with `axe-playwright`, Playwright 1.64 with `@axe-core/playwright`, Stylelint 17 (core rules
+  only), `ng-openapi-gen` 1.1. Storybook telemetry is disabled.
+- **End-to-end harness:** a throw-away database `nexus_e2e`, the API jar in profile `local` with the in-process worker in the
+  same JVM, and the synthetic seed `ui/e2e/seed.sql`. Locally the API uses the docker-compose owner account, so the
+  journeys do not prove least privilege; the JUnit suite does (as `nexus_api_test`).
+- **Performance runs** (§10 expand trace, 50 000 siblings, INP) are written as `@perf` and not run: performance testing is
+  deferred to the end of the build by the repository owner.
+
+## Scope extension built in Phase 3 (repository owner, 2026-11-12)
+The owner added the remaining editing screens to Phase 3 (Phase 3 plan, "Scope extension"). Design in brief:
+- **Node panel actions** (not rendered in historical views; offered only with `PROPOSE` on the hierarchy; the server decides):
+  Add child, Edit details (`update_node`), Place under another parent (`insert_node`, only if the hierarchy allows shared
+  nodes), Move to… (`move_node`, target chosen with the in-tree search), Remove from hierarchy (`remove_node`, cascade
+  choice), Delete node (`delete_node`). Remove, delete and move first show an impact preview from
+  `GET /hierarchies/{code}/nodes/{id}/impact` (`{descendants, placements, isTop}`) and ask for confirmation stating the numbers.
+- **Property grid** becomes editable for stored-origin properties: Edit opens a value dialog (list values as a select,
+  booleans as a choice, other types as text); a stored value can be cleared. Derived properties stay read-only.
+- **New hierarchy** on Home for users with `PROPOSE` on every hierarchy (`add_hierarchy`: code, name, purpose, top node).
+- **Tray:** one draft at a time. A draft started by add-leaf uses `ADD_LEAF`; any other draft uses `MAINTAIN`
+  (`ui/src/app/core/config.ts`). Later changes join the current draft whatever its model; the server validates the whole
+  request on submit.
+- **Not built:** drag and drop (optional per UI_STANDARD §6), category-based edit permissions (PRP-09 / SEC-03, Phase 5),
+  inherited-value changes inside the impact preview (they appear as findings on Review and submit).

@@ -1,0 +1,162 @@
+/* Global base styles: tokens only (UI_STANDARD §3). Component styles live with their components. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--nx-color-surface-page);
+  color: var(--nx-color-text-primary);
+  font-size: var(--nx-font-size-body);
+  line-height: var(--nx-line-height-body);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: var(--nx-font-weight-strong);
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--nx-font-size-heading-1);
+}
+
+h2 {
+  font-size: var(--nx-font-size-heading-2);
+}
+
+h3 {
+  font-size: var(--nx-font-size-heading-3);
+}
+
+h4 {
+  font-size: var(--nx-font-size-heading-4);
+}
+
+a {
+  color: var(--nx-color-text-link);
+}
+
+:focus-visible {
+  outline: var(--nx-focus-width) solid var(--nx-color-border-focus);
+  outline-offset: var(--nx-focus-width);
+}
+
+.nx-identifier {
+  font-variant-numeric: tabular-nums;
+}
+
+.nx-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ds-table adapter (shared/ds/ds-table.directive.ts) */
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--nx-color-surface-panel);
+}
+
+.ds-table th,
+.ds-table td {
+  padding: var(--nx-density-cell-padding);
+  border-bottom: var(--nx-border-width) solid var(--nx-color-border-default);
+  text-align: left;
+  vertical-align: top;
+}
+
+.ds-table th {
+  font-size: var(--nx-font-size-label);
+  color: var(--nx-color-text-secondary);
+  font-weight: var(--nx-font-weight-strong);
+}
+
+/* Shared page layout */
+.nx-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-5);
+  padding: var(--nx-space-5) var(--nx-space-6);
+}
+
+.nx-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-3);
+  padding: var(--nx-space-5);
+  border: var(--nx-border-width) solid var(--nx-color-border-default);
+  border-radius: var(--nx-radius-2);
+  background: var(--nx-color-surface-panel);
+}
+
+.nx-muted {
+  color: var(--nx-color-text-secondary);
+}
+
+.nx-error-text {
+  color: var(--nx-color-status-error);
+}
+
+.nx-skeleton {
+  height: var(--nx-density-row-height);
+  border-radius: var(--nx-radius-1);
+  background: var(--nx-color-surface-hover);
+}
+
+.nx-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-2);
+}
+
+/* CDK overlay container (dialogs) */
+.cdk-overlay-container {
+  position: fixed;
+  inset: 0;
+  z-index: var(--nx-z-modal);
+  pointer-events: none;
+}
+
+.cdk-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  background: var(--nx-color-scrim);
+}
+
+.cdk-global-overlay-wrapper,
+.cdk-overlay-pane {
+  position: absolute;
+  pointer-events: auto;
+  display: flex;
+}
+
+.cdk-global-overlay-wrapper {
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.cdk-overlay-pane {
+  position: static;
+  max-width: 100%;
+}

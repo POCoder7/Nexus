@@ -43,7 +43,8 @@ public class MeController {
         this.hierarchies = hierarchies;
     }
 
-    public record MeView(Actor actor, LocalDate businessToday, String businessTimeZone, Preferences preferences,
+    /** {@code workingVersion}: the version new change requests are raised in (latest working version), for the context bar. */
+    public record MeView(Actor actor, LocalDate businessToday, String businessTimeZone, String workingVersion, Preferences preferences,
                          Map<String, Set<Permission>> permissions, List<Grant> grants) {
     }
 
@@ -54,7 +55,8 @@ public class MeController {
     @GetMapping
     public MeView getMe(Actor actor) {
         List<Grant> grants = entitlements.grants(actor);
-        return new MeView(actor, clock.today(), clock.zone().getId(), preferences.find(actor.userId()), permissions(grants), grants);
+        return new MeView(actor, clock.today(), clock.zone().getId(), preferences.workingVersion().orElse(null),
+                preferences.find(actor.userId()), permissions(grants), grants);
     }
 
     @PutMapping("/preferences")

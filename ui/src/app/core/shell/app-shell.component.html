@@ -1,0 +1,68 @@
+<a class="skip" href="#main">{{ t.skipToContent }}</a>
+<ds-header [appName]="t.appName" [environment]="envName">
+  @if (context.displayName(); as name) {
+    <span class="user" data-testid="signed-in-user">{{ t.user.signedInAs }} {{ name }}</span>
+  }
+  @if (devPicker) {
+    <ng-container *ngComponentOutlet="devPicker" />
+  }
+</ds-header>
+
+<div class="context-bar" role="region" [attr.aria-label]="t.context.label">
+  <span class="context-bar__item">
+    <span class="context-bar__label">{{ t.context.version }}</span>
+    <span data-testid="context-version">{{ context.workingVersion() ?? t.context.noVersion }}</span>
+  </span>
+  <span class="context-bar__item">
+    <ds-date-input inputId="nx-as-of" [label]="t.context.viewingAsOf" [value]="context.asOf()" (changed)="changeAsOf($event)" />
+    @if (context.isHistorical()) {
+      <ds-button variant="link" (pressed)="changeAsOf(null)">{{ t.context.today }}</ds-button>
+    }
+  </span>
+  @if (context.hierarchyName(); as h) {
+    <span class="context-bar__item">
+      <span class="context-bar__label">{{ t.context.hierarchy }}</span>
+      <span>{{ h }}</span>
+    </span>
+  }
+</div>
+@if (context.isHistorical()) {
+  <div class="historical" role="status" data-testid="historical-banner">
+    <span aria-hidden="true">◷ </span>{{ t.context.historicalBanner(asOfText()) }}
+  </div>
+}
+@if (context.loadError(); as error) {
+  <div class="load-error" role="alert">
+    {{ error.detail }}
+    @if (error.correlationId) {
+      <span class="nx-muted">{{ t.common.correlationId }}: <span class="nx-identifier">{{ error.correlationId }}</span></span>
+    }
+  </div>
+}
+
+<div class="body">
+  <nav class="nav" [attr.aria-label]="t.nav.label">
+    <ul>
+      <li><a routerLink="/home" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.home }}</a></li>
+      <li><a routerLink="/hierarchies" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.hierarchies }}</a></li>
+      <li>
+        <a routerLink="/worklist" routerLinkActive="active" ariaCurrentWhenActive="page">
+          {{ t.nav.worklist }}
+          @if (worklistCount() !== null) {
+            <span class="count" data-testid="nav-worklist-count">{{ worklistCount() }}</span>
+          }
+        </a>
+      </li>
+      <li><a routerLink="/settings" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.settings }}</a></li>
+    </ul>
+  </nav>
+  <main id="main" #main tabindex="-1" class="main">
+    <router-outlet />
+  </main>
+</div>
+
+@if (tray.hasDraft() && !context.isHistorical()) {
+  <nx-change-request-tray [count]="tray.count()" [failedCount]="tray.failed().length" [busy]="tray.busy()"
+                          (review)="review()" (retry)="tray.retryFailed()" />
+}
+<ds-toast-host />

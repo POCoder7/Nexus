@@ -223,7 +223,9 @@ public class ItemFactory {
         if ("set_property".equals(action) && !payload.has("value")) {
             throw ItemValidationException.field("payload.value", "is required (use null for an explicit blank)");
         }
-        if (!inHierarchy(node, h, d)) {
+        // a node added by an earlier item of this request counts (SLICE-01: a leaf and its required properties in one
+        // request); apply and the trial apply still check every item in order under lock
+        if (!inHierarchy(node, h, d) && !addedEarlier(node, h, earlier)) {
             throw new RuleException("change_item.not_in_hierarchy", "The node is not in " + h.code() + " on " + d + ".");
         }
         UUID valueHierarchy = "local".equals(prop.scope()) ? h.id() : null;

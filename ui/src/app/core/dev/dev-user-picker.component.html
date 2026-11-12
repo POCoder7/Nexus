@@ -1,0 +1,12 @@
+<form class="picker" (submit)="$event.preventDefault(); apply()">
+  <label for="nx-dev-user">{{ t.devPicker }}</label>
+  <input id="nx-dev-user" list="nx-dev-users" autocomplete="off" [ngModel]="value()" (ngModelChange)="value.set($event)"
+         name="login" [attr.aria-describedby]="'nx-dev-user-hint'" />
+  <datalist id="nx-dev-users">
+    @for (login of logins; track login) {
+      <option [value]="login"></option>
+    }
+  </datalist>
+  <button type="submit">{{ t.switchUser }}</button>
+  <span id="nx-dev-user-hint" class="nx-visually-hidden">{{ t.devPickerHint }}</span>
+</form>

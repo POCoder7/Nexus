@@ -1,0 +1,50 @@
+.search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-2);
+  max-width: 40rem;
+}
+
+.search label {
+  font-weight: var(--nx-font-weight-strong);
+}
+
+.search__row {
+  display: flex;
+  gap: var(--nx-space-3);
+}
+
+.search__row input {
+  flex: 1;
+  padding: var(--nx-space-2) var(--nx-space-3);
+  border: var(--nx-border-width) solid var(--nx-color-border-strong);
+  border-radius: var(--nx-radius-1);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  gap: var(--nx-space-5);
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nx-space-2);
+}
+
+.nx-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nx-space-3);
+}
+
+.quick {
+  display: flex;
+  gap: var(--nx-space-5);
+}

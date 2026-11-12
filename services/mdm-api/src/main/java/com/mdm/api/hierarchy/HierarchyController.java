@@ -130,6 +130,25 @@ public class HierarchyController {
         return new NodePath(path);
     }
 
+    /**
+     * What moving, removing or deleting the node would touch (UI_STANDARD §6 impact preview): descendants by primary links
+     * (capped), placements and whether it is the top node. Read-only; the change itself is validated on submit.
+     */
+    @GetMapping("/{code}/nodes/{nodeId}/impact")
+    public HierarchyRepository.Impact getNodeImpact(
+            Actor actor,
+            @PathVariable String code,
+            @PathVariable UUID nodeId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant recordedAsOf) {
+        UUID hierarchyId = readableHierarchyId(actor, code);
+        Slice slice = Slice.of(asOf, recordedAsOf, clock);
+        if (repository.primaryPath(hierarchyId, nodeId, slice).isEmpty()) {
+            throw new NotFoundException("Node " + nodeId + " not found in " + code);
+        }
+        return repository.impact(hierarchyId, nodeId, slice);
+    }
+
     /** The hierarchy's id if it exists and the actor may read it; otherwise 404, so existence is not revealed. */
     private UUID readableHierarchyId(Actor actor, String code) {
         return repository.findIdByCode(code)

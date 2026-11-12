@@ -1,0 +1,49 @@
+<!-- The viewport is the tree: it scrolls and takes focus, so keyboard users can always reach and scroll it. -->
+<cdk-virtual-scroll-viewport class="viewport tree" role="tree" tabindex="0" [attr.aria-label]="label()"
+                             [attr.aria-activedescendant]="activeId()" (keydown)="onKeydown($event)" data-testid="hierarchy-tree"
+                             [itemSize]="rowHeight()" [minBufferPx]="rowHeight() * 10" [maxBufferPx]="rowHeight() * 20">
+  <div *cdkVirtualFor="let row of rows(); let i = index; trackBy: trackRow" class="row"
+       [style.height.px]="rowHeight()" [style.padding-left]="'calc(' + row.depth + ' * var(--nx-space-5) + var(--nx-space-3))'"
+       [class.row--focused]="i === focusIndex()" [class.row--selected]="row.kind === 'node' && row.id === selectedId()"
+       [id]="rowDomId(row)" (click)="activate(i)"
+       role="treeitem"
+       [attr.aria-level]="row.depth + 1"
+       [attr.aria-expanded]="row.kind === 'node' && row.hasChildren ? row.expanded : null"
+       [attr.aria-selected]="row.kind === 'node' ? row.id === selectedId() : null"
+       [attr.data-node-id]="row.kind === 'node' ? row.id : null">
+    @switch (row.kind) {
+      @case ('node') {
+        <span class="twisty" aria-hidden="true" (click)="toggle(row, i, $event)">
+          {{ row.hasChildren ? (row.expanded ? '▾' : '▸') : '' }}
+        </span>
+        <span class="name">{{ row.name }}</span>
+        @if (row.shared) {
+          <span class="tag"><span aria-hidden="true">⇆ </span>{{ t.shared }}</span>
+        }
+        @if (!row.active) {
+          <span class="tag">{{ t.inactive }}</span>
+        }
+        @if (row.pinned) {
+          <span class="tag">{{ t.foundBySearch }}</span>
+        }
+      }
+      @case ('more') {
+        <span class="twisty" aria-hidden="true"></span>
+        <span class="action" data-testid="tree-show-next">{{ t.showNext(pageSize) }}</span>
+      }
+      @case ('loading') {
+        <span class="twisty" aria-hidden="true"></span>
+        <span class="muted">{{ t.loadingChildren }}</span>
+      }
+      @case ('error') {
+        <span class="twisty" aria-hidden="true">✕</span>
+        <span class="error">{{ row.message }}</span>
+        <span class="action">{{ common.retry }}</span>
+      }
+      @case ('empty') {
+        <span class="twisty" aria-hidden="true"></span>
+        <span class="muted">{{ t.noChildren }}</span>
+      }
+    }
+  </div>
+</cdk-virtual-scroll-viewport>

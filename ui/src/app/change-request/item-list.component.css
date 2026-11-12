@@ -1,0 +1,5 @@
+.finding {
+  margin: var(--nx-space-2) 0 0;
+  font-size: var(--nx-font-size-label);
+  color: var(--nx-color-status-error);
+}

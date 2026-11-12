@@ -1,0 +1,25 @@
+<table dsTable [attr.aria-label]="label()" data-testid="item-list">
+  <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">{{ label() }}</th>
+      <th scope="col">{{ t.before }}</th>
+      <th scope="col">{{ t.after }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (item of items(); track item.id) {
+      <tr [id]="'nx-item-' + item.seq">
+        <td class="nx-identifier">{{ item.seq }}</td>
+        <td>
+          {{ describe(item) }}
+          @for (f of findingsFor(item); track f.ruleCode + (f.message ?? '')) {
+            <p class="finding" role="note"><span aria-hidden="true">✕ </span>{{ f.message }}</p>
+          }
+        </td>
+        <td>{{ before(item) }}</td>
+        <td>{{ after(item) }}</td>
+      </tr>
+    }
+  </tbody>
+</table>

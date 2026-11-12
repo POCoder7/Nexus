@@ -123,6 +123,7 @@ class UiSupportApiTest extends PostgresIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.businessTimeZone").value("America/New_York"))
                 .andExpect(jsonPath("$.businessToday").isNotEmpty())
+                .andExpect(jsonPath("$.workingVersion").isNotEmpty())
                 .andExpect(jsonPath("$.preferences.startPage").value("home"))
                 .andExpect(jsonPath("$.preferences.density").value("compact"))
                 .andExpect(jsonPath("$.permissions.UI_H").value(hasItem("PROPOSE")))
@@ -221,6 +222,26 @@ class UiSupportApiTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.path.length()").value(1));
     }
 
+    @Test
+    void impactCountsPrimaryDescendantsAndPlacements() throws Exception {
+        mvc.perform(get("/api/v1/hierarchies/UI_H/nodes/{id}/impact", ALPHA).with(asUser(VIEWER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.descendants").value(2))   // Beta, and Gamma under Beta (today)
+                .andExpect(jsonPath("$.placements").value(1))
+                .andExpect(jsonPath("$.isTop").value(false))
+                .andExpect(jsonPath("$.descendantsCapped").value(false));
+        LocalDate today = ownerJdbc().sql("SELECT mdm.business_today()").query(LocalDate.class).single();
+        mvc.perform(get("/api/v1/hierarchies/UI_H/nodes/{id}/impact", ALPHA).param("asOf", today.minusDays(1).toString()).with(asUser(VIEWER)))
+                .andExpect(jsonPath("$.descendants").value(1));  // Gamma did not exist yet
+        mvc.perform(get("/api/v1/hierarchies/UI_H/nodes/{id}/impact", TOP).with(asUser(VIEWER)))
+                .andExpect(jsonPath("$.isTop").value(true))
+                .andExpect(jsonPath("$.placements").value(0));
+        mvc.perform(get("/api/v1/hierarchies/UI_H/nodes/{id}/impact", OUTSIDE).with(asUser(VIEWER)))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/hierarchies/UI_OTHER/nodes/{id}/impact", TOP).with(asUser(VIEWER)))
+                .andExpect(status().isNotFound());
+    }
+
     // ------------------------------------------------------------------ Home
 
     @Test
@@ -287,6 +308,39 @@ class UiSupportApiTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.before.name").value("UI Beta desk"));
         mvc.perform(get("/api/v1/change-requests/{id}/items", id).with(asUser(STEWARD)))
                 .andExpect(jsonPath("$.items[0].before.name").value("UI Beta desk"));
+    }
+
+    /** SLICE-01 S1-R4: a leaf and its required properties go into one request; the new node exists only in that request. */
+    @Test
+    void propertiesCanBeSetOnANodeAddedEarlierInTheSameRequest() throws Exception {
+        String created = mvc.perform(post("/api/v1/change-requests").with(asUser(STEWARD)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"versionName\":\"UI working\",\"title\":\"Add a leaf with a property\",\"riskTier\":\"low\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String id = mapper.readTree(created).get("id").asText();
+        var added = mvc.perform(post("/api/v1/change-requests/{id}/items", id).with(asUser(STEWARD)).header("If-Match", "\"1\"")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"action\":\"add_node\",\"hierarchyCode\":\"UI_H\",\"targetParentId\":\"" + ALPHA
+                                + "\",\"payload\":{\"nodeKind\":\"legal_entity\",\"name\":\"UI New leaf " + UUID.randomUUID().toString().substring(0, 6)
+                                + "\",\"isLeaf\":true}}"))
+                .andExpect(status().isCreated()).andReturn().getResponse();
+        String nodeId = mapper.readTree(added.getContentAsString()).get("nodeId").asText();
+        mvc.perform(post("/api/v1/change-requests/{id}/items", id).with(asUser(STEWARD)).header("If-Match", added.getHeader("ETag"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"action\":\"set_property\",\"hierarchyCode\":\"UI_H\",\"nodeId\":\"" + nodeId
+                                + "\",\"propertyCode\":\"UI.Ccy\",\"payload\":{\"value\":\"EUR\"}}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.before.present").value(false));
+        // the trial apply runs the items in order, so the property lands on the new node without findings
+        mvc.perform(post("/api/v1/change-requests/{id}/validate", id).with(asUser(STEWARD)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.errors.length()").value(0));
+        // a node in no earlier item and not in the hierarchy is still refused
+        mvc.perform(post("/api/v1/change-requests/{id}/items", id).with(asUser(STEWARD)).header("If-Match", "\"3\"")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"action\":\"set_property\",\"hierarchyCode\":\"UI_H\",\"nodeId\":\"" + OUTSIDE
+                                + "\",\"propertyCode\":\"UI.Ccy\",\"payload\":{\"value\":\"EUR\"}}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("change_item.not_in_hierarchy"));
     }
 
     // ------------------------------------------------------------------ client errors

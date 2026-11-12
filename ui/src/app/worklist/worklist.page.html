@@ -1,0 +1,28 @@
+<section class="nx-page">
+  <h1>{{ t.title }}</h1>
+  <div class="chips" role="group" [attr.aria-label]="t.viewsLabel">
+    @for (v of views; track v) {
+      <button type="button" class="chip" [attr.aria-pressed]="store.view() === v" (click)="choose(v)" [attr.data-view]="v">
+        {{ t.views[v] }} <span class="chip__count" data-testid="view-count">{{ store.counts()[v] ?? 0 }}</span>
+      </button>
+    }
+  </div>
+  <div class="filters">
+    <label>
+      <span>{{ t.search }}</span>
+      <input type="search" [value]="store.search()" (input)="onSearch($any($event.target).value)" />
+    </label>
+    <label>
+      <span>{{ t.model }}</span>
+      <input type="text" [value]="store.model()" (change)="onModel($any($event.target).value)" [placeholder]="t.anyModel" />
+    </label>
+  </div>
+  @if (store.error(); as e) {
+    <div class="nx-card" role="alert">
+      <p class="nx-error-text">{{ e.detail }}</p>
+      <ds-button (pressed)="store.load(store.view(), store.search(), store.model())">{{ common.retry }}</ds-button>
+    </div>
+  }
+  <nx-worklist-table [rows]="store.rows()" [loading]="store.loading()" [hasMore]="!!store.nextCursor()"
+                     [emptyText]="t.empty[store.view()]" (open)="open($event)" (loadMore)="store.loadMore()" />
+</section>

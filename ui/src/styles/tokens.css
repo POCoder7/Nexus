@@ -1,0 +1,136 @@
+/*
+ * Nexus semantic tokens (UI_STANDARD §3). The ONLY file allowed to hold raw visual values (Stylelint enforces this).
+ *
+ * PLACEHOLDER VALUES: the design system's tokens are not available yet (OD-02, OD-03). These neutral values exist only so
+ * the screens are usable and accessible (contrast checked against WCAG 2.1 AA). When the token list arrives, each line
+ * maps to a design-system token, e.g.  --nx-color-text-primary: var(--ds-color-text-default);  and nothing else changes.
+ * No brand colour, font or logo is copied from anywhere.
+ */
+:root {
+  /* Colour: surface */
+  --nx-color-surface-page: #f6f7f9;
+  --nx-color-surface-panel: #ffffff;
+  --nx-color-surface-raised: #ffffff;
+  --nx-color-surface-selected: #e3ebf6;
+  --nx-color-surface-hover: #eef1f5;
+  --nx-color-surface-banner: #fff4d6;
+
+  /* Colour: text */
+  --nx-color-text-primary: #1d232b;
+  --nx-color-text-secondary: #4c5663;
+  --nx-color-text-disabled: #6b7480;
+  --nx-color-text-inverse: #ffffff;
+  --nx-color-text-link: #1f4f8f;
+
+  /* Colour: border */
+  --nx-color-border-default: #c9ced6;
+  --nx-color-border-strong: #7a8491;
+  --nx-color-border-focus: #1f4f8f;
+
+  /* Colour: action (placeholder until the design system's button tokens) */
+  --nx-color-action-primary: #1f4f8f;
+  --nx-color-action-primary-hover: #183f72;
+  --nx-color-action-on-primary: #ffffff;
+
+  /* Colour: status (always paired with an icon and text, never colour alone) */
+  --nx-color-status-info: #1f4f8f;
+  --nx-color-status-success: #1d6b3a;
+  --nx-color-status-warning: #7a5200;
+  --nx-color-status-error: #a32020;
+  --nx-color-status-pending: #5a4a8a;
+
+  /* Colour: change (diffs) */
+  --nx-color-change-added: #1d6b3a;
+  --nx-color-change-removed: #a32020;
+  --nx-color-change-modified: #7a5200;
+  --nx-color-change-moved: #5a4a8a;
+
+  /* Colour: provenance (paired with a text marker) */
+  --nx-color-provenance-stored: #1d232b;
+  --nx-color-provenance-inherited: #1f4f8f;
+  --nx-color-provenance-derived: #5a4a8a;
+  --nx-color-provenance-default: #4c5663;
+  --nx-color-provenance-ai-suggested: #7a5200;
+
+  /* Typography */
+  --nx-font-family-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --nx-font-family-identifier: ui-monospace, "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+  --nx-font-size-body: 0.9375rem;
+  --nx-font-size-body-compact: 0.875rem;
+  --nx-font-size-label: 0.8125rem;
+  --nx-font-size-heading-1: 1.5rem;
+  --nx-font-size-heading-2: 1.25rem;
+  --nx-font-size-heading-3: 1.0625rem;
+  --nx-font-size-heading-4: 0.9375rem;
+  --nx-font-weight-regular: 400;
+  --nx-font-weight-strong: 600;
+  --nx-line-height-body: 1.45;
+
+  /* Spacing */
+  --nx-space-1: 0.125rem;
+  --nx-space-2: 0.25rem;
+  --nx-space-3: 0.5rem;
+  --nx-space-4: 0.75rem;
+  --nx-space-5: 1rem;
+  --nx-space-6: 1.5rem;
+  --nx-space-7: 2rem;
+  --nx-space-8: 3rem;
+
+  /* Density (compact is the default on data screens; "comfortable" is a user preference) */
+  --nx-density-row-height: 1.75rem;
+  --nx-density-cell-padding: var(--nx-space-2) var(--nx-space-3);
+
+  /* Radius, elevation, motion */
+  --nx-radius-1: 0.25rem;
+  --nx-radius-2: 0.5rem;
+  --nx-border-width: 1px;
+  --nx-focus-width: 2px;
+  --nx-elevation-1: 0 1px 2px rgb(0 0 0 / 12%);
+  --nx-elevation-2: 0 4px 16px rgb(0 0 0 / 18%);
+  --nx-motion-duration: 120ms;
+  --nx-color-scrim: rgb(0 0 0 / 35%);
+
+  /* Layout */
+  --nx-size-nav: 13rem;
+  --nx-size-tree-min: 15rem;
+  --nx-size-panel-max: 60rem;
+  --nx-size-icon: 1rem;
+
+  /* Z-index */
+  --nx-z-dropdown: 100;
+  --nx-z-sticky: 200;
+  --nx-z-overlay: 300;
+  --nx-z-modal: 400;
+  --nx-z-toast: 500;
+}
+
+/* Comfortable density (preference, UI_STANDARD §4) */
+:root[data-density="comfortable"] {
+  --nx-density-row-height: 2.25rem;
+  --nx-density-cell-padding: var(--nx-space-3) var(--nx-space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --nx-motion-duration: 0ms;
+  }
+}
+
+/* Font families are declared here only (UI_STANDARD §3 lint rule). */
+body {
+  font-family: var(--nx-font-family-body);
+}
+
+.nx-identifier,
+code,
+kbd {
+  font-family: var(--nx-font-family-identifier);
+}
+
+/* Form controls take the page font (font-family is only set in this file). */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}

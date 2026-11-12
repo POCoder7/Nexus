@@ -1,0 +1,26 @@
+.ds-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-2);
+}
+
+.ds-field__label {
+  font-weight: var(--nx-font-weight-strong);
+  font-size: var(--nx-font-size-label);
+}
+
+.ds-field__required {
+  margin-left: var(--nx-space-2);
+  font-weight: var(--nx-font-weight-regular);
+  color: var(--nx-color-text-secondary);
+}
+
+.ds-field__hint {
+  font-size: var(--nx-font-size-label);
+  color: var(--nx-color-text-secondary);
+}
+
+.ds-field__error {
+  font-size: var(--nx-font-size-label);
+  color: var(--nx-color-status-error);
+}

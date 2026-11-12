@@ -1,0 +1,15 @@
+.ds-toast {
+  position: fixed;
+  right: var(--nx-space-6);
+  bottom: var(--nx-space-6);
+  z-index: var(--nx-z-toast);
+}
+
+.ds-toast > span {
+  display: block;
+  padding: var(--nx-space-4) var(--nx-space-5);
+  border-radius: var(--nx-radius-2);
+  background: var(--nx-color-text-primary);
+  color: var(--nx-color-text-inverse);
+  box-shadow: var(--nx-elevation-2);
+}

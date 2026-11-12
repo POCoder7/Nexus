@@ -1,0 +1,78 @@
+<section class="panel" aria-live="polite" [attr.aria-busy]="loading()">
+  @if (loading() && !detail()) {
+    <div class="skeleton-stack" aria-hidden="true">
+      <div class="nx-skeleton"></div><div class="nx-skeleton"></div><div class="nx-skeleton"></div>
+    </div>
+    <span class="nx-visually-hidden">{{ common.loading }}</span>
+  } @else if (error(); as e) {
+    <div class="nx-card" role="alert">
+      <p class="nx-error-text">{{ t.nodeError }} {{ e.detail }}</p>
+      @if (e.correlationId) {
+        <p class="nx-muted">{{ common.correlationId }}: <span class="nx-identifier">{{ e.correlationId }}</span></p>
+      }
+      <ds-button (pressed)="retry.emit()">{{ common.retry }}</ds-button>
+    </div>
+  } @else if (detail(); as d) {
+    <header class="head">
+      <h2 class="nx-identifier" data-testid="node-name">{{ d.name }}</h2>
+      <div class="facts">
+        <span>{{ t.kind }}: {{ d.kind }}</span>
+        <ds-badge [tone]="d.allowsChildren ? 'neutral' : 'info'">{{ d.allowsChildren ? t.limb : t.leaf }}</ds-badge>
+        @if (d.active === false) {
+          <ds-badge tone="warning">{{ t.inactive }}</ds-badge>
+        }
+      </div>
+      @if (d.description) {
+        <p class="nx-muted">{{ d.description }}</p>
+      }
+      @if (!readOnly()) {
+        <div class="actions">
+          @if (d.allowsChildren && canPropose()) {
+            <ds-button variant="primary" (pressed)="addChild.emit()">{{ t.addChild }}</ds-button>
+          } @else if (!d.allowsChildren) {
+            <span class="nx-muted" data-testid="add-child-reason">{{ t.leafNoChildren }}</span>
+          } @else {
+            <span class="nx-muted" data-testid="add-child-reason">{{ t.noPropose }}</span>
+          }
+          @if (canPropose()) {
+            <div class="more-actions" role="group" [attr.aria-label]="c.actions">
+              <ds-button (pressed)="requestChange.emit({ mode: 'details' })">{{ c.editDetails }}</ds-button>
+              @if (!isTop()) {
+                <ds-button (pressed)="requestChange.emit({ mode: 'place' })">{{ c.place }}</ds-button>
+                <ds-button (pressed)="requestChange.emit({ mode: 'move' })">{{ c.move }}</ds-button>
+                <ds-button variant="danger" (pressed)="requestChange.emit({ mode: 'remove' })">{{ c.remove }}</ds-button>
+                <ds-button variant="danger" (pressed)="requestChange.emit({ mode: 'delete' })">{{ c.delete }}</ds-button>
+              }
+            </div>
+          }
+        </div>
+      }
+    </header>
+    <ds-tabs [tabs]="tabs" [label]="d.name ?? ''" idPrefix="nx-node-tab" [(selected)]="tab">
+      @if (tab() === 'properties') {
+        @if ((d.properties ?? []).length === 0) {
+          <p class="nx-muted">{{ t.noProperties }}</p>
+        } @else {
+          <nx-property-grid [properties]="d.properties ?? []" [nodeName]="d.name ?? ''" [sourceNames]="sourceNames()"
+                            [editable]="canPropose() && !readOnly()" (openSource)="openNode.emit($event)"
+                            (edit)="requestChange.emit({ mode: 'property', property: $event })" />
+        }
+      } @else {
+        <h3 class="sub">{{ t.placement }}</h3>
+        <ol class="path" data-testid="node-path">
+          @for (p of path(); track p.nodeId; let last = $last) {
+            <li>
+              @if (last) {
+                <span aria-current="location">{{ p.name }}</span>
+              } @else {
+                <button type="button" class="link" (click)="openNode.emit(p.nodeId!)">{{ p.name }}</button>
+              }
+            </li>
+          }
+        </ol>
+      }
+    </ds-tabs>
+  } @else {
+    <p class="nx-muted">{{ t.selectNode }}</p>
+  }
+</section>

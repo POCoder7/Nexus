@@ -412,6 +412,25 @@
         },
         "type" : "object"
       },
+      "Impact" : {
+        "properties" : {
+          "descendants" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "descendantsCapped" : {
+            "type" : "boolean"
+          },
+          "isTop" : {
+            "type" : "boolean"
+          },
+          "placements" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "InstanceView" : {
         "properties" : {
           "changeRequestId" : {
@@ -570,6 +589,9 @@
           },
           "preferences" : {
             "$ref" : "#/components/schemas/Preferences"
+          },
+          "workingVersion" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -1035,6 +1057,9 @@
           "type" : {
             "type" : "string"
           },
+          "whyNot" : {
+            "type" : "string"
+          },
           "youCanAct" : {
             "type" : "boolean"
           }
@@ -1238,7 +1263,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PagePolicySummary"
                 }
@@ -1264,7 +1289,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/Created"
                 }
@@ -1376,7 +1401,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageModelSummary"
                 }
@@ -1402,7 +1427,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/Created"
                 }
@@ -1472,7 +1497,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageChangeRequestView"
                 }
@@ -1498,7 +1523,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChangeRequestView"
                 }
@@ -1525,7 +1550,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChangeRequestView"
                 }
@@ -1567,7 +1592,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChangeRequestView"
                 }
@@ -1610,7 +1635,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChangeRequestView"
                 }
@@ -1653,7 +1678,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageItemView"
                 }
@@ -1695,7 +1720,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ItemView"
                 }
@@ -1776,7 +1801,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "type" : "object"
                 }
@@ -1803,7 +1828,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ValidationReport"
                 }
@@ -1849,7 +1874,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ChangeRequestView"
                 }
@@ -1921,7 +1946,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageHierarchySummary"
                 }
@@ -1963,7 +1988,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HierarchySummary"
                 }
@@ -2029,9 +2054,59 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageChildNode"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "hierarchy-controller" ]
+      }
+    },
+    "/api/v1/hierarchies/{code}/nodes/{nodeId}/impact" : {
+      "get" : {
+        "operationId" : "getNodeImpact",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "nodeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recordedAsOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Impact"
                 }
               }
             },
@@ -2079,7 +2154,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/NodePath"
                 }
@@ -2144,7 +2219,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageSearchHit"
                 }
@@ -2162,7 +2237,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/HomeView"
                 }
@@ -2180,7 +2255,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/MeView"
                 }
@@ -2208,7 +2283,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/Preferences"
                 }
@@ -2258,7 +2333,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/NodeDetail"
                 }
@@ -2285,7 +2360,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/InstanceView"
                 }
@@ -2318,7 +2393,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/SubmitForm"
                 }
@@ -2404,7 +2479,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/DecisionResult"
                 }
@@ -2441,7 +2516,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ItemView"
                 }
@@ -2498,7 +2573,7 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/WorklistPage"
                 }

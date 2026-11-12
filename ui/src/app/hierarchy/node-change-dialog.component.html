@@ -1,0 +1,141 @@
+<ds-dialog-frame [title]="title()" [titleId]="titleId" [closeLabel]="common.close" (closed)="close()">
+  <form class="form" (submit)="$event.preventDefault(); save()" novalidate>
+    @if (localError() || error()) {
+      <div class="summary" role="alert" data-testid="change-error">
+        @if (localError()) {
+          <p>{{ localError() }}</p>
+        }
+        @if (error(); as e) {
+          <p>{{ e.detail }}</p>
+          @for (fe of e.fieldErrors; track fe.field) {
+            <p>{{ fe.field }}: {{ fe.message }}</p>
+          }
+        }
+      </div>
+    }
+
+    @switch (data.mode) {
+      @case ('details') {
+        <ds-field [label]="t.name" [for]="fieldId('name')" [required]="true" [requiredText]="common.required">
+          <input [id]="fieldId('name')" name="name" autocomplete="off" [ngModel]="name()" (ngModelChange)="name.set($event)" />
+        </ds-field>
+        <ds-field [label]="t.description" [for]="fieldId('description')">
+          <textarea [id]="fieldId('description')" name="description" rows="2" [ngModel]="description()"
+                    (ngModelChange)="description.set($event)"></textarea>
+        </ds-field>
+      }
+      @case ('property') {
+        <p class="nx-muted">{{ t.currentValue }}: <strong>{{ data.property?.provenance === 'none' ? '—' : (data.property?.value ?? '—') }}</strong>
+          ({{ data.property?.provenance }})</p>
+        @if (!clear()) {
+          <ds-field [label]="t.value" [for]="fieldId('value')">
+            @if (formProperty()?.listValues?.length) {
+              <select [id]="fieldId('value')" name="value" [ngModel]="value()" (ngModelChange)="value.set($event)">
+                <option value="">—</option>
+                @for (lv of formProperty()!.listValues!; track lv) {
+                  <option [value]="lv">{{ lv }}</option>
+                }
+              </select>
+            } @else if (data.property?.dataType === 'boolean') {
+              <select [id]="fieldId('value')" name="value" [ngModel]="value()" (ngModelChange)="value.set($event)">
+                <option value="true">{{ t.booleanTrue }}</option>
+                <option value="false">{{ t.booleanFalse }}</option>
+              </select>
+            } @else {
+              <input [id]="fieldId('value')" name="value" autocomplete="off" [ngModel]="value()" (ngModelChange)="value.set($event)"
+                     [attr.inputmode]="data.property?.dataType === 'integer' || data.property?.dataType === 'decimal' ? 'decimal' : null" />
+            }
+          </ds-field>
+        }
+        @if (data.property?.provenance === 'stored') {
+          <label class="check">
+            <input type="checkbox" name="clear" [ngModel]="clear()" (ngModelChange)="clear.set($event)" aria-describedby="nx-change-clear-hint" />
+            {{ t.clearValue }}
+          </label>
+          <span id="nx-change-clear-hint" class="nx-muted">{{ t.clearHint }}</span>
+        }
+      }
+      @case ('hierarchy') {
+        <ds-field [label]="t.code" [for]="fieldId('code')" [required]="true" [requiredText]="common.required">
+          <input [id]="fieldId('code')" name="code" autocomplete="off" class="nx-identifier" [ngModel]="code()" (ngModelChange)="code.set($event)" />
+        </ds-field>
+        <ds-field [label]="t.name" [for]="fieldId('name')" [required]="true" [requiredText]="common.required">
+          <input [id]="fieldId('name')" name="name" autocomplete="off" [ngModel]="name()" (ngModelChange)="name.set($event)" />
+        </ds-field>
+        <ds-field [label]="t.purpose" [for]="fieldId('purpose')">
+          <select [id]="fieldId('purpose')" name="purpose" [ngModel]="purpose()" (ngModelChange)="purpose.set($event)">
+            @for (p of purposes; track p) {
+              <option [value]="p">{{ t.purposes[p] }}</option>
+            }
+          </select>
+        </ds-field>
+        <ds-field [label]="t.topNodeName" [for]="fieldId('top')" [required]="true" [requiredText]="common.required">
+          <input [id]="fieldId('top')" name="top" autocomplete="off" [ngModel]="topName()" (ngModelChange)="topName.set($event)" />
+        </ds-field>
+        <ds-field [label]="t.topNodeKind" [for]="fieldId('kind')">
+          <select [id]="fieldId('kind')" name="kind" [ngModel]="topKind()" (ngModelChange)="topKind.set($event)">
+            @for (k of kinds; track k) {
+              <option [value]="k">{{ kindLabels[k] ?? k }}</option>
+            }
+          </select>
+        </ds-field>
+        <label class="check">
+          <input type="checkbox" name="shared" [ngModel]="allowShared()" (ngModelChange)="allowShared.set($event)" />
+          {{ t.allowShared }}
+        </label>
+      }
+      @default {
+        @if (data.mode === 'place' || data.mode === 'move') {
+          <ds-field [label]="t.target" [for]="fieldId('target')" [hint]="target() ? t.targetChosen(target()!.name ?? '') : t.targetHint">
+            <input [id]="fieldId('target')" name="target" type="search" autocomplete="off" role="combobox" aria-autocomplete="list"
+                   [attr.aria-expanded]="targets().length > 0" aria-controls="nx-change-targets" [attr.aria-describedby]="fieldId('target') + '-hint'"
+                   [ngModel]="targetQuery()" (ngModelChange)="onTargetQuery($event)" />
+          </ds-field>
+          @if (targets().length > 0) {
+            <ul id="nx-change-targets" class="targets" role="listbox" [attr.aria-label]="t.target">
+              @for (hit of targets(); track hit.nodeId) {
+                <li role="option" [attr.aria-selected]="target()?.nodeId === hit.nodeId" tabindex="0"
+                    (click)="chooseTarget(hit)" (keydown.enter)="chooseTarget(hit)">
+                  <span>{{ hit.name }}</span><span class="nx-muted">{{ targetPath(hit) }}</span>
+                </li>
+              }
+            </ul>
+          }
+        }
+        @if (data.mode !== 'place') {
+          <div class="impact" aria-live="polite" data-testid="impact">
+            @if (impact(); as i) {
+              <p>{{ t.impact(i.descendants ?? 0, i.placements ?? 0, !!i.descendantsCapped) }}</p>
+              @if (i.isTop) {
+                <p>{{ t.topNodeNote }}</p>
+              }
+            } @else {
+              <p class="nx-muted">{{ t.impactLoading }}</p>
+            }
+          </div>
+        }
+        @if (data.mode === 'remove') {
+          <label class="check">
+            <input type="checkbox" name="cascade" [ngModel]="cascade()" (ngModelChange)="cascade.set($event)" />
+            {{ t.cascade }}
+          </label>
+        }
+        @if (needsConfirm()) {
+          <label class="check confirm">
+            <input type="checkbox" name="confirm" [ngModel]="confirmed()" (ngModelChange)="confirmed.set($event)" />
+            {{ data.mode === 'delete' ? t.confirmDelete(data.node?.name ?? '') : t.confirmRemove(data.node?.name ?? '', impact()?.descendants ?? 0) }}
+          </label>
+        }
+      }
+    }
+    <p class="nx-muted">{{ t.serverDecides }}</p>
+    <!-- lets Enter submit the form; hidden from assistive technology so only the real action is announced -->
+    <button type="submit" class="nx-visually-hidden" tabindex="-1" aria-hidden="true">{{ t.submit }}</button>
+  </form>
+  <ng-container dialog-actions>
+    <ds-button (pressed)="close()">{{ common.cancel }}</ds-button>
+    <ds-button [variant]="data.mode === 'delete' || data.mode === 'remove' ? 'danger' : 'primary'" [disabled]="saving()" (pressed)="save()">
+      {{ t.submit }}
+    </ds-button>
+  </ng-container>
+</ds-dialog-frame>

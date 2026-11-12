@@ -1,0 +1,27 @@
+.tray {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nx-space-4);
+  padding: var(--nx-space-3) var(--nx-space-5);
+  border-top: var(--nx-border-width) solid var(--nx-color-border-strong);
+  background: var(--nx-color-surface-raised);
+  box-shadow: var(--nx-elevation-1);
+}
+
+.tray__summary {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: var(--nx-space-3);
+  align-items: baseline;
+}
+
+.tray__note {
+  color: var(--nx-color-text-secondary);
+}
+
+.tray__failed {
+  margin: 0;
+  color: var(--nx-color-status-error);
+}

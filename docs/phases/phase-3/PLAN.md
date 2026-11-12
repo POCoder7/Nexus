@@ -1,6 +1,8 @@
 # Phase 3 — Steward UI: plan
 
-- **Status:** Proposed, awaiting the repository owner's approval (with the dependencies, the CI job and the questions at the end)
+- **Status:** Approved by the repository owner (2026-11-12: "complete all of implementation in this phase, go with your
+  recommendation"), including the 3-5 split, Node.js install by `winget` (it installed Node.js 26 LTS, the current LTS, so
+  the build uses 26 rather than 24), the UI dependencies from the public npm registry and the CI `ui` job
 - **Follows:** `docs/design/phase-3-steward-ui/LLD.md` (approved 2026-11-11), `docs/design/UI_STANDARD.md`, ADR-012 (Angular),
   ADR-015 (paging, ETags), ADR-018 (business day), ADR-022 (entitlements), ADR-025 (UI toolchain, accepted; its
   dependencies and CI job are approved here), OD-27 (landing page, prototype `prototypes/landing.html`).
@@ -105,3 +107,21 @@ screens and impact preview (HIE-02 UI, Phase 5), diff / compare view, AI suggest
 2. **Node.js 24 LTS:** will you install it, or may I run `winget install OpenJS.NodeJS.LTS`?
 3. Do you approve the UI dependencies above, and installing them from the public npm registry on this machine?
 4. Do you approve adding the `ui` job to CI (a CI change; it runs once a remote exists)?
+
+## Scope extension (repository owner, 2026-11-12: "lets add all of UI into phase-3 and complete it")
+The owner moved the remaining editing screens for actions the API already has (Phase 1) into Phase 3. They were planned
+for Phase 5 (HIE-02 UI, property editing). Every edit still becomes an item of a draft change request in the tray; nothing
+writes live data (UI_STANDARD §6).
+
+| # | Increment | Capabilities | Tests |
+|---|---|---|---|
+| 3-13 | Backend: `GET /hierarchies/{code}/nodes/{id}/impact` (descendants by primary links, placements, top node); seed: `MAINTAIN` model, an all-hierarchy steward | HIE-02 | JUnit |
+| 3-14 | Generic tray action (`TrayStore.addChange`); drafts not started by add-leaf use the `MAINTAIN` model | HIE-02, PRP-01 | unit |
+| 3-15 | Edit details (`update_node`), edit or clear a property value (`set_property` / `clear_property`) from the property grid | HIE-02, PRP-01 | unit, stories, e2e |
+| 3-16 | Place under another parent (`insert_node`, shared), "Move to…" with a searchable target picker (`move_node`), remove from the hierarchy (`remove_node`, cascade choice), delete (`delete_node`); each with an impact preview in numbers before confirming | HIE-02 | unit, e2e |
+| 3-17 | New hierarchy (`add_hierarchy`) for users with propose rights on every hierarchy | HIE-01, HIE-02 | e2e |
+
+**Gaps that stay:** property edit permissions by category (PRP-09, SEC-03; Phase 5): until then anyone who may propose on a
+node may edit any of its stored properties, and the server enforces the rest. The impact preview counts descendants and
+placements; inherited-value changes and validation findings show on Review and submit (trial apply), not in the preview.
+Drag and drop is not built (UI_STANDARD §6 makes it optional; "Move to…" is the required way).
