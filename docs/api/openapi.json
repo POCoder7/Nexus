@@ -1,0 +1,2004 @@
+{
+  "components" : {
+    "schemas" : {
+      "Actor" : {
+        "properties" : {
+          "displayName" : {
+            "type" : "string"
+          },
+          "human" : {
+            "type" : "boolean"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "login" : {
+            "type" : "string"
+          },
+          "userId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ApprovePolicy" : {
+        "properties" : {
+          "note" : {
+            "type" : "string"
+          },
+          "reviewMonths" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "ChangeRequestView" : {
+        "properties" : {
+          "appliedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "applyError" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "decidedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "decidedBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "decisionBasis" : {
+            "type" : "string"
+          },
+          "decisionNote" : {
+            "type" : "string"
+          },
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "governedByWorkflow" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "isUrgent" : {
+            "type" : "boolean"
+          },
+          "itemCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "origin" : {
+            "type" : "string"
+          },
+          "rationale" : {
+            "type" : "string"
+          },
+          "requesterId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "requesterKind" : {
+            "type" : "string"
+          },
+          "riskTier" : {
+            "type" : "string"
+          },
+          "rowVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "submittedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "versionName" : {
+            "type" : "string"
+          },
+          "workflowModelCode" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ChildNode" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "hasChildren" : {
+            "type" : "boolean"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "nodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "primary" : {
+            "type" : "boolean"
+          },
+          "sortOrder" : {
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "CreateRequest" : {
+        "properties" : {
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "isUrgent" : {
+            "type" : "boolean"
+          },
+          "rationale" : {
+            "type" : "string"
+          },
+          "riskTier" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "versionName" : {
+            "type" : "string"
+          },
+          "workflowModelCode" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "Created" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "DecisionBody" : {
+        "properties" : {
+          "comment" : {
+            "type" : "string"
+          },
+          "decision" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "DecisionRequest" : {
+        "properties" : {
+          "decision" : {
+            "type" : "string"
+          },
+          "note" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "DecisionResult" : {
+        "properties" : {
+          "stageOutcome" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "DecisionView" : {
+        "properties" : {
+          "comment" : {
+            "type" : "string"
+          },
+          "decidedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "decidedBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "decision" : {
+            "type" : "string"
+          },
+          "groupCode" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "Finding" : {
+        "properties" : {
+          "hierarchyId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "nodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "ruleCode" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "Grant" : {
+        "properties" : {
+          "hierarchyCode" : {
+            "type" : "string"
+          },
+          "hierarchyId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "roleCode" : {
+            "type" : "string"
+          },
+          "topNodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "validFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "validTo" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "HierarchySummary" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "group" : {
+            "type" : "string"
+          },
+          "hierarchyId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "purpose" : {
+            "type" : "string"
+          },
+          "topNodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "topNodeName" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "InstanceView" : {
+        "properties" : {
+          "changeRequestId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "closedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "currentSeq" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "instanceId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "modelCode" : {
+            "type" : "string"
+          },
+          "modelVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "policyEvaluations" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PolicyEvaluationView"
+            },
+            "type" : "array"
+          },
+          "stages" : {
+            "items" : {
+              "$ref" : "#/components/schemas/StageView"
+            },
+            "type" : "array"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "submittedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "submittedBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ItemCommand" : {
+        "properties" : {
+          "action" : {
+            "type" : "string"
+          },
+          "hierarchyCode" : {
+            "type" : "string"
+          },
+          "nodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "payload" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
+          "propertyCode" : {
+            "type" : "string"
+          },
+          "targetParentId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ItemView" : {
+        "properties" : {
+          "action" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "hierarchyCode" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "nodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "payload" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
+          "propertyCode" : {
+            "type" : "string"
+          },
+          "seq" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "targetParentId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "JsonNode" : {
+        "type" : "object"
+      },
+      "KillSwitch" : {
+        "properties" : {
+          "reason" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "MeView" : {
+        "properties" : {
+          "actor" : {
+            "$ref" : "#/components/schemas/Actor"
+          },
+          "businessTimeZone" : {
+            "type" : "string"
+          },
+          "businessToday" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "grants" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Grant"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "ModelSummary" : {
+        "properties" : {
+          "activatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "activatedBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "createdBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "modelId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "version" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "NodeDetail" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "allowsChildren" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "nodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "properties" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PropertyValue"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "PageChangeRequestView" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ChangeRequestView"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PageChildNode" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ChildNode"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PageHierarchySummary" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/HierarchySummary"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PageItemView" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ItemView"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PageModelSummary" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ModelSummary"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PagePolicySummary" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PolicySummary"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PolicyEvaluationView" : {
+        "properties" : {
+          "eligible" : {
+            "type" : "boolean"
+          },
+          "evaluatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "failedChecks" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "mode" : {
+            "type" : "string"
+          },
+          "outcome" : {
+            "type" : "string"
+          },
+          "policyCode" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PolicySummary" : {
+        "properties" : {
+          "approvedBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "killSwitch" : {
+            "type" : "boolean"
+          },
+          "mode" : {
+            "type" : "string"
+          },
+          "policyId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "proposedBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "reviewDue" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "version" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "PropertyValue" : {
+        "properties" : {
+          "category" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "dataType" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "provenance" : {
+            "type" : "string"
+          },
+          "scope" : {
+            "type" : "string"
+          },
+          "sourceNodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "value" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          }
+        },
+        "type" : "object"
+      },
+      "ProposePolicy" : {
+        "properties" : {
+          "allowedActions" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "itemConditions" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
+          "maxAutoCommitsPerDay" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "maxItemsPerRequest" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "mode" : {
+            "type" : "string"
+          },
+          "modelCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "ownerGroupCode" : {
+            "type" : "string"
+          },
+          "rationale" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "StageView" : {
+        "properties" : {
+          "claimExpiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "claimedBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "decisions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DecisionView"
+            },
+            "type" : "array"
+          },
+          "dueAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "included" : {
+            "type" : "boolean"
+          },
+          "instanceStageId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "iteration" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "seq" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "youCanAct" : {
+            "type" : "boolean"
+          }
+        },
+        "type" : "object"
+      },
+      "UpdateRequest" : {
+        "properties" : {
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "isUrgent" : {
+            "type" : "boolean"
+          },
+          "rationale" : {
+            "type" : "string"
+          },
+          "riskTier" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "workflowModelCode" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ValidationReport" : {
+        "properties" : {
+          "errors" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Finding"
+            },
+            "type" : "array"
+          },
+          "validatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "warnings" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Finding"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "WorklistPage" : {
+        "properties" : {
+          "counts" : {
+            "additionalProperties" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/WorklistRow"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "WorklistRow" : {
+        "properties" : {
+          "changeRequestId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "claimedBy" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "dueAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "instanceId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "instanceStageId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "isOverdue" : {
+            "type" : "boolean"
+          },
+          "isUrgent" : {
+            "type" : "boolean"
+          },
+          "modelCode" : {
+            "type" : "string"
+          },
+          "requesterId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "rowId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "stageLabel" : {
+            "type" : "string"
+          },
+          "stageStatus" : {
+            "type" : "string"
+          },
+          "stageType" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      }
+    }
+  },
+  "info" : {
+    "description" : "Hierarchies, nodes and change requests (core mode). Conventions: ADR-015 (keyset paging, ETag / If-Match, Idempotency-Key), errors as Problem Details with codes (ADR-020). Every /api request needs an authenticated actor.",
+    "title" : "Nexus MDM API",
+    "version" : "phase-1"
+  },
+  "openapi" : "3.1.0",
+  "paths" : {
+    "/api/v1/admin/commit-policies" : {
+      "get" : {
+        "operationId" : "listCommitPolicies",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 100,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PagePolicySummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      },
+      "post" : {
+        "operationId" : "proposeCommitPolicy",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProposePolicy"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Created"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      }
+    },
+    "/api/v1/admin/commit-policies/{policyCode}/kill-switch" : {
+      "post" : {
+        "operationId" : "engageKillSwitch",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "policyCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/KillSwitch"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      }
+    },
+    "/api/v1/admin/commit-policies/{policyId}/approve" : {
+      "post" : {
+        "operationId" : "approveCommitPolicy",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "policyId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ApprovePolicy"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      }
+    },
+    "/api/v1/admin/commit-policies/{policyId}/submit" : {
+      "post" : {
+        "operationId" : "submitCommitPolicy",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "policyId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      }
+    },
+    "/api/v1/admin/workflow-models" : {
+      "get" : {
+        "operationId" : "listWorkflowModels",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 100,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageModelSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      },
+      "post" : {
+        "operationId" : "loadWorkflowModel",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/JsonNode"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Created"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      }
+    },
+    "/api/v1/admin/workflow-models/{modelId}/activate" : {
+      "post" : {
+        "operationId" : "activateWorkflowModel",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "modelId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-admin-controller" ]
+      }
+    },
+    "/api/v1/change-requests" : {
+      "get" : {
+        "operationId" : "listChangeRequests",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "mine",
+          "required" : false,
+          "schema" : {
+            "default" : true,
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageChangeRequestView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "change-request-controller" ]
+      },
+      "post" : {
+        "operationId" : "createChangeRequest",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChangeRequestView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "change-request-controller" ]
+      }
+    },
+    "/api/v1/change-requests/{id}" : {
+      "get" : {
+        "operationId" : "getChangeRequest",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChangeRequestView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "change-request-controller" ]
+      },
+      "patch" : {
+        "operationId" : "updateChangeRequest",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChangeRequestView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "change-request-controller" ]
+      }
+    },
+    "/api/v1/change-requests/{id}/decision" : {
+      "post" : {
+        "operationId" : "decideChangeRequest",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DecisionRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChangeRequestView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "change-request-controller" ]
+      }
+    },
+    "/api/v1/change-requests/{id}/items" : {
+      "get" : {
+        "operationId" : "listChangeRequestItems",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 200,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageItemView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "change-request-controller" ]
+      },
+      "post" : {
+        "operationId" : "addChangeRequestItem",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ItemCommand"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ItemView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "change-request-controller" ]
+      }
+    },
+    "/api/v1/change-requests/{id}/items/{itemId}" : {
+      "delete" : {
+        "operationId" : "deleteChangeRequestItem",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "itemId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "change-request-controller" ]
+      }
+    },
+    "/api/v1/change-requests/{id}/submit" : {
+      "post" : {
+        "operationId" : "submitChangeRequest",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "additionalProperties" : {
+                  "type" : "object"
+                },
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "change-request-controller" ]
+      }
+    },
+    "/api/v1/change-requests/{id}/validate" : {
+      "post" : {
+        "operationId" : "validateChangeRequest",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ValidationReport"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "change-request-controller" ]
+      }
+    },
+    "/api/v1/change-requests/{id}/withdraw" : {
+      "post" : {
+        "operationId" : "withdrawChangeRequest",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "additionalProperties" : {
+                  "type" : "object"
+                },
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChangeRequestView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "change-request-controller" ]
+      }
+    },
+    "/api/v1/hierarchies" : {
+      "get" : {
+        "operationId" : "listHierarchies",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recordedAsOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 200,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageHierarchySummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "hierarchy-controller" ]
+      }
+    },
+    "/api/v1/hierarchies/{code}" : {
+      "get" : {
+        "operationId" : "getHierarchy",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recordedAsOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HierarchySummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "hierarchy-controller" ]
+      }
+    },
+    "/api/v1/hierarchies/{code}/children" : {
+      "get" : {
+        "operationId" : "listChildren",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "parentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recordedAsOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 200,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageChildNode"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "hierarchy-controller" ]
+      }
+    },
+    "/api/v1/me" : {
+      "get" : {
+        "operationId" : "getMe",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MeView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "me-controller" ]
+      }
+    },
+    "/api/v1/nodes/{nodeId}" : {
+      "get" : {
+        "operationId" : "getNode",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "nodeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "hierarchy",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recordedAsOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NodeDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "node-controller" ]
+      }
+    },
+    "/api/v1/workflow/instances/{instanceId}" : {
+      "get" : {
+        "operationId" : "getWorkflowInstance",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "instanceId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InstanceView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
+      }
+    },
+    "/api/v1/workflow/stages/{stageId}/claim" : {
+      "delete" : {
+        "operationId" : "unclaimStage",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "stageId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
+      },
+      "post" : {
+        "operationId" : "claimStage",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "stageId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "additionalProperties" : {
+                  "type" : "object"
+                },
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
+      }
+    },
+    "/api/v1/workflow/stages/{stageId}/decision" : {
+      "post" : {
+        "operationId" : "decideStage",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "stageId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DecisionBody"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DecisionResult"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
+      }
+    },
+    "/api/v1/workflow/stages/{stageId}/items" : {
+      "post" : {
+        "operationId" : "addEnrichmentItem",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "stageId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ItemCommand"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ItemView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
+      }
+    },
+    "/api/v1/worklist" : {
+      "get" : {
+        "operationId" : "getWorklist",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "view",
+          "required" : false,
+          "schema" : {
+            "default" : "assigned",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "search",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "model",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorklistPage"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "worklist-controller" ]
+      }
+    }
+  },
+  "servers" : [ {
+    "description" : "Generated server url",
+    "url" : "http://localhost"
+  } ]
+}

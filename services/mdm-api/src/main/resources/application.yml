@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: mdm-api
+  datasource:
+    url: ${MDM_DB_URL:jdbc:postgresql://localhost:5432/nexus}
+    username: ${MDM_DB_USER:nexus}
+    password: ${MDM_DB_PASSWORD:nexus}
+    hikari:
+      maximum-pool-size: ${MDM_DB_POOL_SIZE:20}
+      # Recorded time is UTC everywhere (ADR-018); business dates are computed by BusinessClock, never by the session.
+      connection-init-sql: SET TIME ZONE 'UTC'
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # Migrations run as the schema owner; the application connects with a least-privilege login in role nexus_api
+    # (ADR-014). Locally both default to the single docker-compose account.
+    user: ${MDM_DB_MIGRATION_USER:${MDM_DB_USER:nexus}}
+    password: ${MDM_DB_MIGRATION_PASSWORD:${MDM_DB_PASSWORD:nexus}}
+  autoconfigure:
+    # ADR-035: the Camunda client starts only with mdm.workflow.engine=camunda (CamundaEngineConfiguration imports it)
+    exclude: io.camunda.zeebe.spring.client.configuration.CamundaAutoConfiguration
+  threads:
+    virtual:
+      enabled: true   # Java 21 virtual threads for request handling
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+mdm:
+  api:
+    max-page-size: 1000
+  workflow:
+    engine: inprocess               # ADR-035: inprocess (reference driver) | camunda (2-10b)
+    system-actor-login: nexus_system   # system_feed user that records policy evaluations
+    outbox-poll-interval-ms: 1000   # OUTBOX_POLL_INTERVAL
+    outbox-safety-lag-ms: 2000      # OUTBOX_SAFETY_LAG: events younger than this wait for the next poll
+    worker:
+      enabled: false                # true only in the workflow worker process (profile 'worker')
+  # worker:
+  #   datasource: url/username/password of a nexus_wf login when API and worker share a JVM; empty in the worker process
+
+# OpenAPI description (/v3/api-docs) is off by default, so shared environments do not publish it unauthenticated;
+# the local and test profiles turn it on. The committed copy is docs/api/openapi.json (OpenApiDocumentTest).
+springdoc:
+  api-docs:
+    enabled: false
+  packages-to-scan: com.mdm.api
+
+---
+spring:
+  config:
+    activate:
+      on-profile: "local | test"
+springdoc:
+  api-docs:
+    enabled: true
+
+# Camunda client (used only with mdm.workflow.engine=camunda); connection per environment (OD-01c)
+camunda:
+  client:
+    zeebe:
+      prefer-rest-over-grpc: false

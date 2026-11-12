@@ -26,3 +26,34 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+# Build output
+target/
+out/
+build/
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Local environment and secrets
+.env
+*.env.local
+
+# Never commit data extracts
+data/
+*.dump
+*.csv.gz
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Private reference material for local use only - never commit
+.knowledge/
+
+# Personal Claude Code overrides
+.claude/settings.local.json
