@@ -28,7 +28,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### VER-01 — Create and copy versions
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Improve / — / 3 - Steward UI (third scope extension, ADR-037)
 - **Legacy behaviour:** Create a version, typically by copying the prior period's finalized version.
 - **Target design:** mdm.version as a named data slice (no physical copy).
 - **Acceptance criteria (draft):** A new period version can be created and shows identical data to its base at creation.
@@ -36,7 +36,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### VER-02 — Version status lifecycle
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 3 - Steward UI (third scope extension, ADR-037)
 - **Legacy behaviour:** Working → Submitted → Finalized → Expired; finalized versions are read-only.
 - **Target design:** mdm.version.status; finalized versions pin recorded_as_of.
 - **Acceptance criteria (draft):** Edits are rejected in submitted/finalized versions; finalized data is unchanged by later corrections.
@@ -44,7 +44,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### VER-03 — As-of versions
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 8 - Exports (reads built in Phase 1; ADR-037)
 - **Legacy behaviour:** Rebuild a version as it stood at a past point in time from transaction history.
 - **Target design:** Bitemporal reads at any business date and recorded time.
 - **Acceptance criteria (draft):** Any past date can be queried without a rebuild and matches DRM's as-of output.
@@ -52,7 +52,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### VER-04 — Baseline versions
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (needs QRY-02; ADR-037)
 - **Legacy behaviour:** Baseline kept for comparison with the working version.
 - **Target design:** Named version slices + compare service.
 - **Acceptance criteria (draft):** Baseline vs current differences reproduce DRM compare output.
@@ -60,7 +60,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### VER-05 — Version variables
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 8 - Exports (ADR-037)
 - **Legacy behaviour:** Named pointers (e.g. current production version) used by exports, books and automation.
 - **Target design:** Version alias table (to add to schema).
 - **Acceptance criteria (draft):** Exports and jobs using a variable resolve to the right version after it changes.
@@ -68,7 +68,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### VER-06 — Load, unload, backup and restore versions
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Retire / — / — (as a feature: database backup and point-in-time recovery, OD-15; ADR-037)
 - **Legacy behaviour:** Versions loaded into memory; backed up and restored by admins.
 - **Target design:** Not needed as a feature: database backup and point-in-time recovery.
 - **Acceptance criteria (draft):** Point-in-time restore tested; users never load/unload versions.
@@ -76,7 +76,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### VER-07 — Version-level properties
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** — / — / — (confirm use in discovery, then Phase 5; ADR-037)
 - **Legacy behaviour:** Properties attached to a version (e.g. period, status flags).
 - **Target design:** Version property table (to add).
 - **Acceptance criteria (draft):** Version-level properties display and export as in DRM.

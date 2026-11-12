@@ -137,3 +137,20 @@ Drag and drop is not built (UI_STANDARD §6 makes it optional; "Move to…" is t
 
 **Still not built:** AI suggestions (Phase 7, deferred) and notifications (GOV-08 / GOV-16), as the owner said. UBO results,
 cross-holding calculation and editing ownership stay in Phase 6; read filtering by property category stays in Phase 5.
+
+## Third scope extension (repository owner, 2026-11-12: "lets implement the versioning"; ADR-037) — awaiting approval
+Design: Phase 3 LLD, "Third scope extension: versions" (V.1 to V.8). The owner chose every ADR-037 recommendation; this plan
+and refinements R1 to R4 wait for approval before any code. One commit per increment, each after a green run.
+
+| # | Increment | Capabilities | Tests |
+|---|---|---|---|
+| 3-23 | `V11__versions.sql`: `VERSION_ADMIN` role; new `mdm.version` columns and the stricter CHECK; `mdm.version_transition` (append-only); version guard and request trigger (codes `N1028` to `N1030`, `N2701` to `N2706`; the R2 pin check); `is_version_admin`, `create_version`, `update_version` and `transition_version`; `user_preference.working_version_id`; the `change_request.version_id` column privilege (R1); rule `NEXUS.VERSION_DATE` in `validate_change_request` | VER-01, VER-02 | pgTAP `22_versions.sql`; every earlier pgTAP file still green |
+| 3-24 | API: `/versions` list, get, create or copy, rename and transitions with `whyNot`; `ADMIN_VERSION`; `/me.workingVersion` from the preference with the fallback; `PUT /me/preferences` `workingVersion`; `PATCH /change-requests/{id}` `versionName`; `recordedAsOf` on every slice read the UI uses; OpenAPI and the generated client | VER-01, VER-02 | JUnit `VersionApiTest` (VER-01 and VER-02 criteria); full `mvnw verify`; `npm run api:check` |
+| 3-25 | UI: Versions page, new-version and edit dialogs, transition confirmations, context-bar picker, picture view (`recordedAsOf`, banner, read-only), the tray's "Move to version…" after `N2703` | VER-01, VER-02, NEW-10 | Vitest; stories with axe; lint; production build and budgets |
+| 3-26 | End to end `08-versions.spec.ts`; seed gains `e2e_vadmin` and `e2e_vadmin2` (synthetic) | VER-01, VER-02 | Playwright with axe: the new spec and the full suite |
+| 3-27 | Records: `CONSISTENCY_REVIEW.md` codes, `data-model.md` (V11), patterns, CHANGELOG, capabilities, traceability, test report, summary, build state | PROG | review |
+
+**Not in this extension:** VER-03 exports of a past picture (Phase 8), VER-04 baseline compare (Phase 5), VER-05 aliases
+(Phase 8), VER-06 (retired as a feature), VER-07 version properties (discovery). Golden parity of versions waits for Phase 4.
+**For your approval with this plan:** refinements R1 to R4 in ADR-037, including the new column privilege for the API role
+(`UPDATE (version_id)` on `mdm.change_request`, still limited to drafts by `N2102`).

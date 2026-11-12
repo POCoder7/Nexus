@@ -1,7 +1,7 @@
 # Traceability: capability → phase → design → planned tests
 
 - **Status:** First version, awaiting review (2026-11-11). Generated from `docs/capabilities.md`; phase LLD sections are filled in as each LLD is written.
-- **Coverage:** 91 capabilities, each listed exactly once, plus PROG and SLICE-01. 2 retired; 69 pending decision (outline design only, per `docs/DESIGN_PROTOCOL.md` §2).
+- **Coverage:** 91 capabilities, each listed exactly once, plus PROG and SLICE-01. 3 retired; 63 pending decision (outline design only, per `docs/DESIGN_PROTOCOL.md` §2).
 - **Phase** is the primary phase from `docs/BUILD_PROTOCOL.md` §2. A `*` marks a placement this design **proposes** because the build protocol lists the capability in no phase, or because it fits an earlier phase better (OD-14). **Also in** shows other phases that contribute.
 - **Planned tests** come from the draft acceptance criteria and golden test sources in the catalogue; positive, negative, control and boundary cases are detailed in each LLD §13.
 
@@ -16,13 +16,13 @@
 
 | ID | Title | Decision | Phase | Also in | Design status | LLD section | Planned tests |
 |---|---|---|---|---|---|---|---|
-| VER-01 | Create and copy versions | — | 5 |  | Pending decision — ADR-037 proposed (OD-45) | phase-5 LLD §15.1 (outline); ADR-037 | pgTAP (slice and status rules) · JUnit API · golden. Criterion: A new period version can be created and shows identical data to its base at creation. Golden: Version list + node counts per version. |
-| VER-02 | Version status lifecycle | — | 5 |  | Pending decision — ADR-037 proposed (OD-45) | phase-5 LLD §15.1 (outline); ADR-037 | pgTAP (slice and status rules) · JUnit API · golden. Criterion: Edits are rejected in submitted/finalized versions; finalized data is unchanged by later corrections. Golden: Exports from past finalized versions. |
-| VER-03 | As-of versions | — | 5 |  | Pending decision — outline only | phase-5 LLD §15.1 (outline) | pgTAP (slice and status rules) · JUnit API · golden. Criterion: Any past date can be queried without a rebuild and matches DRM's as-of output. Golden: DRM as-of exports for 3 sample dates. |
-| VER-04 | Baseline versions | — | 5 |  | Pending decision — outline only | phase-5 LLD §15.1 (outline) | pgTAP (slice and status rules) · JUnit API · golden. Criterion: Baseline vs current differences reproduce DRM compare output. Golden: DRM compare export (baseline vs normal). |
-| VER-05 | Version variables | — | 5 |  | Pending decision — outline only | phase-5 LLD §15.1 (outline) | pgTAP (slice and status rules) · JUnit API · golden. Criterion: Exports and jobs using a variable resolve to the right version after it changes. Golden: Export runs before/after a variable change. |
-| VER-06 | Load, unload, backup and restore versions | — | 5 |  | Pending decision — outline only | phase-5 LLD §15.1 (outline) | pgTAP (slice and status rules) · JUnit API · golden. Criterion: Point-in-time restore tested; users never load/unload versions. Golden: Operational DR test. |
-| VER-07 | Version-level properties | — | 5 |  | Pending decision — outline only | phase-5 LLD §15.1 (outline) | pgTAP (slice and status rules) · JUnit API · golden. Criterion: Version-level properties display and export as in DRM. Golden: Version property values. |
+| VER-01 | Create and copy versions | Improve (OD-45) | 3 | 5 (outline) | Designed — awaiting approval (ADR-037 accepted; LLD section and plan 3-23 to 3-27) | phase-3 LLD "Third scope extension: versions"; ADR-037 | pgTAP `22_versions.sql` · JUnit `VersionApiTest` · unit, stories · e2e `08-versions` · golden (Phase 4). Criterion: A new period version can be created and shows identical data to its base at creation. Golden: Version list + node counts per version. |
+| VER-02 | Version status lifecycle | Parity (OD-45) | 3 | 5 (outline) | Designed — awaiting approval (ADR-037 accepted; LLD section and plan 3-23 to 3-27) | phase-3 LLD "Third scope extension: versions"; ADR-037 | pgTAP `22_versions.sql` · JUnit `VersionApiTest` · unit, stories · e2e `08-versions` · golden (Phase 4). Criterion: Edits are rejected in submitted/finalized versions; finalized data is unchanged by later corrections. Golden: Exports from past finalized versions. |
+| VER-03 | As-of versions | Parity (OD-45) | 8 | 1 (reads) | Reads built in Phase 1; exports of a past picture in Phase 8 | phase-5 LLD §15.1 (outline); ADR-037 | pgTAP (slice and status rules) · JUnit API · golden. Criterion: Any past date can be queried without a rebuild and matches DRM's as-of output. Golden: DRM as-of exports for 3 sample dates. |
+| VER-04 | Baseline versions | Parity (OD-45) | 5 |  | Outline; needs the compare service (QRY-02) | phase-5 LLD §15.1 (outline); ADR-037 | pgTAP (slice and status rules) · JUnit API · golden. Criterion: Baseline vs current differences reproduce DRM compare output. Golden: DRM compare export (baseline vs normal). |
+| VER-05 | Version variables | Parity (OD-45) | 8 |  | Outline; with exports and jobs | phase-5 LLD §15.1 (outline); ADR-037 | pgTAP (slice and status rules) · JUnit API · golden. Criterion: Exports and jobs using a variable resolve to the right version after it changes. Golden: Export runs before/after a variable change. |
+| VER-06 | Load, unload, backup and restore versions | Retire (OD-45) | — |  | Retired as a feature: database backup and point-in-time recovery (OD-15) | ADR-037 | Operational DR test (Phase 9). Criterion: Point-in-time restore tested; users never load/unload versions. Golden: Operational DR test. |
+| VER-07 | Version-level properties | — | 5 |  | Pending decision — confirm use in discovery (ADR-037 D1) | phase-5 LLD §15.1 (outline) | pgTAP (slice and status rules) · JUnit API · golden. Criterion: Version-level properties display and export as in DRM. Golden: Version property values. |
 | HIE-01 | Hierarchies, top nodes and groups | Parity (OD-13) | 1 | 5 (HIE-* in protocol) | In scope (Parity) | phase-1 LLD §13 | pgTAP guards · JUnit apply + API · golden exports. Criterion: All hierarchies load with the same top node, group and node count as DRM. Golden: Hierarchy list + node counts. |
 | HIE-02 | Add, insert, move, remove, delete | Parity (OD-13) | 1 | 5 (HIE-* in protocol) | In scope (Parity) | phase-1 LLD §13 | pgTAP guards · JUnit apply + API · golden exports. Criterion: Each action produces the same resulting tree as DRM. Golden: Before/after exports for scripted action sets. |
 | HIE-03 | Shared nodes | — | 5 |  | Pending decision — outline only | phase-5 LLD §15.1 (outline) | pgTAP guards · JUnit apply + API · golden exports. Criterion: Shared nodes display, export and validate as in DRM. Golden: Hierarchy exports containing shared nodes. |
@@ -114,14 +114,14 @@
 |---|---|
 | Phase 1 | 13 |
 | Phase 2 | 14 |
-| Phase 3 | 2 |
+| Phase 3 | 4 |
 | Phase 4 | 4 |
-| Phase 5 | 37 |
+| Phase 5 | 32 |
 | Phase 6 | 1 |
 | Phase 7 | 4 |
-| Phase 8 | 12 |
+| Phase 8 | 14 |
 | Phase 9 | 2 |
-| Retired | 2 |
+| Retired | 3 |
 
 ## Differences from the build protocol phase table (for OD-14)
 

@@ -1,6 +1,6 @@
 # ADR-037: Versions: create, copy and status lifecycle (VER-01, VER-02)
 
-- **Status:** Proposed (awaiting the repository owner's decisions D1 to D5; D4 also needs Audit-Risk review, as OD-18a does for the other control fixes)
+- **Status:** Accepted (repository owner, 2026-11-12: every recommendation, D1 to D5); D4 Audit-Risk confirmation pending (OD-45a). Refinements R1 to R4 from the detailed design await the owner's approval with the Phase 3 LLD section "Third scope extension: versions"
 - **Date:** 2026-11-12
 - **Deciders:** Repository owner (D1, D2, D3, D5); repository owner, then Audit-Risk confirmation (D4)
 - **Capabilities:** VER-01, VER-02 (VER-03 to VER-07 are placed, not built)
@@ -93,7 +93,27 @@ append-only `mdm.version_transition` table (who, when, from, to, reason) next to
 | C. All of VER-01 to VER-07 now | Adds baseline compare, aliases and version properties | VER-04 needs QRY-02 compare, VER-05 belongs with exports (Phase 8), VER-07 needs discovery first; not recommended |
 
 ## Decision
-None yet. The recommendations are D1 as tabled, D2 A, D3 A, D4 A and D5 A. Nothing is built until the owner decides.
+The repository owner chose every recommendation on 2026-11-12: **D1** as tabled, **D2 A** (named slice), **D3 A** (freeze at
+submit), **D4 A** (`VERSION_ADMIN`, finalize by a second person, people only), **D5 A** (VER-01 and VER-02 as a third Phase 3
+scope extension). The detailed design (Phase 3 LLD, "Third scope extension: versions") is written before any code and stops for
+the owner's approval.
+
+### Refinements found in the detailed design (for the owner's approval with the LLD section)
+- **R1. Drafts do not block a version submit.** D3 above said every open request blocks it, drafts included. A draft belongs
+  to its requester and nobody else may change or withdraw it, so one abandoned draft could stop a period close. Requests that
+  are submitted, in review or approved still block the submit. A draft left in a submitted version cannot be submitted (the
+  database refuses it); its requester moves it to a working version or withdraws it. Moving needs the API role to update
+  `change_request.version_id` (a new column privilege, ADR-014). The existing draft-only trigger (`N2102`) still limits it to drafts.
+- **R2. A frozen picture never gains rows afterwards.** A recorded time is a transaction's start time. So an apply that began
+  before a freeze and commits after it would show in the frozen picture. The freeze takes an exclusive lock and pins
+  `clock_timestamp()` under it; an apply that finds a pin later than its own start is refused with `40001`, which
+  `ApplyService` already retries in a new transaction.
+- **R3. What a working version shows.** A version's picture is (business date, recorded time, or now while working), which is
+  what exports already use (V3). The steward workspace stays the live, editable view (today, as now). "Open picture" on the
+  Versions page shows any version's picture read-only.
+- **R4. One guard for "the request's version is working".** A trigger on `change_request` checks the request when it is
+  created, moved, submitted, put into review, approved or applied. This covers the core and the workflow paths with one rule
+  and leaves `apply_change_request` (V1) unchanged, in place of the separate check inside apply named in D3.
 
 ## Consequences (if the recommendations are adopted)
 - The Phase 3 LLD gains a section "Third scope extension: versions" and the Phase 3 plan gains increments 3-23 onward, before

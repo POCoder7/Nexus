@@ -34,8 +34,8 @@
 ## 3. Error-code registry (ADR-020)
 | Class | Codes |
 |---|---|
-| `N1` control (403) | `N1001` self-approval · `N1002` non-human decider · `N1003` AI request needs a human · `N1004` policy basis outside the bridge · `N1005` requester kind mismatch · `N1010` claim not allowed · `N1011` reject without a rejecting decision · `N1012` withdraw not allowed · `N1013` item not editable in this stage · `N1014` model activated by its creator · `N1021` reconciliation accepted by its explainer · `N1301` model version not approved · `N1303` prompter decides own AI request |
-| `N2` integrity (422) | `N2001` cycle · `N2002` top node · `N2003` shared not allowed · `N2004` parent is a leaf · `N2005` remove with children · `N2006` delete of a referenced node · `N2010` bitemporal edit · `N2020` property type/scope · `N2101` status transition · `N2102` request not draft · `N2103` too many items · `N2201` conflicting decision · `N2202` split not enabled · `N2301` sandbox conflicts · `N2302` sandbox too large · `N2303` sandbox not draft · `N2401` edge without evidence or rationale · `N2402` ownership component too large · `N2403` closed ownership loop · `N2404` threshold missing · `N2501` invalid AI output · `N2502` plan outside whitelist · `N2601` profile version not approved · `N2602` DRM file missing |
+| `N1` control (403) | `N1001` self-approval · `N1002` non-human decider · `N1003` AI request needs a human · `N1004` policy basis outside the bridge · `N1005` requester kind mismatch · `N1010` claim not allowed · `N1011` reject without a rejecting decision · `N1012` withdraw not allowed · `N1013` item not editable in this stage · `N1014` model activated by its creator · `N1021` reconciliation accepted by its explainer · `N1301` model version not approved · `N1303` prompter decides own AI request · `N1028`–`N1030` version administrator, self-finalize, person only (V11, designed) |
+| `N2` integrity (422) | `N2001` cycle · `N2002` top node · `N2003` shared not allowed · `N2004` parent is a leaf · `N2005` remove with children · `N2006` delete of a referenced node · `N2010` bitemporal edit · `N2020` property type/scope · `N2101` status transition · `N2102` request not draft · `N2103` too many items · `N2201` conflicting decision · `N2202` split not enabled · `N2301` sandbox conflicts · `N2302` sandbox too large · `N2303` sandbox not draft · `N2401` edge without evidence or rationale · `N2402` ownership component too large · `N2403` closed ownership loop · `N2404` threshold missing · `N2501` invalid AI output · `N2502` plan outside whitelist · `N2601` profile version not approved · `N2602` DRM file missing · `N2701`–`N2706` version lifecycle (V11, designed) |
 | `N3` conflict (409) | `N3001` stale base |
 | reserved | `N9999` trial rollback |
 
@@ -86,6 +86,8 @@
 | `N2210`–`N2215` | no active model; stage not splitting; bad outcome; commit stage not approved; stages incomplete; instance not open (V4) | `wf.no_active_model`, `wf.not_splitting`, `wf.bad_outcome`, `wf.commit_not_approved`, `wf.stages_incomplete`, `wf.instance_not_open` |
 | `N2216`–`N2224` | policy: only drafts deleted; must be submitted first; frozen while pending; overlapping scope; invalid status change; immutable once approved; scope frozen; not pending approval; completed review frozen (V6) | `policy.*` |
 | `N2604`–`N2609` | export: unsupported filter op; unknown filter property; unsupported column source; unknown or inactive profile; type not produced in SQL; unknown version (V3) | `export.*` |
+| `N1028`–`N1030` | not a version administrator; a version finalized by the person who submitted it; a version transition without an identified person (V11, Phase 3 third extension, designed) | `version.not_admin`, `version.self_finalize`, `version.actor_not_human` |
+| `N2701`–`N2706` | version: invalid status change; field frozen in this status; the request's version is not working; requests still in flight at submit; delete refused; a new version not starting as working (V11, designed) | `version.status_transition`, `version.frozen`, `version.not_working`, `version.requests_open`, `version.no_delete`, `version.must_start_working` |
 Codes are kept in `docs/data-model.md` when each phase is built (BUILD_PROTOCOL step 6).
 
 ## 4. Role catalogue (CR-11)
@@ -97,6 +99,7 @@ Codes are kept in `docs/data-model.md` when each phase is built (BUILD_PROTOCOL 
 | `WORKFLOW_ADMIN` | 1 (used 2) | READ, ADMIN_WORKFLOW (models, governed membership) |
 | `POLICY_ADMIN` | 1 (used 2) | READ, ADMIN_POLICY (propose policies) |
 | `SYSTEM_ADMIN` | 1 | READ, ADMIN_SYSTEM (grants, identity links: always maker-checked) |
+| `VERSION_ADMIN` | 3 (third extension, ADR-037, designed) | READ, ADMIN_VERSION (create, copy, rename, submit, reopen, expire; finalize only a version someone else submitted) |
 | `OWNERSHIP_ANALYST` | 6 | READ_OWNERSHIP, PROPOSE_OWNERSHIP, upload evidence |
 | `COMPLIANCE_OFFICER` | 6 | READ_OWNERSHIP, DECIDE_OWNERSHIP, thresholds, determinations |
 | `EXPORT_ADMIN` | 8 | ADMIN_EXPORT (profile versions; maker-checked) |

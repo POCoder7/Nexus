@@ -38,6 +38,6 @@
 | ADR-034 | Observability: structured logs, Micrometer metrics, OpenTelemetry traces | Accepted |
 | ADR-035 | Engine-neutral workflow driver: Camunda behind a port, with an in-process reference driver | Accepted |
 | ADR-036 | Property edit rights by category | Accepted (Security confirmation pending with ADR-022) |
-| ADR-037 | Versions: create, copy and status lifecycle | Proposed (owner decisions D1 to D5, OD-45) |
+| ADR-037 | Versions: create, copy and status lifecycle | Accepted (OD-45); D4 Audit-Risk confirmation pending (OD-45a) |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.

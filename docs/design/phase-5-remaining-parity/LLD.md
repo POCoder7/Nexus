@@ -222,12 +222,12 @@ Each line: approach · objects (existing or proposed) · main risk · tests from
 
 | ID | Approach | Objects | Risk | Tests |
 |---|---|---|---|---|
-| VER-01 Create/copy versions | New `version` row = new slice; "copy" sets `base_version_id` and the same business date | `mdm.version` (exists) | Users expect a physical copy | Golden: version list + node counts |
-| VER-02 Status lifecycle | Guarded transitions working→submitted→finalized→expired; finalize pins `recorded_as_of`; edits refused for requests targeting submitted/finalized versions | trigger on `mdm.version`; check in `apply_change_request` | Definitions not bitemporal (D-08) make old slices drift | Golden: exports of past finalized versions |
+| VER-01 Create/copy versions | **Moved to Phase 3** (ADR-037, OD-45): Phase 3 LLD "Third scope extension: versions" | `V11__versions.sql` | Users expect isolation between working versions | Golden: version list + node counts (Phase 4) |
+| VER-02 Status lifecycle | **Moved to Phase 3** (ADR-037, OD-45): freeze at submit, four eyes on finalize, one request trigger in place of a check in `apply_change_request` | `V11__versions.sql` | Definitions not bitemporal (D-08) make old pictures read with today's definitions | Golden: exports of past finalized versions (Phase 8) |
 | VER-03 As-of versions | Reads at any (asOf, recordedAsOf) (built in Phase 1) + export as of a past recorded time | Phase 1 reads; Phase 8 exports | D-08 | Golden: DRM as-of exports for 3 dates |
 | VER-04 Baseline versions | Named slice + compare (QRY-02) | `mdm.version`, compare service | depends on QRY-02 | Golden: compare export |
 | VER-05 Version variables | `mdm.version_alias(alias, version_id, valid_period)` bitemporal; exports and jobs resolve aliases | new table | — | Export runs before/after an alias change |
-| VER-06 Load/unload/backup | Not a feature: PITR (OD-15) | platform | — | DR test |
+| VER-06 Load/unload/backup | Not a feature: PITR (OD-15); **retired as a feature** (ADR-037 D1) | platform | — | DR test |
 | VER-07 Version properties | `mdm.version_property_value` (bitemporal) with `property_definition.scope` = 'version' (new enum value) | new table | — | Values display and export |
 | HIE-03 Shared nodes | Exists in schema and Phase 1 apply; parity of display/export/validation via golden | `is_primary` | Export expansion rules | Golden exports with shared nodes |
 | HIE-04 Orphans | View of nodes with `node_attr` in a slice and no relationship in any hierarchy (excludes A-5 identities) | new view | — | Golden orphan list |

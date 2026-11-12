@@ -1,7 +1,7 @@
 # Build state
 
 - **Current phase:** 3 — Steward UI
-- **Step in loop:** Awaiting approval to proceed (Phase 3 test gate passed with gaps) — branch `feature/NEW-10-phase-3-steward-ui`
+- **Step in loop:** Awaiting approval: the Phase 3 gate (passed with gaps) and the versions design (third scope extension, ADR-037) — branch `feature/NEW-10-phase-3-steward-ui`
 - **Baseline:** db-test **pass** 334/334 · mvnw verify **pass** 116/116 · UI: lint pass, contract pass, unit 46/46, stories 35/35 (axe), production build and budgets pass, end to end 32/32 (axe) (2026-11-12)
 - **Last commit:** see `git log -1`
 
@@ -32,6 +32,7 @@
 | 3-12 Records | PROG | Done (records commit) | — | test report, summary, data model V10, UI_STANDARD token status, patterns, changelog, setup |
 | 3-13 to 3-17 Scope extension: impact endpoint, generic tray action, edit details and properties, place / move / remove / delete with impact preview, new hierarchy | HIE-01, HIE-02, PRP-01 | Done (UI commit) | JUnit impact 1; unit 7; e2e 06 (7) | owner moved these screens from Phase 5 to Phase 3; `MAINTAIN` model for other drafts |
 | 3-18 to 3-22 Second scope extension: property edit rights by category (ADR-036), History tab, Ownership tab (view), before/after view, drag and drop | PRP-09, SEC-03 (edit), QRY-04, NEW-02 (view), HIE-02, NEW-10 | Done (third Phase 3 commit) | pgTAP 21 (+2); JUnit 3; unit 4; stories 5; e2e 07 (5) | owner: "implement everything else except AI suggestions and notifications"; `mdm.user_role.category_codes` in V10
+| 3-23 to 3-27 Third scope extension: versions (V11 and guards, API, UI, end to end, records) | VER-01, VER-02 | **Designed, awaiting approval**: Phase 3 LLD "Third scope extension: versions", plan "Third scope extension" | planned: pgTAP 22, JUnit `VersionApiTest`, unit, stories, e2e 08 | no code yet |
 
 ### Phase 1 progress
 | Increment | Capability | Status | Tests | Notes |
@@ -75,7 +76,7 @@
 | ADR-005 | Policy-governed straight-through commit | Needs Audit/Risk sign-off before any policy is activated |
 | ADR-006 to ADR-008 | Bitemporal model, ownership graph, AI proposes/humans approve | Proposed; awaiting team confirmation |
 | ADR-013 to ADR-034 | Design-track decisions | Accepted by the owner; confirmations pending for ADR-014, 021, 023, 026, 027 (Security / Audit-Risk), see `docs/design/OPEN_DECISIONS.md` |
-| ADR-037 | Versions: create, copy and status lifecycle (VER-01, VER-02) | **Proposed 2026-11-12; nothing built.** Five decisions for the owner (OD-45); D4 (who finalizes) also needs Audit-Risk review |
+| ADR-037 | Versions: create, copy and status lifecycle (VER-01, VER-02) | **Accepted 2026-11-12** (every recommendation, OD-45). Refinements R1 to R4 await approval with the LLD section; D4 needs Audit-Risk confirmation (OD-45a) before merging to `main` |
 
 
 ## Open questions for the human
@@ -84,7 +85,7 @@
 3. **Masked extracts and DRM outputs (OD-31, OD-32)** for Phase 4 golden parity: without them Phase 4 is synthetic-only.
 4. OD-11: remote `origin` is `https://github.com/POCoder7/Nexus` (public, repository owner 2026-11-12). The three phase branches are pushed; `main` waits for the owner's one-time `git push --force origin main` (it replaces GitHub's starter commit; agents may not force-push). Every commit id changed on 2026-11-12 when the history was rewritten to the noreply email; the ids quoted in these records are the new ones.
 5. OD-18a: Audit-Risk review of ADR-021 and ADR-023 **skipped for now** by the repository owner (2026-11-11); merging to `main` needs the review or your explicit waiver.
-. **Versioning (OD-45, ADR-037).** You asked to implement versioning. It is a scope change and its capabilities are undecided (OD-09), so ADR-037 sets out D1 (Parity, Improve or Retire for VER-01 to VER-07), D2 (named slice or physical copy), D3 (freeze a version at submit or at finalize), D4 (who may create, submit and finalize; four eyes) and D5 (third Phase 3 scope extension, Phase 5, or everything now), each with a recommendation. On your decisions: Phase 3 LLD section and plan increments first, then build.
+6. **Versions design: approve, or ask for changes.** You chose every ADR-037 recommendation (OD-45). The design is the Phase 3 LLD section "Third scope extension: versions" and plan increments 3-23 to 3-27. Please approve in particular: (a) refinements R1 to R4 in ADR-037: drafts do not block a version submit; a frozen picture never gains rows afterwards (lock and retry); a working version shows "now"; one trigger on requests in place of a check inside apply; (b) a **new column privilege** for the API role, `UPDATE (version_id)` on `mdm.change_request`, so a requester can move a draft to another version (the draft-only guard `N2102` still applies); (c) nine new error codes (`N1028` to `N1030`, `N2701` to `N2706`) and the new role `VERSION_ADMIN`. No code is written until you approve.
 
 ## Scope changes
 - **Camunda contract run deferred to the end of the build** by the repository owner on 2026-11-11 (Docker has 3.7 GiB; the Camunda test runtime needs Elasticsearch + Camunda). Adapter, BPMN and tests are written (`-Dcamunda`).
@@ -94,6 +95,7 @@
 - **Performance testing deferred to the end of the build** by the repository owner on 2026-11-11: Phase 1 increment 1-11 is not run; its tests and generator are kept (`./mvnw -B verify -Dperf`). Phase 1 gate reports the LLD §10 targets as "not measured".
 - **Phase 3 scope extended** by the repository owner on 2026-11-12: all editing screens for actions the API already has (edit details and properties, place, move, remove, delete, new hierarchy) moved from Phase 5 into Phase 3.
 - **Phase 3 scope extended again** by the repository owner on 2026-11-12: History tab (QRY-04), Ownership tab as a view (NEW-02; UBO stays Phase 6), before/after view, drag and drop, property edit rights by category (ADR-036). AI suggestions (Phase 7) and notifications (GOV-08/16) stay out.
+- **Phase 3 scope extended a third time** by the repository owner on 2026-11-12: versions (VER-01 create and copy, VER-02 lifecycle; ADR-037, OD-45). VER-03 exports and VER-05 aliases go to Phase 8, VER-04 baseline compare stays in Phase 5, VER-06 is retired as a feature (point-in-time recovery), VER-07 waits for discovery.
 - **Phase 7 (AI assistance) deferred** by the repository owner on 2026-11-11 (OD-38): design approved; the build goes from Phase 6 to Phase 8. The `BUILD_PROTOCOL.md` phase table is updated in design step 5 (wiring).
 
 ## Known gaps, stubs and technical debt
@@ -106,4 +108,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Stopped at the Phase 3 gate and at ADR-037 (versioning, OD-45: owner decisions D1 to D5). On the versioning decisions: write the LLD section and plan increments, stop for approval, then build. On the gate approval: Phase 4 (data loading and parity harness) orient and plan. Deferred to the end: performance tests (Phases 1–3), Camunda contract run. The local demo is running (API on 8080 from a scratchpad copy of the jar, UI on 4200, database `nexus_demo`, synthetic); stop it when the owner is done. Also requested and not yet written: an architecture code review, a summary design document and a new-machine setup guide.
+Stopped at the Phase 3 gate and at the versions design (ADR-037 accepted; LLD section and plan 3-23 to 3-27 written, awaiting approval, open question 6). On approval: build 3-23 (V11 and pgTAP 22) to 3-27, one commit per green increment, then a new Phase 3 test report for the gate. On the gate approval: Phase 4 (data loading and parity harness) orient and plan. Deferred to the end: performance tests (Phases 1–3), Camunda contract run. The local demo is running (API on 8080 from a scratchpad copy of the jar, UI on 4200, database `nexus_demo`, synthetic); stop it when the owner is done. Also requested and not yet written: an architecture code review, a summary design document and a new-machine setup guide.

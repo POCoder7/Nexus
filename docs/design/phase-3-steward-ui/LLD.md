@@ -445,3 +445,166 @@ The owner added the remaining editing screens to Phase 3 (Phase 3 plan, "Scope e
 - **Drag and drop:** a tree row can be dragged onto another node row (mouse only); dropping opens "Move to…" with that
   target chosen. Keyboard users use "Move to…".
 - **Property edit rights by category:** ADR-036.
+
+## Third scope extension: versions (repository owner, 2026-11-12; ADR-037) — designed, awaiting approval
+The owner asked for versioning and chose every ADR-037 recommendation: named slices (D2 A), freeze at submit (D3 A),
+`VERSION_ADMIN` with a second person to finalize, people only (D4 A), and VER-01 and VER-02 in Phase 3 (D5 A). ADR-037 R1 to R4
+are refinements found while writing this section. **No code until the owner approves this section and plan increments 3-23 to 3-27.**
+
+### V.1 Scope
+| In | Out (and where it goes) |
+|---|---|
+| VER-01 create and copy (Improve) · VER-02 lifecycle (Parity) · a version picker · any version's picture shown read-only | VER-03 exports of a past picture (Phase 8; reads exist) · VER-04 baseline compare (Phase 5, needs QRY-02) · VER-05 aliases (Phase 8) · VER-06 retired as a feature (backup and point-in-time recovery) · VER-07 version properties (discovery, then Phase 5) · golden parity of version lists and contents (Phase 4, OD-31 and OD-32) |
+
+### V.2 What a version shows (ADR-037 D2, R3)
+- A version is a name, a business date (`business_as_of`) and, once frozen, a recorded time (`recorded_as_of`). Its
+  **picture** is the data valid on the business date as recorded at the recorded time, or as recorded now while it is
+  working. Export runs already read a version this way (V3).
+- The steward workspace stays the live, editable view (today's date, as now). A new request is raised in the user's chosen
+  working version (V.5 `/me`).
+- "Copy from" records `base_version_id`; no rows are copied. A copy with its base's business date shows its base's
+  picture at creation (the VER-01 test).
+- Working versions are not isolated from each other (ADR-037 Context 2). The Versions page says so in one line.
+
+### V.3 Data (`V11__versions.sql`, new; V1 to V10 unchanged)
+- Role row `VERSION_ADMIN` ("Create versions and move them through their lifecycle").
+- `mdm.version` gains `created_at` (default `now()`), `created_by`, `submitted_at`, `submitted_by` and `revision int NOT NULL
+  DEFAULT 1` (the ETag source, ADR-015). Existing rows (the seed's `E2E working`) get `revision` 1 and NULL creators.
+- A second CHECK, next to the V1 one, which stays:
+  - `(status = 'working') = (recorded_as_of IS NULL)`;
+  - `(status = 'working') = (submitted_by IS NULL)`;
+  - `(status IN ('finalized', 'expired')) = (finalized_by IS NOT NULL)`.
+- `mdm.version_transition (transition_id, version_id, from_status, to_status, actor_id, reason, pinned_at, recorded_at
+  DEFAULT clock_timestamp())`. It is append-only (the V1 `N2011` trigger) and written only by the version guard. `audit_log`
+  rows are written as before, since `mdm.version` is audited.
+- `mdm.user_preference.working_version_id uuid REFERENCES mdm.version`, added to the API's column privileges.
+- `GRANT UPDATE (version_id) ON mdm.change_request TO nexus_api` (R1), so a requester can move their draft. The V1 draft-only
+  trigger (`N2102`) still refuses it on any request that is not a draft.
+- A built-in validation rule `NEXUS.VERSION_DATE` (level `version`, severity warning, with an expression that is never run;
+  the same pattern as `NEXUS.TRIAL_APPLY`). `validate_change_request` adds its finding.
+- `nexus_api` gets no direct write on `mdm.version`; every change goes through the functions in V.4.
+
+### V.4 Guards and functions (database)
+`mdm.trg_version_guard`, BEFORE INSERT, UPDATE or DELETE on `mdm.version`:
+
+| Rule | Code · hint |
+|---|---|
+| A new version starts `working`, with no pin and no submit or finalize fields | `N2706` · `version.must_start_working` |
+| No version is deleted; an unwanted one is expired | `N2705` · `version.no_delete` |
+| Only `working→submitted`, `submitted→working` (reopen), `submitted→finalized`, `finalized→expired` | `N2701` · `version.status_transition` |
+| `business_as_of` and `base_version_id` change only while working. Name and description change while working or submitted. A finalized or expired version changes only by `finalized→expired`. Pin, submit and finalize fields change only as their transition sets them | `N2702` · `version.frozen` |
+| Submit is refused while any request in the version is `submitted`, `in_review` or `approved`; DETAIL gives the count by status. Drafts do not block it (R1) | `N2704` · `version.requests_open` |
+| The finalizer is not the person who submitted the version | `N1029` · `version.self_finalize` |
+| Every status change has an identified, active, human actor (`mdm.actor_id`) | `N1030` · `version.actor_not_human` |
+
+Every status change also writes a `version_transition` row, and every update bumps `revision`.
+
+`mdm.trg_cr_version_working`, BEFORE INSERT, or UPDATE OF `version_id` or `status`, on `mdm.change_request` (R4):
+- On insert, on a change of version, and on a status change to `submitted`, `in_review` (including the bridge's
+  `draft → in_review`), `approved` or `applied`, the request's version, read `FOR SHARE`, must be `working`:
+  `N2703` · `version.not_working`. Withdrawing or rejecting stays possible in any version.
+- On the change to `applied` (R2): the trigger first takes the freeze lock shared (`pg_advisory_xact_lock_shared`), then
+  refuses with `40001` if any version's `recorded_as_of` is later than this transaction's start (`now()`).
+  - This works with `apply_change_request` unchanged. It sets `applied` as its last step inside its subtransaction.
+    `40001` is not a rule failure (`apply_is_rule_failure`), so it is raised to `ApplyService`, which retries it in a new
+    transaction whose facts fall after the pin.
+  - An `N2703` at that point is a rule failure, so the request ends `apply_failed` with the reason. This should not happen,
+    because `N2704` stops a submit while requests are approved.
+  - `ApplyService` is the only caller of `apply_change_request`; every fact write goes through it.
+  - It reads at READ COMMITTED (the default), so the pin check after the lock sees a freeze that committed meanwhile.
+
+Functions: SECURITY DEFINER, owned by the migration owner, `SET search_path = mdm, public`, with EXECUTE granted to
+`nexus_api`. Each one sets `mdm.actor_id`, so the guard and the audit see the caller.
+- `mdm.is_version_admin(user)`: true for a `VERSION_ADMIN` grant on all hierarchies (`hierarchy_id IS NULL`), valid on the
+  business day and currently recorded, held by an active human user. It has the same shape as `wf.is_workflow_admin` (V9).
+  The functions below refuse anyone else with `N1028` · `version.not_admin`.
+- `mdm.create_version(name, business_as_of, base_version_id, description, actor) → uuid`.
+- `mdm.update_version(version_id, name, description, actor)`.
+- `mdm.transition_version(version_id, to_status, reason, actor)`:
+  - submit takes the freeze lock exclusively (`pg_advisory_xact_lock`), then sets `recorded_as_of = clock_timestamp()`,
+    `submitted_at` and `submitted_by`;
+  - reopen clears the pin and the submit fields;
+  - finalize sets `finalized_at` and `finalized_by` and keeps the pin;
+  - expire changes only the status.
+
+New codes, to register in `CONSISTENCY_REVIEW.md` §3:
+
+| Code | HTTP (ADR-020) | Hint | Meaning |
+|---|---|---|---|
+| `N1028` | 403 | `version.not_admin` | The caller is not a version administrator |
+| `N1029` | 403 | `version.self_finalize` | The person who submitted a version cannot finalize it |
+| `N1030` | 403 | `version.actor_not_human` | A version transition needs an identified person |
+| `N2701` | 422 | `version.status_transition` | Not one of the four transitions |
+| `N2702` | 422 | `version.frozen` | The field cannot change in this status |
+| `N2703` | 422 | `version.not_working` | The request's version is not working |
+| `N2704` | 422 | `version.requests_open` | Requests in the version are still in flight |
+| `N2705` | 422 | `version.no_delete` | Versions are never deleted |
+| `N2706` | 422 | `version.must_start_working` | A new version starts as working, unpinned |
+
+### V.5 API (`/api/v1`; paging, ETags, idempotency and Problem Details as ADR-015)
+| Endpoint | Notes |
+|---|---|
+| `GET /versions?status&limit&cursor` | Keyset on (business date descending, name). Each `VersionView` has name, status, `businessAsOf`, `recordedAsOf`, `baseVersion`, description, created, submitted and finalized (by, at), and `transitions[{to, allowed, whyNot}]` for the caller. Needs READ |
+| `GET /versions/{name}` | `VersionView` plus `openRequests{draft, submitted, inReview, approved}`; ETag from `revision` |
+| `POST /versions {name, businessAsOf, baseVersion?, description?}` | 201 with Location and ETag; `Idempotency-Key` as for requests; needs `ADMIN_VERSION` |
+| `PATCH /versions/{name} {name?, description?}` | If-Match required (428 without, 412 if stale) |
+| `POST /versions/{name}/transitions {to, reason?}` | If-Match required; returns the new `VersionView` |
+| `GET /me` | `workingVersion` is the user's preference while it is still working, otherwise the latest working version (today's rule); `permissions` gains `ADMIN_VERSION` |
+| `PUT /me/preferences` | Gains `workingVersion`: the name of a working version, or 422 |
+| `PATCH /change-requests/{id}` | Gains `versionName`; drafts only, and the target must be working (`N2703`) |
+| Validation | Warning `NEXUS.VERSION_DATE` when the request's effective date is after its version's business date: "This change takes effect on 1 Dec 2026, after version FY26 P11's date (30 Nov 2026), so it will not show in that version" |
+
+- A picture is read through the existing endpoints, with `asOf` = the business date and `recordedAsOf` = the pin.
+  Hierarchy, node and node-history reads already take both. Increment 3-24 checks every other slice-reading endpoint the
+  UI uses (search, path, impact, owners and holdings, home) and adds `recordedAsOf` where it is missing.
+- `whyNot` texts come from the server, for example:
+  - "Only a version administrator can submit versions";
+  - "You submitted this version; another version administrator must finalize it";
+  - "3 requests in this version are still in flight (1 submitted, 2 approved)";
+  - "A finalized version can only be expired".
+- Code: `Permission.ADMIN_VERSION`, and `VERSION_ADMIN → READ, ADMIN_VERSION` in `RolePermissions` (ADR-022).
+  `VersionController`, `VersionService` and `VersionRepository` use `JdbcClient` with explicit SQL and row mappers.
+  Refusals come from the database codes (ADR-020); the service computes `whyNot` with the same rules, read-only.
+
+### V.6 UI
+- **Versions page** (`/versions`, lazy, in the main navigation):
+  - Status chips: Working, Submitted, Finalized, Expired, All.
+  - A table with name, business date, status (word and icon), frozen at, based on, and actions.
+    - "Open picture" is always offered.
+    - Holders of `ADMIN_VERSION` also get Submit, Reopen, Finalize, Expire and Edit, exactly as the server lists them. A
+      refused action shows the server's reason as text next to it.
+  - "New version" opens a dialog: name, business date, copy from (optional) and description.
+  - Each transition asks for confirmation and states its effect. Submit "freezes the picture now; requests in it cannot be
+    submitted until it is reopened". Finalize "is permanent; afterwards it can only be expired". The reason is optional.
+  - One line says that working versions share every committed change.
+- **Context bar:** "Version" becomes a select of working versions (the first 50 from `GET /versions?status=working`), with a
+  link to the Versions page. Choosing one saves the preference, and the next draft is raised in it. While the open draft
+  is in another version, the tray names that version.
+- **Picture view:** `ContextStore` gains `recordedAsOf` and `version` (`?recordedAsOf=` and `?version=` next to `?asOf=`).
+  - The view is historical when the date is not today **or** a recorded time is set, so no write controls render (as in
+    the historical view).
+  - The banner reads, for example, "Version FY26 P10, finalized: the data on 31 Oct 2026 as recorded at 1 Nov 2026 09:00.
+    Read-only. Back to today."
+- **Tray:** when submitting a draft returns `N2703`, it shows the server's message and offers "Move to version…" (choose a
+  working version, then `PATCH versionName` with If-Match) or "Withdraw".
+- **Review** shows the `NEXUS.VERSION_DATE` warning like any other finding; the UI holds no rule.
+- Strings in `STRINGS`, tokens only, axe on the page and the dialogs, full keyboard operation, and focus to the dialog and
+  back to its trigger (UI_STANDARD).
+
+### V.7 Tests
+| Level | What |
+|---|---|
+| pgTAP `db/tests/22_versions.sql` | Every guard and code in V.4. Pin set at submit, cleared at reopen, kept at finalize and expire. Four eyes and people only. Submit refused with requests in flight, allowed with drafts. A request created in, moved to or submitted in a non-working version is refused. R2: a pin later than the transaction's start refuses `applied` with `40001`. Transition log append-only; audit rows; the new CHECK. Privileges: no direct write on `mdm.version` for `nexus_api`, EXECUTE on the functions, `version_id` updatable only on drafts |
+| JUnit `VersionApiTest` (least privilege, `nexus_api_test`) | Paging; create, copy and rename; 428 and 412; transitions and their `whyNot`; 403 for others; four eyes; submit refused with counts; moving a draft; the `/me` preference and its fallback; the validation warning. **VER-01:** a copy's picture equals its base's at creation (children and properties read at both slices). **VER-02:** a request in a submitted version is refused, and a correction applied after finalize leaves the finalized picture unchanged |
+| UI unit (Vitest) | `VersionsStore`; the page renders the server's transitions and reasons; the context-bar picker; `ContextStore` with `recordedAsOf` and the banner; the tray's move after `N2703` |
+| Stories with axe | Versions page (loading, empty, error, list); new-version dialog; transition confirmation |
+| End to end `08-versions.spec.ts` | Two new synthetic version administrators in the seed (`e2e_vadmin`, `e2e_vadmin2`). Versions are dated yesterday, so `E2E working` stays the fallback for the other specs and is never changed. Create a version, then copy it. A steward picks it and raises a request. Submit is refused while the request is in flight, with the reason shown. The request is committed and the version submitted. A later change in another version does not appear in the picture. The submitter cannot finalize (reason shown); the second administrator finalizes. The picture is read-only; then expire. axe on every page |
+
+### V.8 Risks
+- **Users expect working versions to be isolated** (ADR-037 Context 2). Mitigations: the line on the Versions page, release
+  notes and training.
+- **Definitions drift (D-08).** A frozen picture is read with today's definitions. The test report lists this as a known limitation.
+- **Lock cost.** A submit waits for applies already committing (short transactions). An apply that overlaps a freeze is
+  retried, up to `TX_RETRY_MAX` times. If every retry fails, it is recorded `apply_failed` ("retry-later"), as for any
+  technical failure today.
+- **Names are unique across every status (V1).** An expired version's name cannot be reused.

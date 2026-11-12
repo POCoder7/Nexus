@@ -38,7 +38,7 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-41 | Recovery objectives (assumed `RPO_MIN` 15, `RTO_H` 4) and the availability SLO (assumed 99.5 % monthly) | Platform / Product / Audit-Risk | — | Confirm or set; they size backups, replicas and on-call | Phase 9 DR design and tests |
 | OD-42 | Security tooling and the CI jobs for it: dependency scanning, SAST, secret scanning, container scanning, licence report | Security / Platform | GitHub-native (Dependabot, CodeQL, secret scanning) · organisation's tools | Whatever the organisation already licenses; otherwise GitHub-native | Phase 9 build (CI changes need approval) |
 | OD-43 | Penetration test: scope, provider, timing | Security | — | External test of UI, API and evidence storage in pre-production before the first production release | Phase 9 gate |
-| OD-45 | Versions (ADR-037): D1 VER capability decisions; D2 what a version is; D3 when its picture freezes; D4 who may create, submit and finalize; D5 where and how much to build now | Repository owner (D1 to D5); Audit-Risk to confirm D4 | See ADR-037 | D1 as tabled in ADR-037; D2 named slice; D3 freeze at submit; D4 new `VERSION_ADMIN`, finalize by a second person; D5 VER-01 and VER-02 as a third Phase 3 scope extension | Any version API, guard or screen |
+| OD-45a | Audit-Risk confirmation of ADR-037 D4: `VERSION_ADMIN` creates and moves versions, a second version administrator finalizes, people only | Audit-Risk | Confirm · amend | Confirm (same pattern as workflow-model activation, `N1014`) | Merging the versions work to `main` (OD-18a) |
 | OD-28 | `docs/capabilities.md` says it is regenerated from a working copy outside the repository. The OD-13 decisions must be entered there, or the next regeneration will reset them to "—" | Product (catalogue owner) | Update the external working copy · let the repository copy become the master | Update the working copy, then regenerate | Keeping decisions consistent |
 
 ## Decided
@@ -54,6 +54,7 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-32 | Golden datasets in an **internal artefact store**; only synthetic self-tests in git | Repository owner (adopted recommendation) | 2026-11-11 | Confirmation pending (OD-32a) |
 | OD-33 | **ADR-009 accepted** (golden testing as the parity standard) | Repository owner (adopted recommendation) | 2026-11-11 | Phase 4, 5, 8 |
 | OD-44 | **Shared environment** (CLAUDE.md rule 6) = any environment that keeps data between deployments or is used by more than one person; disposable CI and performance databases rebuilt per run do not count | Repository owner (adopted recommendation) | 2026-11-11 | Phase 4 performance runs use databases rebuilt per run, so "edit Vn" stays allowed until the first persistent or multi-user environment |
+| OD-45 | **Versions (ADR-037):** D1 VER decisions as tabled (VER-01 Improve, VER-02 Parity, VER-03 Parity with exports in Phase 8, VER-04 Parity in Phase 5, VER-05 Parity in Phase 8, VER-06 retired as a feature, VER-07 confirm in discovery); D2 **named slice**; D3 **freeze at submit**; D4 **`VERSION_ADMIN`, finalize by a second person, people only**; D5 **VER-01 and VER-02 as a third Phase 3 scope extension** | Repository owner (adopted every recommendation) | 2026-11-12 | Phase 3 LLD "Third scope extension: versions" and plan 3-23 to 3-27, awaiting approval with refinements R1 to R4; Audit-Risk confirmation of D4 pending (OD-45a) |
 | — | **Wiring approved**; CLAUDE.md rule 3 extended for `mdm_stage` | Repository owner | 2026-11-11 | Design track closed; build sequence C starts with Phase 1 |
 | — | **Consistency review approved** (CR-01 to CR-13); OD-44 stays open | Repository owner | 2026-11-11 | Design step 5 (wiring) |
 | — | **Phase 9 LLD approved**; ADR-033 Accepted (IdP OD-06 open), ADR-034 Accepted | Repository owner | 2026-11-11 | Design step 4 (consistency review) |
@@ -156,7 +157,7 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | ADR-034 | Observability: structured logs, Micrometer, OpenTelemetry | Accepted 2026-11-11 | Dependencies approved in the Phase 9 plan |
 | ADR-035 | Engine-neutral workflow driver | Accepted 2026-11-11 (repository owner) | |
 | ADR-036 | Property edit rights by category | Accepted 2026-11-12 (repository owner) | Security confirmation pending with ADR-022 |
-| ADR-037 | Versions: create, copy and status lifecycle | Proposed 2026-11-12 | OD-45; D4 needs Audit-Risk review |
+| ADR-037 | Versions: create, copy and status lifecycle | Accepted 2026-11-12 (refinements R1 to R4 await approval with the Phase 3 LLD section) | OD-45; D4 Audit-Risk confirmation pending (OD-45a) |
 | ADR-027 | Golden datasets: masking and storage | Accepted 2026-11-11 (owner); Security/Audit-Risk confirmation pending | OD-31a, OD-32a |
 | ADR-009 | Golden testing as the parity standard | Accepted 2026-11-11 (OD-33) | |
 | ADR-005 to ADR-008 | (existing) | Proposed | Unchanged by this design |
