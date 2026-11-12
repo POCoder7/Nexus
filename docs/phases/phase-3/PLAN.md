@@ -12,7 +12,7 @@
 ## Orient (baseline, 2026-11-12)
 | Check | Result |
 |---|---|
-| `git status` | clean; branch `feature/GOV-02-phase-2-governance` at `41f9840`; Phase 2 gate approved by the repository owner (2026-11-12, "go ahead with phase-3"); not merged to `main` (OD-18a); no remote (OD-11) |
+| `git status` | clean; branch `feature/GOV-02-phase-2-governance` at `f7fcf1f`; Phase 2 gate approved by the repository owner (2026-11-12, "go ahead with phase-3"); not merged to `main` (OD-18a); no remote (OD-11) |
 | `scripts\db-test.ps1` | pass: V1–V9, 319/319 pgTAP |
 | `mvnw.cmd -B verify` | **first run red, 4 + 2 failures** in `HierarchyApiTest` and `NodePropertiesApiTest`. Cause: their fixtures took the column default `daterange(current_date, NULL)`, the UTC session date, while reads use the New York business day (ADR-018). Between 00:00 UTC and midnight New York the rows start "tomorrow" and are invisible (run at 01:57 UTC; the Phase 2 gate ran outside that window). Fix, in test setup only: the fixtures set `valid_period` from `mdm.business_today()`. Production fact writes set the period through `mdm.apply_fact` and do not use the default. After the fix: **pass, 100/100** |
 | Shared environment (OD-44) | none → the new `V10__ui_support.sql` is a new file anyway; no earlier migration is edited this phase |

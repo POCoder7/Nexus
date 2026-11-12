@@ -63,8 +63,9 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | — | **Phase 5 LLD approved**; ADR-028, ADR-029 Accepted | Repository owner | 2026-11-11 | Design track continues with Phase 6 |
 | — | **Phase 4 LLD approved**; ADR-026 Accepted including the Phase 1 amendment (`add_hierarchy`, `update_node`); its approval model stays open (OD-29); ADR-027 stays Proposed (OD-31, OD-32) | Repository owner | 2026-11-11 | Design track continues with Phase 5 |
 | — | **Phase 3 LLD approved**; ADR-025 Accepted (its dependencies and the UI CI job are approved in the Phase 3 build plan) | Repository owner | 2026-11-11 | Design track continues with Phase 4 |
-| — | **Phase 2 LLD approved**; ADR-023 Accepted subject to Audit-Risk review (OD-18a); ADR-024 Accepted | Repository owner | 2026-11-11 | Design track continues with Phase 3 |`n| — | **Phase 1 LLD approved**; ADR-019, ADR-020, ADR-022 Accepted; ADR-021 Accepted subject to Audit-Risk review before its migrations are merged (OD-18a) | Repository owner (adopted recommendation) | 2026-11-11 | Design track continues with Phase 2 |
-| OD-11 | Repository: **enterprise GitHub organisation, private** | Repository owner (adopted recommendation) | 2026-11-11 | Pushing still needs your explicit go-ahead and a remote created by you |
+| — | **Phase 2 LLD approved**; ADR-023 Accepted subject to Audit-Risk review (OD-18a); ADR-024 Accepted | Repository owner | 2026-11-11 | Design track continues with Phase 3 |
+| — | **Phase 1 LLD approved**; ADR-019, ADR-020, ADR-022 Accepted; ADR-021 Accepted subject to Audit-Risk review before its migrations are merged (OD-18a) | Repository owner (adopted recommendation) | 2026-11-11 | Design track continues with Phase 2 |
+| OD-11 | Repository: **`github.com/POCoder7/Nexus`, public** (replaces the private enterprise organisation chosen on 2026-11-11). Commit history rewritten to the account's GitHub noreply email before the first push | Repository owner | 2026-11-12 | Everything pushed is publicly readable: keep data synthetic and nothing from `.knowledge/` (CLAUDE.md rules 5 and 9) |
 | OD-13 | **Parity:** HIE-01, HIE-02, HIE-12, PRP-01, GOV-02, GOV-13 (the SLICE-01 set). **Improve:** SEC-01, SEC-02 (a simpler role-and-scope model than DRM, mapped from DRM access groups at migration), brought forward to Phase 1 | Repository owner (adopted recommendation) | 2026-11-11 | Phase 1 and 2 LLDs design these in full. Recorded here and in `TRACEABILITY.md` until the catalogue is regenerated (OD-28) |
 | OD-14 | Accept the phase placement proposed in `TRACEABILITY.md` (marked `*`), plus SEC-01/SEC-02 moved to Phase 1 | Repository owner (adopted recommendation) | 2026-11-11 | `BUILD_PROTOCOL.md` phase table updated in design step 5 (wiring) |
 | OD-15 | Hosting direction: container platform with managed PostgreSQL 16 supporting point-in-time recovery | Repository owner (adopted recommendation) | 2026-11-11 | Platform to confirm (OD-15a) |
@@ -142,7 +143,8 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | ADR-021 | Phase 1 control fixes in `mdm` | Accepted 2026-11-11 (Audit-Risk review pending, OD-18a) | Amended by ADR-023 (enrichment items) |
 | ADR-022 | Role-and-scope entitlements, Phase 1 model | Accepted 2026-11-11 | |
 | ADR-023 | Phase 2 control fixes in `wf` and the bridge | Accepted 2026-11-11 (Audit-Risk review pending, OD-18a) | Amends ADR-021 |
-| ADR-024 | Camunda 8 integration: generic process, outbox-driven start, message-correlated decisions | Accepted 2026-11-11 | Dependencies approved in the Phase 2 plan |`n| ADR-025 | UI toolchain | Accepted 2026-11-11 | Dependencies approved in the Phase 3 plan |
+| ADR-024 | Camunda 8 integration: generic process, outbox-driven start, message-correlated decisions | Accepted 2026-11-11 | Dependencies approved in the Phase 2 plan |
+| ADR-025 | UI toolchain | Accepted 2026-11-11 | Dependencies approved in the Phase 3 plan |
 | ADR-026 | Governed migration load runs; `add_hierarchy` and `update_node` | Accepted 2026-11-11 (approval model open, OD-29) | Amends the Phase 1 LLD |
 | ADR-028 | Sandboxes as draft requests with a trial-apply overlay | Accepted 2026-11-11 | NEW-08 |
 | ADR-029 | Role grants as governed change actions | Accepted 2026-11-11 | SEC-01, SEC-02 |

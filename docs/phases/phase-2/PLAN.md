@@ -11,9 +11,9 @@
 ## Orient (baseline, 2026-11-11)
 | Check | Result |
 |---|---|
-| `git status` | clean; branch `feature/HIE-02-phase-1-core-write-path` at `5f851e8` (Phase 1 approved, not merged to `main`: ADR-021 Audit-Risk review skipped for now); no remote (OD-11) |
+| `git status` | clean; branch `feature/HIE-02-phase-1-core-write-path` at `65b2cd4` (Phase 1 approved, not merged to `main`: ADR-021 Audit-Risk review skipped for now); no remote (OD-11) |
 | `scripts\db-test.ps1` | pass: V1–V8, 211/211 pgTAP (migrations unchanged since the Phase 1 gate) |
-| `mvnw.cmd -B verify` | pass: 78/78 (after OpenAPI, `caf96ec`; later commits are documentation only) |
+| `mvnw.cmd -B verify` | pass: 78/78 (after OpenAPI, `c81ee80`; later commits are documentation only) |
 | Shared environment (OD-44) | none → editing V1–V8 is allowed (CLAUDE.md rule 6) |
 | Already built in Phase 1 | `mdm.system_setting` with `business_time_zone` (LLD §4.1 lists it; CR-01 moved it forward) |
 | Open decisions this phase waits on | OD-01c (Camunda hosting): deployment only, not the build. OD-08: policies stay `shadow`; `active` refused by a guard. OD-09: GOV-04/07/08/09/11/16 and AUD-02 stay outline. OD-18a: Audit-Risk review of ADR-023, skipped for now like ADR-021, so merging to `main` needs it or your waiver |

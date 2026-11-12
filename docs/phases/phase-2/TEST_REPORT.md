@@ -1,6 +1,6 @@
 # Phase 2 — Governance: test report
 
-- **Date:** 2026-11-11 · **Code state:** `f2a4f07` plus `db/tests/20_workflow_gaps.sql` (added with the records, test only)
+- **Date:** 2026-11-11 · **Code state:** `2a814a8` plus `db/tests/20_workflow_gaps.sql` (added with the records, test only)
 - **Machine:** Windows 11 Home, Docker Desktop with Engine 29 on WSL 2 (3.7 GiB for Docker), JDK Temurin 21, Maven 3.9.9 via the wrapper
 - **Data:** synthetic only (fixture names such as `CT leaf`, `WL urgent`, users such as `ct_approver`; no client, account or personal data)
 
@@ -54,7 +54,7 @@ None in the suites that ran. No test was disabled or weakened. Changes to existi
 ## Defects found by tests during the phase (fixed)
 1. `wf.close_instance` changed the status before recording the commit action, so the bridge found no decider and the maker-checker guard refused the approval (`N1006`). The action is now recorded first. Regression in pgTAP 19.
 2. The in-process driver marked a message handled before handling it, so a failed delivery was skipped on retry. Fixed; covered by the failing-step test.
-3. Commit `9308ee5` was made with `OpenApiDocumentTest` failing (operation-id clashes from Phase 1); fixed in `8298a6e`, and commits now run only after a green check.
+3. Commit `c99dea1` was made with `OpenApiDocumentTest` failing (operation-id clashes from Phase 1); fixed in `138c50f`, and commits now run only after a green check.
 
 ## Explicit gaps
 1. **Engine contract on Camunda not run** (deferred to the end of the build by the repository owner, 2026-11-11). Camunda's test runtime needs Elasticsearch (2 GB heap) and Camunda in Docker; this machine gives Docker 3.7 GiB. The adapter, BPMN and test are written; the variable set (ids only) is not asserted by a test on Camunda yet.

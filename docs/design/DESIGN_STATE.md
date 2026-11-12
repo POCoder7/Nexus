@@ -74,7 +74,7 @@ Errors: `ProblemDetail` for 404 and 400 only. No write endpoints, no security, n
 
 **Tests:** pgTAP 35 (18 in `01_core_invariants.sql`, 17 in `02_workflow_invariants.sql`); JUnit
 `HierarchyApiTest` 6. Baseline on 2026-11-11: db-test 35/35 pass; `mvn verify` 6/6 pass **only** with the
-Testcontainers 1.21.4 pin (commit `0c192e7`); see D-01.
+Testcontainers 1.21.4 pin (commit `4202370`); see D-01.
 
 **Capabilities (`docs/capabilities.md`):** 91 — 77 undecided (`—`), 2 Retire (BLD-01, BLD-02), 1 Parity (GOV-01),
 1 Improve (GOV-12), 10 New (NEW-01 to NEW-10).
@@ -152,8 +152,8 @@ Tests:
   `wf.sample_auto_commits`, property inheritance, `hierarchy_tree` with shared nodes, or exports.
 
 Repository and documents:
-- **D-01** `docs/BUILD_STATE.md` says the baseline was never run and there is no commit. Actual: commits `7478a85`,
-  `0c192e7`; db-test 35/35 and `mvn verify` 6/6 green on 2026-11-11. The working tree **removes** the Testcontainers
+- **D-01** `docs/BUILD_STATE.md` says the baseline was never run and there is no commit. Actual: commits `38af96b`,
+  `4202370`; db-test 35/35 and `mvn verify` 6/6 green on 2026-11-11. The working tree **removes** the Testcontainers
   pin from `pom.xml` (uncommitted), so `mvn verify` fails again with Docker Engine 29 (verified earlier the same day).
   Not corrected here: `BUILD_STATE.md` and `pom.xml` are outside this task's write scope.
 - **D-02 / D-03** `docs/data-model.md` "Known gaps" and the `README.md` status still say the schema has never run.

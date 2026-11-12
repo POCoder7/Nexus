@@ -10,8 +10,8 @@ past date read-only.
 
 | Commit | Increment |
 |---|---|
-| `7d2b0a4` | Plan; fixture time-zone fix |
-| `bd2ea31` | 3-1 Backend: V10, `/me` preferences and permissions, `/home`, search and path, submit form, request detail additions, client errors |
+| `549fd67` | Plan; fixture time-zone fix |
+| `507477b` | 3-1 Backend: V10, `/me` preferences and permissions, `/home`, search and path, submit form, request detail additions, client errors |
 | Phase 3 UI commit | 3-2 to 3-17: generated client, workspace and toolchain, shell, tree, node panel, add-leaf, tray, review, worklist, request page, Home, the scope-extension editing screens, impact endpoint, the `set_property` fix, end-to-end suite, CI job |
 | Records commit | Test report, this summary, build state |
 | Third Phase 3 commit | 3-18 to 3-22 second scope extension: edit rights by category (ADR-036), History and Ownership tabs, before/after view, drag and drop |

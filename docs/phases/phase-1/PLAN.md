@@ -9,7 +9,7 @@
 ## Orient (baseline, 2026-11-11)
 | Check | Result |
 |---|---|
-| `git status` | clean, branch `main`, last commit `d808b01`; no remote (OD-11 decided, not yet created) |
+| `git status` | clean, branch `main`, last commit `6555237`; no remote (OD-11 decided, not yet created) |
 | `scripts\db-test.ps1` | pass: V1–V6, 35/35 pgTAP |
 | `mvnw.cmd -B verify` | pass: 6/6 (`HierarchyApiTest`) |
 | Shared environment (OD-44) | none exists → editing V1–V6 is allowed (CLAUDE.md rule 6) |

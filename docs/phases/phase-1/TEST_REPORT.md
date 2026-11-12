@@ -1,6 +1,6 @@
 # Phase 1 — Core write path: test report
 
-- **Date:** 2026-11-11 · **Code state:** `1929735` (all Phase 1 code; increment 1-12 adds documentation only)
+- **Date:** 2026-11-11 · **Code state:** `9120776` (all Phase 1 code; increment 1-12 adds documentation only)
 - **Machine:** Windows 11 Home, Docker Desktop with Engine 29 on WSL 2, JDK Temurin 21, Maven 3.9.9 via the wrapper
 - **Data:** synthetic only (fixture names such as `G A`, `DE entity`, `PERF leaf 0001-0001`; no client, account or personal data)
 
