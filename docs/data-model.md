@@ -5,6 +5,7 @@ PostgreSQL 16. The files are Flyway migrations in `services/mdm-api/src/main/res
 V1–V3 form the core model and work on their own. V4–V6 are the workflow layer, its bridge, and commit policies.
 V7 sets the database roles and privileges; V8 adds entitlements and idempotency keys (Phase 1). V9 holds the Phase 2
 workflow objects (configuration audit, governed membership, stage progression, worklist, outbox offsets, admin functions).
+V10 holds the Phase 3 UI support: user preferences and the trigram search indexes.
 
 ## What's in each file
 
@@ -19,6 +20,7 @@ workflow objects (configuration audit, governed membership, stage progression, w
 | `V7__roles_and_privileges.sql` | Database roles (ADR-014, ADR-019): `nexus_api` (drafts only), `nexus_apply` (the only writer of facts), `nexus_decider` (status and decision columns), `nexus_bridge`, `nexus_wf`, `nexus_readonly`; owner-run functions and who may call them |
 | `V8__entitlements.sql` | Roles and bitemporal role grants scoped to all hierarchies, one hierarchy or a sub-tree (ADR-022), idempotency keys (ADR-015). (`system_setting` moved to V1 in Phase 2.) |
 | `V9__workflow_phase2.sql` | Phase 2 workflow: `wf.config_audit`, governed membership changes, stage progression (`advance_instance`, `complete_stage`), model loading and four-eyes activation, refusal reasons (`why_cannot_act`), worklist functions, commit-policy administration, outbox consumer offsets, and the owner-run grants for all of these |
+| `V10__ui_support.sql` | Phase 3 UI support: `mdm.user_preference` (start page, last hierarchy, density; not governed; the API writes values of the caller's own row only, no delete, `wf` cannot write it), `pg_trgm` and trigram indexes on `node_attr.node_name` and `description` (current belief) for in-tree search |
 
 ## Write path (Phase 1)
 
@@ -187,8 +189,8 @@ Anything written outside it (for example by the owner role in tests) is audited 
 
 ## Known gaps and next steps
 
-- **Runs on PostgreSQL 16** (verified 2026-11-11, Phase 2): `scripts/db-test` applies V1–V9 to a fresh database and the
-  319 pgTAP tests in `db/tests` pass. Phase 1 closed D-04, D-05, D-07 and D-29; Phase 2 closed D-06, D-10 to D-15, D-32 and D-33; the remaining
+- **Runs on PostgreSQL 16** (verified 2026-11-12, Phase 3): `scripts/db-test` applies V1–V10 to a fresh database and the
+  332 pgTAP tests in `db/tests` pass. Phase 1 closed D-04, D-05, D-07 and D-29; Phase 2 closed D-06, D-10 to D-15, D-32 and D-33; the remaining
   gaps (D-22 and later-phase items) are listed in `docs/design/DESIGN_STATE.md` (OD-18).
 - Bulk inserts of many placements into a large hierarchy with stale statistics are slow (the cycle-check plan); loads
   must refresh statistics between batches (Phase 4).

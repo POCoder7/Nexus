@@ -482,6 +482,15 @@
 | P-05 Single bridge | `wf_bridge.sync_change_request` (attribution, clearance), `wf_bridge.add_enrichment_item` (V5) |
 | P-11 Keyset paging | `wf.worklist_page`; admin lists |
 
+## Implemented in Phase 3 (where to find it)
+| Pattern | Implementation |
+|---|---|
+| P-26 Feature store with signals | One injectable store per feature (`HierarchyStore`, `NodeStore`, `TrayStore`, `WorklistStore`, `ContextStore`, `PreferencesStore` in `ui/src/app`); containers read signals, presentational components (`nx-hierarchy-tree`, `nx-property-grid`, `nx-worklist-table`, `nx-workflow-timeline`, `nx-change-request-tray`) take inputs and emit outputs. Trade-off: no time-travel tooling (NgRx rejected, LLD Alt-2); when not to use: state shared across many features with complex derivations |
+| P-27 Generated API client | `ng-openapi-gen` from the committed `docs/api/openapi.json` into `ui/src/app/api/generated` (never edited); one facade `NexusApi`; `npm run api:check` fails on drift; the API side keeps the document current with `OpenApiDocumentTest` |
+| P-11 Keyset paging, lazy tree | `HierarchyStore.visibleRows` (flattened rows, LLD §7.1), "Show next 200" pages, CDK virtual viewport; search reveal with a five-page bound (§7.2) |
+| P-21 Caching immutable slices | Children pages cached per open hierarchy and slice; a new as-of date starts a new cache |
+| P-18 Provenance | `nx-property-grid` marker per value: icon + text + `--nx-color-provenance-*` |
+
 ## Where each pattern is applied (index, consistency review 2026-11-11)
 
 | Pattern | Design sections |

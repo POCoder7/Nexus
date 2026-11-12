@@ -60,6 +60,11 @@ Naming: `--nx-<category>-<role>[-<state>]`, for example `--nx-color-text-primary
 Enforcement: a style lint rule fails the build on colour literals, pixel font sizes and font-family
 declarations outside the token file.
 
+**Status (Phase 3, 2026-11-12):** `ui/src/styles/tokens.css` defines every role above with neutral **placeholder** values
+(contrast checked by axe on every page and story). The "Design-system token" column stays empty until OD-03; filling it
+is a change to that one file. Enforcement is built: `npm run lint` (Stylelint core rules) with a self-test that proves
+each rule refuses a forbidden declaration.
+
 ## 4. Application layout
 
 - **Shell:** design-system header (brand, application name, environment badge, user menu); left navigation

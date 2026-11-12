@@ -2,7 +2,28 @@
 
 All notable changes to Nexus, newest first. Each entry names its capability ID or `PROG`.
 
-## Phase 2 — Governance (2026-11-11, gate passed with gaps, awaiting approval)
+## Phase 3 — Steward UI (2026-11-12)
+
+### Added
+- Angular 22 workspace in `ui/`: shell with context bar, "Viewing as of" date and read-only historical views, start-page preference, development user picker (local and test builds only). `NEW-10`
+- Hierarchy workspace: lazy virtualised tree with paged siblings ("Show next 200"), WAI-ARIA keyboard model, type-ahead, in-tree search that reveals deep nodes; node panel with the property grid and provenance markers. `HIE-12`
+- Add-leaf dialog built from the model's submit form, change-request tray with ETag chaining and idempotent retries, review and submit with validation findings. `SLICE-01`
+- Worklist screen with nine view chips, counts, search, model filter and paging; request page with workflow timeline, policy evaluations and decision panel. `GOV-13`, `GOV-12`
+- Home with worklist, own requests, hierarchies and the shadow-mode policy panel for policy roles. `NEW-10` (OD-27)
+- Scope extension (repository owner): edit node details, set or clear property values from the property grid, place under a second parent, move with a target picker, remove and delete with an impact preview in numbers and a confirmation, and create a hierarchy from Home; drafts not started by add-leaf use the `MAINTAIN` model; `GET /hierarchies/{code}/nodes/{id}/impact`. `HIE-01`, `HIE-02`, `PRP-01`
+- Backend support: `V10__ui_support.sql` (user preferences, `pg_trgm` search indexes), `/me` preferences, permissions and working version, `/home`, in-tree search and node path, submit form, request instance link and item "before" values, the reason a stage cannot be decided, client error reports. `NEW-10`, `HIE-12`, `GOV-03` (infrastructure)
+- UI toolchain (ADR-025): Vitest component tests, Storybook stories with axe, Playwright SLICE-01 journeys with axe, Stylelint token rules, generated API client with a drift check, compressed bundle budgets and a production check that the dev identity is absent; CI job `ui`. `PROG`
+
+### Changed
+- Worklist query moved into `WorklistQuery` so Home and the worklist share it. `GOV-13`
+- springdoc answers `application/json` by default (the generated client read `*/*` bodies as blobs). `PROG`
+
+### Fixed
+- A property could not be set on a node added earlier in the same request, so a leaf and its required properties could not go into one request. `HIE-02`, `PRP-01`
+- Tree type-ahead stopped at a space; focus jumped to the heading when only a query parameter changed; the add-leaf form saved defaults as stored values; the request page did not refresh after submit. `HIE-12`, `NEW-10`
+- `HierarchyApiTest` and `NodePropertiesApiTest` fixtures took the UTC session date for their valid period and failed between 00:00 UTC and midnight New York; they now use the business day. `PROG`
+
+## Phase 2 — Governance (2026-11-11, gate approved 2026-11-12)
 
 ### Added
 - Workflow models from definition files, activated by a second administrator; versions pinned per request. `GOV-01`

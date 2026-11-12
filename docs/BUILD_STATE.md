@@ -1,8 +1,8 @@
 # Build state
 
 - **Current phase:** 3 — Steward UI
-- **Step in loop:** Plan (awaiting approval): `docs/phases/phase-3/PLAN.md`; branch `feature/NEW-10-phase-3-steward-ui`
-- **Baseline:** db-test **pass** 319/319 · mvnw verify **pass** 100/100 after a test-fixture fix (time-zone window, see the Phase 3 plan) · UI tests: none yet, Node.js not installed (2026-11-12)
+- **Step in loop:** Awaiting approval to proceed (Phase 3 test gate passed with gaps) — branch `feature/NEW-10-phase-3-steward-ui`
+- **Baseline:** db-test **pass** 332/332 · mvnw verify **pass** 113/113 · UI: lint pass, contract pass, unit 42/42, stories 30/30 (axe), production build and budgets pass, end to end 27/27 (axe) (2026-11-12)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -11,13 +11,26 @@
 | 0 — Foundation | Pass locally; approved by the repository owner. Gap: CI not yet run on GitHub (OD-11) | `docs/phases/phase-0/SUMMARY.md` | 2026-11-11 |
 | 1 — Core write path | Pass with gaps; **approved by the repository owner** (performance not measured; test gaps listed in the report; CI not run, OD-11) | `docs/phases/phase-1/SUMMARY.md`, `TEST_REPORT.md` | 2026-11-11 |
 | 2 — Governance | Pass with gaps; **approved by the repository owner** 2026-11-12 (Camunda contract run and performance deferred; AI eligibility test with Phase 7; golden in Phase 4; CI not run) | `docs/phases/phase-2/SUMMARY.md`, `TEST_REPORT.md` | 2026-11-11 |
+| 3 — Steward UI | **Pass with gaps, awaiting approval** (performance deferred; golden in Phase 4; visual sign-off waits for OD-02 to OD-04; manual screen-reader check; CI not run) | `docs/phases/phase-3/SUMMARY.md`, `TEST_REPORT.md` | 2026-11-12 |
 
 ## Current phase progress
 ### Phase 3 progress
 | Increment | Capability | Status | Tests | Notes |
 |---|---|---|---|---|
 | Orient + plan | PROG | Done `7d2b0a4`; plan approved by the repository owner 2026-11-12 ("complete all of this phase, go with your recommendation": dependencies, Node.js install, CI job approved) | baseline green | fixtures in `HierarchyApiTest` and `NodePropertiesApiTest` now set `valid_period` from `mdm.business_today()` (they failed between 00:00 UTC and midnight New York) |
-| 3-1 Backend: V10, `/me` + preferences, `/home`, search + path, submit-form, request detail, client errors | NEW-10, HIE-12, GOV-03 (infra) | Done (this commit) | pgTAP 21 (13), JUnit `UiSupportApiTest` 11 | `WorklistQuery` extracted for Home; trigram index on description too (LLD names name only); OpenAPI regenerated |
+| 3-1 Backend: V10, `/me` + preferences, `/home`, search + path, submit-form, request detail, client errors | NEW-10, HIE-12, GOV-03 (infra) | Done `bd2ea31` | pgTAP 21 (13), JUnit `UiSupportApiTest` 11 | `WorklistQuery` extracted for Home; trigram index on description too (LLD names name only); OpenAPI regenerated |
+| 3-2 Generated client + drift check | PROG | Done (UI commit) | `npm run api:check` | springdoc default JSON media type; `/me` `workingVersion`, stage `whyNot` added (LLD notes) |
+| 3-3 Workspace, tokens, Stylelint, adapters, Storybook + axe, Playwright, budgets, CI `ui` job | PROG | Done (UI commit) | lint self-test; prod-build check; 29 stories with axe | Node.js 26 LTS via winget; Angular 22.2; compressed budgets in a script (Angular budgets are raw) |
+| 3-4 Shell, context bar, historical mode, start page, dev picker, interceptors | NEW-10 | Done (UI commit) | unit `ContextStore`, `UiError`, `NodePanel`; e2e 01 | |
+| 3-5a / 3-5b Tree store + rendering; keyboard, type-ahead, search reveal | HIE-12 | Done (UI commit) | unit store 6, tree 7; stories 8; e2e 02 | axe found the viewport not focusable: the viewport is now the tree |
+| 3-6 Node panel + property grid | HIE-12 | Done (UI commit) | unit 3; stories 3; e2e 03 | |
+| 3-7 Add-leaf dialog, tray, review and submit | SLICE-01 | Done (UI commit) | unit tray 3; e2e 04 | duplicate name shown at the item on review (server finds it at validation; LLD note) |
+| 3-8 Worklist | GOV-13 | Done (UI commit) | stories 4; e2e 05 | model filter is a text field (no non-admin model list) |
+| 3-9 Request page, timeline, decision panel | SLICE-01, GOV-12 | Done (UI commit) | unit 4; stories 9; e2e 04 | |
+| 3-10 Home | NEW-10 | Done (UI commit) | e2e 01, 05 | |
+| 3-11 SLICE-01 end-to-end suite, keyboard and axe runs | SLICE-01 | Done (UI commit) | e2e 01–05 (20) | found and fixed: `set_property` on a node added earlier in the same request (API, Phase 1 defect); Space in type-ahead; focus on query changes; defaults pre-filled as stored values; request page not refreshing after submit |
+| 3-12 Records | PROG | Done (records commit) | — | test report, summary, data model V10, UI_STANDARD token status, patterns, changelog, setup |
+| 3-13 to 3-17 Scope extension: impact endpoint, generic tray action, edit details and properties, place / move / remove / delete with impact preview, new hierarchy | HIE-01, HIE-02, PRP-01 | Done (UI commit) | JUnit impact 1; unit 7; e2e 06 (7) | owner moved these screens from Phase 5 to Phase 3; `MAINTAIN` model for other drafts |
 
 ### Phase 1 progress
 | Increment | Capability | Status | Tests | Notes |
@@ -64,13 +77,12 @@
 
 
 ## Open questions for the human
-1. **Phase 3 plan:** approve, or ask for changes (`docs/phases/phase-3/PLAN.md`, including the 3-5 split).
-2. **Node.js 24 LTS** is not installed: you install it, or allow `winget install OpenJS.NodeJS.LTS`.
-3. **UI dependencies** (Angular, CDK, `ng-openapi-gen`, Storybook with its test runner and axe, Playwright with axe, Stylelint, `pg_trgm`) from the public npm registry on this machine: approve?
-4. **CI change:** add a `ui` job to `.github/workflows/ci.yml`: approve?
-5. OD-11: waiting for a private repository URL; the first push still needs your go-ahead.
-6. OD-18a: Audit-Risk review of ADR-021 and ADR-023 **skipped for now** by the repository owner (2026-11-11); merging to `main` needs the review or your explicit waiver.
-7. OD-02 to OD-04 (design system): open; the UI uses placeholder tokens and adapters until they are answered.
+1. **Phase 3 gate: approve, or ask for changes.** Review first: the Phase 1 API fix in `ItemFactory` (properties on a node added in the same request), V10, the LLD *Built in Phase 3* and *Scope extension* notes, and the explicit gaps in `docs/phases/phase-3/TEST_REPORT.md`.
+2. **Phase 4 performance baseline (4-9):** run it in Phase 4, or defer it with the rest of the performance work to the end of the build?
+3. **Masked extracts and DRM outputs (OD-31, OD-32)** for Phase 4 golden parity: without them Phase 4 is synthetic-only.
+4. OD-11: waiting for a private repository URL; the first push still needs your go-ahead.
+5. OD-18a: Audit-Risk review of ADR-021 and ADR-023 **skipped for now** by the repository owner (2026-11-11); merging to `main` needs the review or your explicit waiver.
+6. OD-02 to OD-04 (design system): open; the UI uses placeholder tokens and adapters until they are answered.
 
 ## Scope changes
 - **Camunda contract run deferred to the end of the build** by the repository owner on 2026-11-11 (Docker has 3.7 GiB; the Camunda test runtime needs Elasticsearch + Camunda). Adapter, BPMN and tests are written (`-Dcamunda`).
@@ -78,6 +90,7 @@
 - **Phase order kept:** the owner considered building Phase 3 (UI) before Phase 2 and chose Phase 2 first (2026-11-11).
 - **OpenAPI added** (springdoc 2.8.6, JSON only; endpoint on only in `local`/`test`), approved by the repository owner 2026-11-11; committed description `docs/api/openapi.json`, kept current by `OpenApiDocumentTest`.
 - **Performance testing deferred to the end of the build** by the repository owner on 2026-11-11: Phase 1 increment 1-11 is not run; its tests and generator are kept (`./mvnw -B verify -Dperf`). Phase 1 gate reports the LLD §10 targets as "not measured".
+- **Phase 3 scope extended** by the repository owner on 2026-11-12: all editing screens for actions the API already has (edit details and properties, place, move, remove, delete, new hierarchy) moved from Phase 5 into Phase 3.
 - **Phase 7 (AI assistance) deferred** by the repository owner on 2026-11-11 (OD-38): design approved; the build goes from Phase 6 to Phase 8. The `BUILD_PROTOCOL.md` phase table is updated in design step 5 (wiring).
 
 ## Known gaps, stubs and technical debt
@@ -90,4 +103,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Stopped for approval of the Phase 3 plan. On approval, and once Node.js is installed: increment 3-1 (backend: V10, `/me` extension, preferences, `/home`, search and path, submit-form, client errors). Deferred to the end: performance tests (Phases 1–3), Camunda contract run.
+Stopped at the Phase 3 gate. On approval: Phase 4 (data loading and parity harness) orient and plan. Deferred to the end: performance tests (Phases 1–3), Camunda contract run. A demo runs locally (API on 8080 from a copied jar, database `nexus_demo`, UI dev server on 4200).

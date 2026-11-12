@@ -41,7 +41,8 @@ Capabilities: [docs/capabilities.md](docs/capabilities.md)
 ## Repository layout
 | Path | Contents |
 |---|---|
-| `services/mdm-api` | Java 21 / Spring Boot service; Flyway migrations V1–V9; generic workflow process in `src/main/resources/bpmn` |
+| `services/mdm-api` | Java 21 / Spring Boot service; Flyway migrations V1–V10; generic workflow process in `src/main/resources/bpmn` |
+| `ui` | Angular steward UI (Phase 3): `npm start`, tests and end-to-end journeys in `ui/e2e` (see DEVELOPER_SETUP) |
 | `db` | PostgreSQL + pgTAP image and database tests |
 | `docs/specs` | Specifications per capability |
 | `docs/adr` | Architecture decision records |
@@ -50,8 +51,10 @@ Capabilities: [docs/capabilities.md](docs/capabilities.md)
 | `scripts` | Setup checks and database test runners |
 
 ## Status
-Phase 2 (governance) built, awaiting gate approval: workflow models, stages, worklist, commit policy in shadow mode,
-engine-neutral workflow (Camunda adapter written, its run deferred). Phase 1 (core write path) approved: change requests from draft to applied data in core mode
-(maker-checker), entitlements by hierarchy and sub-tree, bitemporal reads at any date. Migrations V1–V9 apply on a
-fresh PostgreSQL 16 database and all 319 pgTAP tests pass; the API's 100 tests pass (verified 2026-11-11).
+Phase 3 (steward UI) built, awaiting gate approval: an Angular 22 UI in `ui/` with Home, the lazy hierarchy tree with
+search, the property grid with provenance, every editing action through the change-request tray (add leaf, edit details
+and properties, place, move, remove, delete, new hierarchy), review and submit, worklist and request pages with the
+workflow timeline. Phase 2 (governance) and Phase 1 (core write path) approved. Migrations V1–V10 apply on a fresh
+PostgreSQL 16 database and all 332 pgTAP tests pass; the API's 113 tests pass; the UI's 42 unit tests, 30 stories and
+27 end-to-end journeys pass with accessibility checks (verified 2026-11-12).
 Current progress: [docs/BUILD_STATE.md](docs/BUILD_STATE.md).
