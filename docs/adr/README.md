@@ -36,5 +36,8 @@
 | ADR-032 | Governed export profile versions, streaming export runs, reconciliation review | Accepted (OD-39, OD-40 open) |
 | ADR-033 | Authentication: OIDC resource server; identities mapped, roles in Nexus | Accepted (IdP open, OD-06) |
 | ADR-034 | Observability: structured logs, Micrometer metrics, OpenTelemetry traces | Accepted |
+| ADR-035 | Engine-neutral workflow driver: Camunda behind a port, with an in-process reference driver | Accepted |
+| ADR-036 | Property edit rights by category | Accepted (Security confirmation pending with ADR-022) |
+| ADR-037 | Versions: create, copy and status lifecycle | Proposed (owner decisions D1 to D5, OD-45) |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.

@@ -75,6 +75,7 @@
 | ADR-005 | Policy-governed straight-through commit | Needs Audit/Risk sign-off before any policy is activated |
 | ADR-006 to ADR-008 | Bitemporal model, ownership graph, AI proposes/humans approve | Proposed; awaiting team confirmation |
 | ADR-013 to ADR-034 | Design-track decisions | Accepted by the owner; confirmations pending for ADR-014, 021, 023, 026, 027 (Security / Audit-Risk), see `docs/design/OPEN_DECISIONS.md` |
+| ADR-037 | Versions: create, copy and status lifecycle (VER-01, VER-02) | **Proposed 2026-11-12; nothing built.** Five decisions for the owner (OD-45); D4 (who finalizes) also needs Audit-Risk review |
 
 
 ## Open questions for the human
@@ -83,7 +84,7 @@
 3. **Masked extracts and DRM outputs (OD-31, OD-32)** for Phase 4 golden parity: without them Phase 4 is synthetic-only.
 4. OD-11: remote `origin` is `https://github.com/POCoder7/Nexus` (public, repository owner 2026-11-12). The three phase branches are pushed; `main` waits for the owner's one-time `git push --force origin main` (it replaces GitHub's starter commit; agents may not force-push). Every commit id changed on 2026-11-12 when the history was rewritten to the noreply email; the ids quoted in these records are the new ones.
 5. OD-18a: Audit-Risk review of ADR-021 and ADR-023 **skipped for now** by the repository owner (2026-11-11); merging to `main` needs the review or your explicit waiver.
-6. OD-02 to OD-04 (design system): open; the UI uses placeholder tokens and adapters until they are answered.
+. **Versioning (OD-45, ADR-037).** You asked to implement versioning. It is a scope change and its capabilities are undecided (OD-09), so ADR-037 sets out D1 (Parity, Improve or Retire for VER-01 to VER-07), D2 (named slice or physical copy), D3 (freeze a version at submit or at finalize), D4 (who may create, submit and finalize; four eyes) and D5 (third Phase 3 scope extension, Phase 5, or everything now), each with a recommendation. On your decisions: Phase 3 LLD section and plan increments first, then build.
 
 ## Scope changes
 - **Camunda contract run deferred to the end of the build** by the repository owner on 2026-11-11 (Docker has 3.7 GiB; the Camunda test runtime needs Elasticsearch + Camunda). Adapter, BPMN and tests are written (`-Dcamunda`).
@@ -105,4 +106,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Stopped at the Phase 3 gate. On approval: Phase 4 (data loading and parity harness) orient and plan. Deferred to the end: performance tests (Phases 1–3), Camunda contract run. The local demo is stopped; its database `nexus_demo` (synthetic) remains. Also requested and not yet written: an architecture code review, a summary design document and a new-machine setup guide.
+Stopped at the Phase 3 gate and at ADR-037 (versioning, OD-45: owner decisions D1 to D5). On the versioning decisions: write the LLD section and plan increments, stop for approval, then build. On the gate approval: Phase 4 (data loading and parity harness) orient and plan. Deferred to the end: performance tests (Phases 1–3), Camunda contract run. The local demo is running (API on 8080 from a scratchpad copy of the jar, UI on 4200, database `nexus_demo`, synthetic); stop it when the owner is done. Also requested and not yet written: an architecture code review, a summary design document and a new-machine setup guide.
