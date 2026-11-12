@@ -2,6 +2,23 @@
 
 All notable changes to Nexus, newest first. Each entry names its capability ID or `PROG`.
 
+## Phase 2 — Governance (2026-11-11, gate passed with gaps, awaiting approval)
+
+### Added
+- Workflow models from definition files, activated by a second administrator; versions pinned per request. `GOV-01`
+- Submit with a workflow model; Enrich, Approve and Commit stages; decisions, claims, enrichment items; instance view; refusals explained in words. `GOV-02`
+- Commit policy evaluated before Commit in shadow mode; policy administration; daily cap safe under concurrency; active mode refused until OD-08. `GOV-12`
+- Worklist with nine views, counts, search, model filter and paging; urgent flag. `GOV-13`
+- Engine-neutral workflow ports, outbox relay with offsets, in-process reference driver, reconciler; Camunda 8 adapter (written, Camunda run deferred). `GOV-02`, `PROG` (ADR-035)
+- V9 workflow objects; bitemporal, four-eyes group membership; configuration audit. `PROG`
+
+### Changed
+- V1, V4, V5, V6, V7, V8 edited (allowed until a shared environment exists, OD-44): business-day boundaries, membership checks, claim and close rules, bridge attribution and clearance, scope by ancestor walk; local databases must be recreated (`docker compose down -v`). `PROG`
+- Controller methods (OpenAPI operation ids) renamed to explicit names. `PROG`
+
+### Fixed
+- `wf.close_instance` recorded the commit action after changing the status, so the approval had no decider. `GOV-02`
+
 ## Phase 1 — Core write path (2026-11-11, gate approved)
 
 ### Added

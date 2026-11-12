@@ -1,8 +1,8 @@
 # Build state
 
 - **Current phase:** 2 — Governance
-- **Step in loop:** Build — branch `feature/GOV-02-phase-2-governance` (from the Phase 1 branch)
-- **Baseline:** db-test **pass** 313/313 · mvnw verify **pass** 100/100 (after 2-11, 2026-11-11); Camunda contract run pending (question 1)
+- **Step in loop:** Awaiting approval to proceed (Phase 2 test gate passed with gaps) — branch `feature/GOV-02-phase-2-governance`
+- **Baseline:** db-test **pass** 319/319 · mvnw verify **pass** 100/100 (Phase 2 gate, code at `f2a4f07` + gap tests, 2026-11-11)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -10,6 +10,7 @@
 |---|---|---|---|
 | 0 — Foundation | Pass locally; approved by the repository owner. Gap: CI not yet run on GitHub (OD-11) | `docs/phases/phase-0/SUMMARY.md` | 2026-11-11 |
 | 1 — Core write path | Pass with gaps; **approved by the repository owner** (performance not measured; test gaps listed in the report; CI not run, OD-11) | `docs/phases/phase-1/SUMMARY.md`, `TEST_REPORT.md` | 2026-11-11 |
+| 2 — Governance | **Pass with gaps, awaiting approval** (Camunda contract run and performance deferred; AI eligibility test with Phase 7; golden in Phase 4; CI not run) | `docs/phases/phase-2/SUMMARY.md`, `TEST_REPORT.md` | 2026-11-11 |
 
 ## Current phase progress
 | Increment | Capability | Status | Tests | Notes |
@@ -44,8 +45,8 @@
 | 2-9 Worklist: nine views, counts, search, model filter, keyset | GOV-13 | Done `f621347` | JUnit 2 | perf test deferred with the other performance work |
 | 2-10a Engine-neutral ports, outbox offsets, relay, in-process driver, contract suite | GOV-02, PROG | Done `6f610e2` | JUnit 6 (contract 5, boundary 1), pgTAP +2 | bug fixed: `close_instance` recorded the commit after the status change (bridge saw no decider) |
 | 2-10b Camunda adapter: SDK config, BPMN, job adapters, contract suite on Camunda | GOV-02 | **Written, not yet run** `d928ecb` | contract suite on Camunda written (tag `camunda`) | blocked: Docker has 3.7 GiB; Camunda test runtime needs Elasticsearch (2 GB heap) + Camunda; decision asked |
-| 2-11 Reconciler, resume from database state, resilience cases | PROG | Done (this commit) | contract +1, in-process +1 | next-stage reports stages decided while no process listened; in-process redelivery fix |
-| 2-12 Records | PROG | Planned | per plan | |
+| 2-11 Reconciler, resume from database state, resilience cases | PROG | Done `f2a4f07` | contract +1, in-process +1 | next-stage reports stages decided while no process listened; in-process redelivery fix |
+| 2-12 Records and gap tests | PROG | Done (this commit) | pgTAP 20 (6) | data model, registry, patterns, changelog, README, setup, test report, summary |
 
 ## Decisions awaiting human review
 | ADR | Title | Why it needs review |
@@ -56,11 +57,12 @@
 
 
 ## Open questions for the human
-1. **Camunda contract run blocked by Docker memory (3.7 GiB):** raise the WSL/Docker memory limit (for example 8 GB), run it in CI later (needs OD-11), or defer it? Default build unaffected.
+1. **Phase 2 gate: approve, or ask for changes.** Review first: guards and migrations changed in V1, V4–V9 (ADR-023 Audit-Risk review, OD-18a), the LLD *Built in …* notes, the defects found and fixed, and the explicit gaps in `docs/phases/phase-2/TEST_REPORT.md`.
 2. OD-11: recommended now, before Phase 2 (prove CI green on the Phase 1 baseline). Waiting for a private repository URL; the first push still needs your go-ahead.
 3. OD-18a: Audit-Risk review of ADR-021 **skipped for now** by the repository owner (2026-11-11). ADR-021 still asks for it before merge to `main`; merging needs the review or your explicit waiver.
 
 ## Scope changes
+- **Camunda contract run deferred to the end of the build** by the repository owner on 2026-11-11 (Docker has 3.7 GiB; the Camunda test runtime needs Elasticsearch + Camunda). Adapter, BPMN and tests are written (`-Dcamunda`).
 - **Camunda must stay replaceable** (repository owner, 2026-11-11): ADR-035 proposed with the Phase 2 plan.
 - **Phase order kept:** the owner considered building Phase 3 (UI) before Phase 2 and chose Phase 2 first (2026-11-11).
 - **OpenAPI added** (springdoc 2.8.6, JSON only; endpoint on only in `local`/`test`), approved by the repository owner 2026-11-11; committed description `docs/api/openapi.json`, kept current by `OpenApiDocumentTest`.
@@ -76,4 +78,4 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Increment 2-12 (records: data model, error-code registry, patterns, changelog, test report, summary), then the Phase 2 test gate (stop for approval). The Camunda contract run still waits for question 1.
+Stopped at the Phase 2 gate. On approval: Phase 3 (steward UI) orient and plan (needs tooling approval, ADR-025, and OD-02 to OD-04). Deferred to the end: performance tests, Camunda contract run.

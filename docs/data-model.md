@@ -3,7 +3,8 @@
 PostgreSQL 16. The files are Flyway migrations in `services/mdm-api/src/main/resources/db/migration`, applied automatically when the API starts, or by `scripts/db-test` for the pgTAP tests.
 
 V1–V3 form the core model and work on their own. V4–V6 are the workflow layer, its bridge, and commit policies.
-V7 sets the database roles and privileges; V8 adds entitlements, settings and idempotency keys (Phase 1).
+V7 sets the database roles and privileges; V8 adds entitlements and idempotency keys (Phase 1). V9 holds the Phase 2
+workflow objects (configuration audit, governed membership, stage progression, worklist, outbox offsets, admin functions).
 
 ## What's in each file
 
@@ -16,7 +17,8 @@ V7 sets the database roles and privileges; V8 adds entitlements, settings and id
 | `V5__wf_mdm_bridge.sql` | The only code that writes from `wf` into `mdm`: keeps change request status in sync (including whether a decision was human or policy-based) and exposes the items cleared to apply |
 | `V6__wf_commit_policy.sql` | Governed straight-through commit: approved commit policies, hard limits, protected properties, freeze windows, daily caps, kill switch, shadow mode with comparison views, and sampled post-commit review |
 | `V7__roles_and_privileges.sql` | Database roles (ADR-014, ADR-019): `nexus_api` (drafts only), `nexus_apply` (the only writer of facts), `nexus_decider` (status and decision columns), `nexus_bridge`, `nexus_wf`, `nexus_readonly`; owner-run functions and who may call them |
-| `V8__entitlements.sql` | `system_setting` (business time zone, item limits, tree depth), roles and bitemporal role grants scoped to all hierarchies, one hierarchy or a sub-tree (ADR-022), idempotency keys (ADR-015) |
+| `V8__entitlements.sql` | Roles and bitemporal role grants scoped to all hierarchies, one hierarchy or a sub-tree (ADR-022), idempotency keys (ADR-015). (`system_setting` moved to V1 in Phase 2.) |
+| `V9__workflow_phase2.sql` | Phase 2 workflow: `wf.config_audit`, governed membership changes, stage progression (`advance_instance`, `complete_stage`), model loading and four-eyes activation, refusal reasons (`why_cannot_act`), worklist functions, commit-policy administration, outbox consumer offsets, and the owner-run grants for all of these |
 
 ## Write path (Phase 1)
 
@@ -92,6 +94,41 @@ API-only rule codes (422): `change_item.action_not_available`, `change_item.not_
 
 AI agents can submit requests, add suggestions and pre-fill enrichment (recorded with model and confidence), but claim, approve, reject, push back and commit are human-only, enforced by trigger.
 
+### Workflow in Phase 2 (how it runs)
+
+| Step | Who | Function |
+|---|---|---|
+| Submit with a model | requester (API) | `mdm.submit_change_request`, then `wf.start_instance` in the same transaction; the bridge marks the request governed and in review |
+| Move between stages | workflow worker (engine) | `wf.advance_instance`, `wf.complete_stage`; the engine (Camunda or the in-process driver, ADR-035) only drives order |
+| Decide, claim, enrich | people (API) | `wf.record_stage_decision`, `wf.claim_stage` / `unclaim_stage`, `wf_bridge.add_enrichment_item`; refusals explained by `wf.why_cannot_act` |
+| Policy before Commit | worker | `mdm.validate_change_request`, then `wf.apply_commit_policy` (policy row locked; shadow mode records only) |
+| Close and apply | worker | `wf.close_instance` (commit action recorded first), the bridge records the decider (D-06) and clears the committed items, then Phase 1 `mdm.apply_change_request` |
+| Worklist | people (API) | `wf.worklist_page` / `worklist_counts`: nine views filtered by `wf.can_act` |
+| Configuration | workflow and policy administrators | `wf.load_model` / `activate_model` (second administrator), `wf.propose_commit_policy` and the V6 lifecycle, `wf.propose_membership_change` / `decide_membership_change` (second administrator) |
+
+Group membership (`wf.user_group_member`) is bitemporal by business date and checked by `wf.is_member` everywhere;
+changes to it, to models and to policies are logged in the append-only `wf.config_audit`. The relay reads
+`wf.event_outbox` after its offset in `wf.outbox_consumer`. Business-day boundaries everywhere use
+`mdm.business_today()` / `business_day_start()` (ADR-018).
+
+### Error codes added in Phase 2
+
+| Code | Guard | HINT |
+|---|---|---|
+| `N1010` | claim by someone who cannot act on the stage; unclaim by someone else | `wf.claim_not_allowed` |
+| `N1011`, `N1012` | close as rejected without being the rejecter; withdraw by someone other than the requester or submitter | `wf.reject_not_allowed`, `wf.withdraw_not_allowed` |
+| `N1013` | enrichment item the stage's task does not allow | `wf.item_not_editable` |
+| `N1014` | model activated by its creator or without an activator | `wf.model_self_activation` |
+| `N1026`, `N1027` | not a workflow administrator; not a policy administrator | `wf.not_workflow_admin`, `policy.not_policy_admin` |
+| `N2107` | core-mode decision on a hierarchy that requires a workflow | `change_request.workflow_required` |
+| `N2201`, `N2202` | conflicting decision on a stage; conditional split (GOV-04 not enabled) | `wf.conflicting_decision`, `wf.split_not_enabled` |
+| `N2225` | active policy approved before Audit-Risk sign-off (OD-08) | `policy.activation_not_allowed` |
+| `N2230`–`N2233` | membership change not pending; nothing to end; already a member; back-dated | `wf.membership_*` |
+| `N2234`, `N2235`, `N2236` | stage not approved; unknown group; request chose another model | `wf.stage_not_approved`, `wf.unknown_group`, `wf.model_mismatch` |
+
+Refusal reasons (`wf.why_cannot_act`, 403 `code`): `human_only`, `wf.instance_not_open`, `wf.stage_not_open`,
+`wf.claimed_by_other`, `maker_checker.own_request`, `sod.violation`, `wf.out_of_scope`, `wf.not_group_member`.
+
 ## Straight-through commit (06)
 
 Maker-checker moves from each request to the policy: humans approve a narrow rule set, and the system commits a request only when every check passes, recording which policy allowed it.
@@ -150,9 +187,9 @@ Anything written outside it (for example by the owner role in tests) is audited 
 
 ## Known gaps and next steps
 
-- **Runs on PostgreSQL 16** (verified 2026-11-11, Phase 1): `scripts/db-test` applies V1–V8 to a fresh database and the
-  211 pgTAP tests in `db/tests` pass. Phase 1 closed D-04, D-05, D-07 and D-29 for the application path; the remaining
-  untested guards and gaps (D-06, D-12 to D-15, D-22, D-33) are listed in `docs/design/DESIGN_STATE.md` (OD-18).
+- **Runs on PostgreSQL 16** (verified 2026-11-11, Phase 2): `scripts/db-test` applies V1–V9 to a fresh database and the
+  319 pgTAP tests in `db/tests` pass. Phase 1 closed D-04, D-05, D-07 and D-29; Phase 2 closed D-06, D-10 to D-15, D-32 and D-33; the remaining
+  gaps (D-22 and later-phase items) are listed in `docs/design/DESIGN_STATE.md` (OD-18).
 - Bulk inserts of many placements into a large hierarchy with stale statistics are slow (the cycle-check plan); loads
   must refresh statistics between batches (Phase 4).
 - Compare, difference, transaction-log and version exports belong in the export service; only hierarchy and generation exports are in SQL.

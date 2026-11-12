@@ -45,6 +45,17 @@ FROM mdm.app_user s, mdm.app_user a WHERE s.login = 'dev_steward' AND a.login = 
 Locally the API connects with the single docker-compose account; in tests it runs as the least-privilege login
 `nexus_api_test` (role `nexus_api`), which is how shared environments must run it (ADR-014).
 
+Workflow (Phase 2 onwards): requests submitted with a workflow model move between stages only when a workflow worker
+runs. Locally, start a second instance of the API as the worker with the in-process engine (no Camunda needed):
+```
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local" "-Dspring-boot.run.arguments=--server.port=8081 --mdm.workflow.worker.enabled=true"
+```
+It needs the system actor that records policy evaluations, a synthetic user of kind `system_feed`:
+`INSERT INTO mdm.app_user (login, display_name, kind) VALUES ('nexus_system', 'Nexus system', 'system_feed');`
+Locally both use the docker-compose account; in tests the worker runs as `nexus_wf_test` (role `nexus_wf`), as shared
+environments must. The Camunda engine (`--mdm.workflow.engine=camunda`) and its contract tests (`./mvnw -B verify -Dcamunda`)
+need Camunda and Elasticsearch in Docker, which needs more memory than 4 GB (deferred; see BUILD_STATE).
+
 Performance tests (tag `perf`) are excluded from the default build and deferred to the end of the build; run them with
 `./mvnw -B verify -Dperf`.
 

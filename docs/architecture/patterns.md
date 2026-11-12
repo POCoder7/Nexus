@@ -471,6 +471,17 @@
 | P-24 Database-enforced guards | Error codes and hints on every guard (ADR-020); `DbErrorTranslator` |
 | P-28 Overlay by trial apply | The validation trial is the same mechanism the Phase 5 sandbox overlay will reuse |
 
+## Implemented in Phase 2 (where to find it)
+| Pattern | Implementation |
+|---|---|
+| P-07 Ports and adapters (engine) | `WorkflowEngine`, `WorkflowSteps` (`com.mdm.api.workflow.engine`); adapters `…engine.inprocess`, `…engine.camunda` (ADR-035); `EngineBoundaryTest`; one contract suite (`WorkflowEngineContract`) |
+| P-06 Outbox with consumer offsets | `wf.event_outbox`, `wf.outbox_consumer` (V9); `OutboxRelay` with safety lag |
+| P-15 State machine + process manager | Guarded `wf` functions decide; `nexus-request.bpmn` / `InProcessWorkflowEngine` only drive; `EngineReconciler` |
+| P-03 Maker-checker on configuration | `wf.activate_model` (N1014), `wf.decide_membership_change`, V6 policy approval |
+| P-01 Bitemporal (configuration) | `wf.user_group_member` with `wf.is_member` (V4) |
+| P-05 Single bridge | `wf_bridge.sync_change_request` (attribution, clearance), `wf_bridge.add_enrichment_item` (V5) |
+| P-11 Keyset paging | `wf.worklist_page`; admin lists |
+
 ## Where each pattern is applied (index, consistency review 2026-11-11)
 
 | Pattern | Design sections |

@@ -41,7 +41,7 @@ Capabilities: [docs/capabilities.md](docs/capabilities.md)
 ## Repository layout
 | Path | Contents |
 |---|---|
-| `services/mdm-api` | Java 21 / Spring Boot service; Flyway migrations V1–V8 |
+| `services/mdm-api` | Java 21 / Spring Boot service; Flyway migrations V1–V9; generic workflow process in `src/main/resources/bpmn` |
 | `db` | PostgreSQL + pgTAP image and database tests |
 | `docs/specs` | Specifications per capability |
 | `docs/adr` | Architecture decision records |
@@ -50,7 +50,8 @@ Capabilities: [docs/capabilities.md](docs/capabilities.md)
 | `scripts` | Setup checks and database test runners |
 
 ## Status
-Phase 1 (core write path) built and approved: change requests from draft to applied data in core mode
+Phase 2 (governance) built, awaiting gate approval: workflow models, stages, worklist, commit policy in shadow mode,
+engine-neutral workflow (Camunda adapter written, its run deferred). Phase 1 (core write path) approved: change requests from draft to applied data in core mode
 (maker-checker), entitlements by hierarchy and sub-tree, bitemporal reads at any date. Migrations V1–V8 apply on a
-fresh PostgreSQL 16 database and all 211 pgTAP tests pass; the API's 78 tests pass (verified 2026-11-11).
+fresh PostgreSQL 16 database and all 319 pgTAP tests pass; the API's 100 tests pass (verified 2026-11-11).
 Current progress: [docs/BUILD_STATE.md](docs/BUILD_STATE.md).
