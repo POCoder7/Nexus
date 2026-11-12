@@ -28,3 +28,10 @@ CREATE INDEX node_attr_name_trgm ON mdm.node_attr USING gin (node_name public.gi
   WHERE upper_inf(recorded_period);
 CREATE INDEX node_attr_description_trgm ON mdm.node_attr USING gin (description public.gin_trgm_ops)
   WHERE upper_inf(recorded_period) AND description IS NOT NULL;
+
+-- PRP-09 / SEC-03 edit side (ADR-036): a grant may be limited to property categories. NULL = every category, so every
+-- existing grant keeps its meaning. The API checks it on set_property / clear_property (EntitlementService).
+ALTER TABLE mdm.user_role ADD COLUMN category_codes text[]
+  CHECK (category_codes IS NULL OR cardinality(category_codes) > 0);
+COMMENT ON COLUMN mdm.user_role.category_codes IS
+  'Property categories this grant covers for property edits (ADR-036); NULL = all categories.';

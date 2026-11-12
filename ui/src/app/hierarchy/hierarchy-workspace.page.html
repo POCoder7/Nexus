@@ -35,6 +35,7 @@
       <nx-hierarchy-tree class="tree" [rows]="store.visibleRows()" [selectedId]="store.selectedId()"
                          [label]="t.treeLabel(store.hierarchy()?.name ?? code())" [rowHeight]="rowHeight()"
                          (expand)="store.expand($event)" (collapse)="store.collapse($event)" (select)="onSelect($event)"
+                         [dragEnabled]="canPropose() && !context.isHistorical()" (dropMove)="onDropMove($event)"
                          (loadMore)="store.loadPage($event)" (expandSiblings)="expandSiblings($event)" />
     }
   </section>
@@ -42,6 +43,7 @@
     <nx-node-panel [detail]="nodeStore.detail()" [path]="nodeStore.path()" [sourceNames]="nodeStore.sourceNames()"
                    [loading]="nodeStore.loading()" [error]="nodeStore.error()" [readOnly]="context.isHistorical()"
                    [canPropose]="canPropose()" [isTop]="nodeStore.detail()?.nodeId === store.topId()"
+                   [hierarchyCode]="code()" [slice]="context.slice()" [canEditCategory]="canEditCategory"
                    (addChild)="addChild()" (requestChange)="openChange($event.mode, $event.property)" (openNode)="openNode($event)"
                    (retry)="store.selectedId() && nodeStore.load(store.selectedId()!, code(), context.slice())" />
   </section>

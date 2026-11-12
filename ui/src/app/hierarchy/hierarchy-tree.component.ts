@@ -32,6 +32,40 @@ export class HierarchyTreeComponent {
   readonly select = output<string>();
   readonly loadMore = output<string>();
   readonly expandSiblings = output<string | null>();
+  /** Mouse drag and drop of a node onto another node (UI_STANDARD §6: optional, never the only way; "Move to…" is). */
+  readonly dragEnabled = input(false);
+  readonly dropMove = output<{ nodeId: string; nodeName: string; targetId: string; targetName: string }>();
+  protected readonly dropTarget = signal<string | null>(null);
+  private dragged: { id: string; name: string } | null = null;
+
+  protected onDragStart(event: DragEvent, row: FlatTreeRow): void {
+    if (row.kind !== 'node') return;
+    this.dragged = { id: row.id, name: row.name };
+    event.dataTransfer?.setData('text/plain', row.id);
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+  }
+
+  protected onDragOver(event: DragEvent, row: FlatTreeRow): void {
+    if (this.dragged && row.kind === 'node' && row.id !== this.dragged.id) {
+      event.preventDefault();   // allows the drop
+      this.dropTarget.set(row.id);
+    }
+  }
+
+  protected onDrop(event: DragEvent, row: FlatTreeRow): void {
+    event.preventDefault();
+    const dragged = this.dragged;
+    this.dragged = null;
+    this.dropTarget.set(null);
+    if (dragged && row.kind === 'node' && row.id !== dragged.id) {
+      this.dropMove.emit({ nodeId: dragged.id, nodeName: dragged.name, targetId: row.id, targetName: row.name });
+    }
+  }
+
+  protected onDragEnd(): void {
+    this.dragged = null;
+    this.dropTarget.set(null);
+  }
 
   protected readonly t = STRINGS.hierarchy;
   protected readonly common = STRINGS.common;

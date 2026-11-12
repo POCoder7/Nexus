@@ -156,6 +156,25 @@ INSERT INTO mdm.user_role (user_id, role_code, hierarchy_id, granted_by, valid_p
 SELECT user_id, 'APPROVER', NULL, '00000000-0000-0000-0000-00000000e001', daterange(current_date - 1, NULL)
 FROM mdm.app_user WHERE login IN ('e2e_approver', 'e2e_committer');
 
+-- A property outside the Finance category, and a steward whose grant covers Finance properties only (ADR-036)
+INSERT INTO mdm.property_definition (property_code, label, category_code, data_type, scope)
+VALUES ('E2E.LegalForm', 'Legal form', 'Legal', 'string', 'global');
+INSERT INTO wf.task_property (task_id, property_id, is_required, sort_seq)
+SELECT t.task_id, p.property_id, false, 99 FROM wf.workflow_task t, mdm.property_definition p
+WHERE t.task_code = 'E2E_MAINTAIN' AND p.property_code = 'E2E.LegalForm';
+INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
+  ('00000000-0000-0000-0000-00000000e010', 'e2e_finance', 'E2E Finance Steward', 'human');
+INSERT INTO mdm.user_role (user_id, role_code, hierarchy_id, granted_by, valid_period, category_codes)
+SELECT '00000000-0000-0000-0000-00000000e010', 'STEWARD', hierarchy_id, '00000000-0000-0000-0000-00000000e001',
+       daterange(current_date - 1, NULL), '{Finance}'
+FROM mdm.hierarchy WHERE hierarchy_code = 'E2E_H';
+
+-- Direct ownership between synthetic entities (NEW-02 view): Leaf One is owned 60/40 and holds 75% of Bulk 0001
+INSERT INTO mdm.ownership_edge (owner_node_id, owned_node_id, relation, economic_pct, voting_pct, source, valid_period) VALUES
+  ('00000000-0000-0000-0000-00000000a013', '00000000-0000-0000-0000-00000000a011', 'shareholding', 60, 60, 'manual', daterange('2020-01-01', NULL)),
+  ('00000000-0000-0000-0000-00000000a012', '00000000-0000-0000-0000-00000000a011', 'shareholding', 40, 40, 'manual', daterange('2020-01-01', NULL)),
+  ('00000000-0000-0000-0000-00000000a011', '00000000-0000-0000-0000-0000000b0001', 'shareholding', 75, 75, 'company_registry', daterange('2020-01-01', NULL));
+
 -- A shadow commit policy on the model: evaluated on every request, never commits on its own (OD-08) ----------------
 INSERT INTO wf.commit_policy (policy_id, policy_code, description, rationale, mode, allowed_actions, owner_group_id, proposed_by)
 SELECT '00000000-0000-0000-0000-00000000f101', 'E2E_SHADOW', 'Low-risk leaf additions', 'Synthetic shadow policy', 'shadow',

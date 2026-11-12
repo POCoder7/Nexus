@@ -8,14 +8,14 @@
 
 | Suite | Command | Passed | Failed | Skipped |
 |---|---|---|---|---|
-| Migrations V1–V10 + pgTAP | `scripts\db-test.ps1` (fresh database) | 332 | 0 | 0 |
-| API build + tests | `cd services/mdm-api; .\mvnw.cmd -B verify` | 113 | 0 | 0 |
+| Migrations V1–V10 + pgTAP | `scripts\db-test.ps1` (fresh database) | 334 | 0 | 0 |
+| API build + tests | `cd services/mdm-api; .\mvnw.cmd -B verify` | 116 | 0 | 0 |
 | UI style lint + self-test | `cd ui; npm run lint` | all files clean; 4/4 forbidden declarations refused | 0 | — |
-| Generated client drift | `npm run api:check` | 95 files match `docs/api/openapi.json` | 0 | — |
-| UI unit and component tests (Vitest) | `npm test` | 42 | 0 | 0 |
-| Production build + budgets + dev-identity check | `npm run build` | initial JS 126.1 kB compressed (budget 350), every lazy chunk < 150 kB, no dev identity | 0 | — |
-| Storybook stories with axe (WCAG 2.1 AA) | `npm run build-storybook; npm run test:storybook` | 30 | 0 | 0 |
-| End-to-end journeys with axe (Playwright, Chromium) | `npx playwright test` | 27 | 0 | 1 tagged `@perf`, excluded (deferred) |
+| Generated client drift | `npm run api:check` | 102 files match `docs/api/openapi.json` | 0 | — |
+| UI unit and component tests (Vitest) | `npm test` | 46 | 0 | 0 |
+| Production build + budgets + dev-identity check | `npm run build` | initial JS 126.8 kB compressed (budget 350), every lazy chunk < 150 kB, no dev identity | 0 | — |
+| Storybook stories with axe (WCAG 2.1 AA) | `npm run build-storybook; npm run test:storybook` | 35 | 0 | 0 (one earlier run under load: 6 failed, cause not captured; clean rerun 35/35) |
+| End-to-end journeys with axe (Playwright, Chromium) | `npx playwright test` | 32 | 0 | 1 tagged `@perf`, excluded (deferred) |
 | Performance (`@perf`, LLD §10) | `E2E_PERF=1 npx playwright test` | — | — | **not run** (deferred by the repository owner) |
 | Edge | `E2E_EDGE=1 npx playwright test` | — | — | **not run** (Chromium only on this machine run) |
 
@@ -40,6 +40,11 @@
 | NEW-10 | Shell, Home, start page after reload; historical banner and no write controls | e2e 01 (3); unit `ContextStore` (3), node panel (4) | Pass |
 | NEW-10 | Governance panel only for policy roles; Home search opens a node | e2e 05; API `UiSupportApiTest` | Pass |
 | HIE-02 / PRP-01 (scope extension) | Edit a property value; edit details; move with a target picker; place under a second parent (shared); remove and delete preview impact in numbers and need confirmation; new hierarchy; the request is approved, committed and every change is in the data | e2e 06 (7); unit dialog (5), grid editable, tray `addChange`; API impact test | Pass |
+| QRY-04 (second extension) | History: every version of details, placements and properties with periods and request; paged; unreadable is 404 | JUnit `historyListsEveryVersionOfTheNodeAndPages`; e2e 07 | Pass |
+| NEW-02 view (second extension) | Direct owners and holdings at a date, tables and diagram, two decimals | JUnit `ownersAndHoldingsListDirectEdges`; unit ownership; story 2; e2e 07 | Pass (view only; UBO in Phase 6) |
+| PRP-09 / SEC-03 edit (ADR-036) | A Finance-only grant may edit Finance properties, not Legal; structural actions unaffected; Edit hidden in the UI | pgTAP 21 (+2); JUnit `aCategoryLimitedGrantMayEditOnlyItsCategories`; unit context store; e2e 07 | Pass |
+| Diff view (second extension) | Side-by-side and inline, change kind in words and icons, findings on the item | unit item list (2); stories 3; e2e 07 | Pass |
+| Drag and drop (second extension) | Dropping a node on another opens "Move to…" with the target chosen; keyboard path unchanged | e2e 07 | Pass |
 | Controls | Edits only through the tray; read-only historical views; dev identity absent from production; no business rules in the UI (reasons from the server: `whyNot`) | e2e 01, 04; build check; unit decision panel | Pass |
 | Accessibility | axe on every page and story; keyboard-only journeys; focus to heading on page change, back to trigger on dialog close | e2e (every spec calls axe), 30 stories, e2e 02/03 keyboard, e2e 04 focus return | Pass; **manual screen-reader check not done** (needs a person) |
 | Standards | Tokens only in styles | `npm run lint` + self-test | Pass |
@@ -62,12 +67,14 @@ Changes to tests during the phase, shape or setup only: the paging test scrolls 
 3. **Visual sign-off** waits for the design system (OD-02 to OD-04): placeholder tokens and adapters.
 4. **Manual screen-reader check** of the custom components (UI_STANDARD §8) needs a person.
 5. **Least privilege in end-to-end runs:** locally the API uses the docker-compose owner account; least privilege is proven by the JUnit suite (`nexus_api_test`).
-6. **Category-based property edit permissions** (PRP-09, SEC-03) are Phase 5: until then anyone who may propose on a node may edit any of its stored properties.
+6. **Read filtering by property category** (read side of SEC-03) stays in Phase 5; edit rights by category are built (ADR-036). The UI hint for edit rights reads `STEWARD` grants (the only role with PROPOSE today); the server decides.
 7. **Impact preview** counts descendants and placements; inherited-value changes appear as findings on Review and submit.
 8. **CI has never run on GitHub** (no remote, OD-11); the `ui` job is written.
 9. **Edge** not run on this machine (Chromium only).
+10. **Ownership** is a view of direct edges: effective ownership, UBO results, cross-holdings and editing ownership are Phase 6; the diagram is a simple SVG until the graph library is chosen (OD-05).
+11. **Drag and drop** is mouse only and opens "Move to…"; dropping does not reorder siblings.
 
 ## Gate result
-All suites that ran are green (pgTAP 332, JUnit 113, UI unit 42, stories 30, end to end 27, lint, contract and build checks); every
+All suites that ran are green (pgTAP 334, JUnit 116, UI unit 46, stories 35, end to end 32, lint, contract and build checks); every
 in-scope criterion, including the scope extension, is covered by a passing test or listed above as an explicit, explained gap.
 **Gate: pass with the gaps above**, subject to your approval.

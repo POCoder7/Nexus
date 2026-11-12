@@ -2,7 +2,7 @@
 
 - **Current phase:** 3 — Steward UI
 - **Step in loop:** Awaiting approval to proceed (Phase 3 test gate passed with gaps) — branch `feature/NEW-10-phase-3-steward-ui`
-- **Baseline:** db-test **pass** 332/332 · mvnw verify **pass** 113/113 · UI: lint pass, contract pass, unit 42/42, stories 30/30 (axe), production build and budgets pass, end to end 27/27 (axe) (2026-11-12)
+- **Baseline:** db-test **pass** 334/334 · mvnw verify **pass** 116/116 · UI: lint pass, contract pass, unit 46/46, stories 35/35 (axe), production build and budgets pass, end to end 32/32 (axe) (2026-11-12)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -31,6 +31,7 @@
 | 3-11 SLICE-01 end-to-end suite, keyboard and axe runs | SLICE-01 | Done (UI commit) | e2e 01–05 (20) | found and fixed: `set_property` on a node added earlier in the same request (API, Phase 1 defect); Space in type-ahead; focus on query changes; defaults pre-filled as stored values; request page not refreshing after submit |
 | 3-12 Records | PROG | Done (records commit) | — | test report, summary, data model V10, UI_STANDARD token status, patterns, changelog, setup |
 | 3-13 to 3-17 Scope extension: impact endpoint, generic tray action, edit details and properties, place / move / remove / delete with impact preview, new hierarchy | HIE-01, HIE-02, PRP-01 | Done (UI commit) | JUnit impact 1; unit 7; e2e 06 (7) | owner moved these screens from Phase 5 to Phase 3; `MAINTAIN` model for other drafts |
+| 3-18 to 3-22 Second scope extension: property edit rights by category (ADR-036), History tab, Ownership tab (view), before/after view, drag and drop | PRP-09, SEC-03 (edit), QRY-04, NEW-02 (view), HIE-02, NEW-10 | Done (third Phase 3 commit) | pgTAP 21 (+2); JUnit 3; unit 4; stories 5; e2e 07 (5) | owner: "implement everything else except AI suggestions and notifications"; `mdm.user_role.category_codes` in V10
 
 ### Phase 1 progress
 | Increment | Capability | Status | Tests | Notes |
@@ -91,6 +92,7 @@
 - **OpenAPI added** (springdoc 2.8.6, JSON only; endpoint on only in `local`/`test`), approved by the repository owner 2026-11-11; committed description `docs/api/openapi.json`, kept current by `OpenApiDocumentTest`.
 - **Performance testing deferred to the end of the build** by the repository owner on 2026-11-11: Phase 1 increment 1-11 is not run; its tests and generator are kept (`./mvnw -B verify -Dperf`). Phase 1 gate reports the LLD §10 targets as "not measured".
 - **Phase 3 scope extended** by the repository owner on 2026-11-12: all editing screens for actions the API already has (edit details and properties, place, move, remove, delete, new hierarchy) moved from Phase 5 into Phase 3.
+- **Phase 3 scope extended again** by the repository owner on 2026-11-12: History tab (QRY-04), Ownership tab as a view (NEW-02; UBO stays Phase 6), before/after view, drag and drop, property edit rights by category (ADR-036). AI suggestions (Phase 7) and notifications (GOV-08/16) stay out.
 - **Phase 7 (AI assistance) deferred** by the repository owner on 2026-11-11 (OD-38): design approved; the build goes from Phase 6 to Phase 8. The `BUILD_PROTOCOL.md` phase table is updated in design step 5 (wiring).
 
 ## Known gaps, stubs and technical debt

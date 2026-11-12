@@ -315,6 +315,12 @@
       },
       "Grant" : {
         "properties" : {
+          "categoryCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "hierarchyCode" : {
             "type" : "string"
           },
@@ -385,6 +391,71 @@
           },
           "topNodeName" : {
             "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "HistoryEvent" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "allowsChildren" : {
+            "type" : "boolean"
+          },
+          "changeRequestId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "changeRequestTitle" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "hierarchyCode" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "parentId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "parentName" : {
+            "type" : "string"
+          },
+          "primary" : {
+            "type" : "boolean"
+          },
+          "propertyCode" : {
+            "type" : "string"
+          },
+          "propertyLabel" : {
+            "type" : "string"
+          },
+          "recordedFrom" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "recordedTo" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "validFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "validTo" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "value" : {
+            "$ref" : "#/components/schemas/JsonNode"
           }
         },
         "type" : "object"
@@ -701,6 +772,54 @@
         },
         "type" : "object"
       },
+      "OwnershipEdge" : {
+        "properties" : {
+          "confidence" : {
+            "type" : "number"
+          },
+          "direct" : {
+            "type" : "boolean"
+          },
+          "economicPct" : {
+            "type" : "number"
+          },
+          "edgeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "nomineeForNodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "otherKind" : {
+            "type" : "string"
+          },
+          "otherName" : {
+            "type" : "string"
+          },
+          "otherNodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "relation" : {
+            "type" : "string"
+          },
+          "shareClass" : {
+            "type" : "string"
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "validFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "votingPct" : {
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
       "PageChangeRequestView" : {
         "properties" : {
           "items" : {
@@ -743,6 +862,20 @@
         },
         "type" : "object"
       },
+      "PageHistoryEvent" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/HistoryEvent"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "PageItemView" : {
         "properties" : {
           "items" : {
@@ -762,6 +895,20 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/ModelSummary"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PageOwnershipEdge" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/OwnershipEdge"
             },
             "type" : "array"
           },
@@ -2343,6 +2490,174 @@
           }
         },
         "tags" : [ "node-controller" ]
+      }
+    },
+    "/api/v1/nodes/{nodeId}/history" : {
+      "get" : {
+        "operationId" : "getNodeHistory",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "nodeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "hierarchy",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageHistoryEvent"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "node-history-controller" ]
+      }
+    },
+    "/api/v1/nodes/{nodeId}/holdings" : {
+      "get" : {
+        "operationId" : "listNodeHoldings",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "nodeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recordedAsOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageOwnershipEdge"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "node-history-controller" ]
+      }
+    },
+    "/api/v1/nodes/{nodeId}/owners" : {
+      "get" : {
+        "operationId" : "listNodeOwners",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "nodeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recordedAsOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageOwnershipEdge"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "node-history-controller" ]
       }
     },
     "/api/v1/workflow/instances/{instanceId}" : {

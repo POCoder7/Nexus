@@ -53,8 +53,9 @@ Capabilities: [docs/capabilities.md](docs/capabilities.md)
 ## Status
 Phase 3 (steward UI) built, awaiting gate approval: an Angular 22 UI in `ui/` with Home, the lazy hierarchy tree with
 search, the property grid with provenance, every editing action through the change-request tray (add leaf, edit details
-and properties, place, move, remove, delete, new hierarchy), review and submit, worklist and request pages with the
+and properties, place, move, remove, delete, new hierarchy, drag and drop), History and Ownership tabs, a before/after
+view, property edit rights by category, review and submit, worklist and request pages with the
 workflow timeline. Phase 2 (governance) and Phase 1 (core write path) approved. Migrations V1–V10 apply on a fresh
-PostgreSQL 16 database and all 332 pgTAP tests pass; the API's 113 tests pass; the UI's 42 unit tests, 30 stories and
-27 end-to-end journeys pass with accessibility checks (verified 2026-11-12).
+PostgreSQL 16 database and all 334 pgTAP tests pass; the API's 116 tests pass; the UI's 46 unit tests, 35 stories and
+32 end-to-end journeys pass with accessibility checks (verified 2026-11-12).
 Current progress: [docs/BUILD_STATE.md](docs/BUILD_STATE.md).

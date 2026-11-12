@@ -34,6 +34,24 @@ describe('ContextStore', () => {
     expect(store.isHistorical()).toBe(false);
   });
 
+  it('hints property edit rights by category (ADR-036)', async () => {
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), {
+        provide: NexusApi,
+        useValue: { me: async () => ({ businessToday: '2031-05-17', grants: [
+          { roleCode: 'VIEWER', hierarchyCode: null },
+          { roleCode: 'STEWARD', hierarchyCode: 'SYN_H', categoryCodes: ['Finance'] },
+        ] }) },
+      }],
+    });
+    const store = TestBed.inject(ContextStore);
+    await store.load();
+    expect(store.canEditCategory('SYN_H', 'Finance')).toBe(true);
+    expect(store.canEditCategory('SYN_H', 'Legal')).toBe(false);
+    expect(store.canEditCategory('SYN_H', null)).toBe(false);   // uncategorised needs an unlimited grant
+    expect(store.canEditCategory('OTHER', 'Finance')).toBe(false);
+  });
+
   it('reads permissions per hierarchy as a hint for which controls to offer', async () => {
     const store = setup('2031-05-17');
     await store.load();

@@ -39,6 +39,11 @@
   outline-offset: calc(-1 * var(--nx-focus-width));
 }
 
+.row--drop {
+  outline: var(--nx-focus-width) dashed var(--nx-color-action-primary);
+  outline-offset: calc(-1 * var(--nx-focus-width));
+}
+
 .twisty {
   display: inline-flex;
   justify-content: center;

@@ -14,12 +14,14 @@ past date read-only.
 | `bd2ea31` | 3-1 Backend: V10, `/me` preferences and permissions, `/home`, search and path, submit form, request detail additions, client errors |
 | Phase 3 UI commit | 3-2 to 3-17: generated client, workspace and toolchain, shell, tree, node panel, add-leaf, tray, review, worklist, request page, Home, the scope-extension editing screens, impact endpoint, the `set_property` fix, end-to-end suite, CI job |
 | Records commit | Test report, this summary, build state |
+| Third Phase 3 commit | 3-18 to 3-22 second scope extension: edit rights by category (ADR-036), History and Ownership tabs, before/after view, drag and drop |
 
 ## Decisions taken
 - Plan approved by the repository owner, including the Node.js install, the UI dependencies from the public npm registry and the CI `ui` job.
 - **Scope extension (repository owner):** all editing screens for actions the API already had were moved from Phase 5 into Phase 3 (plan "Scope extension", LLD section "Scope extension built in Phase 3").
 - Node.js 26 LTS (what `winget` installed), Angular 22.2; every package pinned exactly to a release at least two weeks old.
 - Drafts not started by add-leaf use a second workflow model, `MAINTAIN`.
+- **Second scope extension (repository owner):** everything else except AI suggestions and notifications; property edit rights by category recorded as ADR-036 (accepted; Security confirmation pending with ADR-022).
 
 ## Patterns introduced or extended (`docs/architecture/patterns.md`)
 P-26 feature stores with signals; P-27 generated API client with a drift check; P-11 flattened lazy tree with virtual scroll and

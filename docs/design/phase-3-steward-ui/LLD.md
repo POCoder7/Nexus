@@ -431,3 +431,17 @@ The owner added the remaining editing screens to Phase 3 (Phase 3 plan, "Scope e
   request on submit.
 - **Not built:** drag and drop (optional per UI_STANDARD §6), category-based edit permissions (PRP-09 / SEC-03, Phase 5),
   inherited-value changes inside the impact preview (they appear as findings on Review and submit).
+
+## Second scope extension built in Phase 3 (repository owner, 2026-11-12)
+- **History tab (QRY-04):** `GET /api/v1/nodes/{id}/history?hierarchy&limit&cursor` returns one keyset-paged list of
+  events, newest recorded first: attribute versions, placements (in readable hierarchies, or the named one), property values,
+  each with `validFrom/To`, `recordedFrom/To` and the change request (id, title). The tab lists them; "Show more" pages.
+- **Ownership tab (NEW-02, view only):** `GET /nodes/{id}/owners` and `/holdings` (direct `mdm.ownership_edge` rows at the
+  slice, paged, readable nodes only). The tab shows two tables (owner or holding, relation, economic %, voting %, source)
+  with percentages to two decimals and a small SVG diagram of the same rows; the table is the accessible equivalent
+  (UI_STANDARD §5). UBO, effective ownership and editing stay in Phase 6; the graph library waits for OD-05.
+- **Before/after view:** `nx-diff-view` replaces the plain item list on Review and on the request page: side-by-side and
+  inline modes, added/removed/modified/moved with the change tokens plus an icon and a word.
+- **Drag and drop:** a tree row can be dragged onto another node row (mouse only); dropping opens "Move to…" with that
+  target chosen. Keyboard users use "Move to…".
+- **Property edit rights by category:** ADR-036.

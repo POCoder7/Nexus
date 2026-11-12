@@ -114,7 +114,7 @@ public class ChangeRequestService {
         List<ItemView> earlier = repository.allItems(cr.id());
         ItemFactory.NewItem item = items.build(cr, cmd, earlier);
         for (ItemFactory.Scope s : item.scopes()) {
-            entitlements.require(actor, Permission.PROPOSE, s.hierarchyId(), existingAncestor(s.nodeId(), earlier));
+            entitlements.require(actor, Permission.PROPOSE, s.hierarchyId(), existingAncestor(s.nodeId(), earlier), s.categoryCode(), s.propertyEdit());
         }
         UUID itemId = repository.insertItem(cr.id(), repository.nextSeq(cr.id()), item.action(), item.hierarchyId(),
                 item.nodeId(), item.targetParentId(), item.propertyId(), item.payload());

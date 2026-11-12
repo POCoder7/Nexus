@@ -125,3 +125,15 @@ writes live data (UI_STANDARD §6).
 node may edit any of its stored properties, and the server enforces the rest. The impact preview counts descendants and
 placements; inherited-value changes and validation findings show on Review and submit (trial apply), not in the preview.
 Drag and drop is not built (UI_STANDARD §6 makes it optional; "Move to…" is the required way).
+
+## Second scope extension (repository owner, 2026-11-12: "except for AI suggestions and Notifications, implement everything else")
+| # | Increment | Capabilities | Tests |
+|---|---|---|---|
+| 3-18 | Property edit rights by category: `mdm.user_role.category_codes` (V10), API check on `set_property` / `clear_property`, categories in `/me` grants, Edit hidden without the right (ADR-036) | PRP-09, SEC-03 (edit) | pgTAP, JUnit, unit, e2e |
+| 3-19 | Node history: `GET /nodes/{id}/history` (keyset-paged events: attribute, placement and property versions with valid and recorded periods and their change request); History tab | QRY-04, AUD-01 (read) | JUnit, e2e |
+| 3-20 | Ownership view: `GET /nodes/{id}/owners` and `/holdings` (direct edges at the slice, paged); Ownership tab with an accessible table and a simple SVG diagram (no graph library: OD-05 open) | NEW-02 (view only) | JUnit, unit, e2e |
+| 3-21 | Before/after view (`nx-diff-view`, side-by-side and inline, change tokens + icons) on Review and the request page | NEW-10 | unit, stories, e2e |
+| 3-22 | Drag and drop in the tree onto another node opens "Move to…" with the target set (never the only way) | HIE-02 | e2e |
+
+**Still not built:** AI suggestions (Phase 7, deferred) and notifications (GOV-08 / GOV-16), as the owner said. UBO results,
+cross-holding calculation and editing ownership stay in Phase 6; read filtering by property category stays in Phase 5.

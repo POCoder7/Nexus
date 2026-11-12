@@ -4,7 +4,7 @@ import { Api } from './generated/api';
 import * as fn from './generated/functions';
 import type {
   ChangeRequestView, CreateRequest, DecisionResult, HomeView, Impact, InstanceView, ItemCommand, ItemView, MeView, NodeDetail,
-  NodePath, PageChangeRequestView, PageChildNode, PageHierarchySummary, PageItemView, PageSearchHit, Preferences,
+  NodePath, PageChangeRequestView, PageHistoryEvent, PageOwnershipEdge, PageChildNode, PageHierarchySummary, PageItemView, PageSearchHit, Preferences,
   PreferencesUpdate, SubmitForm, ValidationReport, WorklistPage,
 } from './generated/models';
 import { HierarchySummary } from './generated/models';
@@ -63,6 +63,18 @@ export class NexusApi {
 
   path(code: string, nodeId: string, slice: Slice): Promise<NodePath> {
     return this.api.invoke(fn.getNodePath, { code, nodeId, ...slice });
+  }
+
+  history(nodeId: string, hierarchy: string | undefined, cursor?: string, limit = 50): Promise<PageHistoryEvent> {
+    return this.api.invoke(fn.getNodeHistory, { nodeId, hierarchy, cursor, limit });
+  }
+
+  owners(nodeId: string, slice: Slice, cursor?: string, limit = 50): Promise<PageOwnershipEdge> {
+    return this.api.invoke(fn.listNodeOwners, { nodeId, ...slice, cursor, limit });
+  }
+
+  holdings(nodeId: string, slice: Slice, cursor?: string, limit = 50): Promise<PageOwnershipEdge> {
+    return this.api.invoke(fn.listNodeHoldings, { nodeId, ...slice, cursor, limit });
   }
 
   impact(code: string, nodeId: string, slice: Slice): Promise<Impact> {

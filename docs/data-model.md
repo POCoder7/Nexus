@@ -20,7 +20,7 @@ V10 holds the Phase 3 UI support: user preferences and the trigram search indexe
 | `V7__roles_and_privileges.sql` | Database roles (ADR-014, ADR-019): `nexus_api` (drafts only), `nexus_apply` (the only writer of facts), `nexus_decider` (status and decision columns), `nexus_bridge`, `nexus_wf`, `nexus_readonly`; owner-run functions and who may call them |
 | `V8__entitlements.sql` | Roles and bitemporal role grants scoped to all hierarchies, one hierarchy or a sub-tree (ADR-022), idempotency keys (ADR-015). (`system_setting` moved to V1 in Phase 2.) |
 | `V9__workflow_phase2.sql` | Phase 2 workflow: `wf.config_audit`, governed membership changes, stage progression (`advance_instance`, `complete_stage`), model loading and four-eyes activation, refusal reasons (`why_cannot_act`), worklist functions, commit-policy administration, outbox consumer offsets, and the owner-run grants for all of these |
-| `V10__ui_support.sql` | Phase 3 UI support: `mdm.user_preference` (start page, last hierarchy, density; not governed; the API writes values of the caller's own row only, no delete, `wf` cannot write it), `pg_trgm` and trigram indexes on `node_attr.node_name` and `description` (current belief) for in-tree search |
+| `V10__ui_support.sql` | Phase 3 UI support: `mdm.user_preference` (start page, last hierarchy, density; not governed; the API writes values of the caller's own row only, no delete, `wf` cannot write it), `pg_trgm` and trigram indexes on `node_attr.node_name` and `description` (current belief) for in-tree search; `mdm.user_role.category_codes` (NULL = every property category; ADR-036 property edit rights by category) |
 
 ## Write path (Phase 1)
 

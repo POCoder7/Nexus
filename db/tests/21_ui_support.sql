@@ -1,10 +1,11 @@
 -- pgTAP: UI support (Phase 3 LLD §4, increment 3-1): user preferences and in-tree search indexes.
 -- Synthetic data only.
 BEGIN;
-SELECT plan(13);
+SELECT plan(15);
 
 INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
-  ('00000000-0000-0000-0000-000000003a01', 'ui_pref_user', 'Preference user', 'human');
+  ('00000000-0000-0000-0000-000000003a01', 'ui_pref_user', 'Preference user', 'human'),
+  ('00000000-0000-0000-0000-000000003a02', 'ui_granter', 'Granter', 'human');
 
 -- Preferences: defaults and checks -------------------------------------------------------------------------------
 INSERT INTO mdm.user_preference (user_id) VALUES ('00000000-0000-0000-0000-000000003a01');
@@ -33,6 +34,12 @@ SELECT ok(NOT has_any_column_privilege('nexus_wf', 'mdm.user_preference', 'INSER
 SELECT has_extension('pg_trgm', 'pg_trgm is installed for in-tree search (OD-21)');
 SELECT has_index('mdm', 'node_attr', 'node_attr_name_trgm', 'Trigram index on node names');
 SELECT has_index('mdm', 'node_attr', 'node_attr_description_trgm', 'Trigram index on node descriptions');
+
+-- Property edit rights by category (ADR-036) -----------------------------------------------------------------------
+SELECT has_column('mdm', 'user_role', 'category_codes', 'Grants can be limited to property categories');
+SELECT throws_ok($$INSERT INTO mdm.user_role (user_id, role_code, granted_by, valid_period, category_codes)
+  VALUES ('00000000-0000-0000-0000-000000003a01', 'STEWARD', '00000000-0000-0000-0000-000000003a02', daterange(current_date, NULL), '{}')$$,
+  '23514', NULL, 'An empty category list is refused (NULL means all categories)');
 
 SELECT * FROM finish();
 ROLLBACK;

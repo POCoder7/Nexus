@@ -61,6 +61,12 @@ export type { UpdatePreferences$Params as UpdatePreferences$Params } from './fn/
 export { updatePreferences as updatePreferences } from './fn/me-controller/update-preferences';
 export type { GetNode$Params as GetNode$Params } from './fn/node-controller/get-node';
 export { getNode as getNode } from './fn/node-controller/get-node';
+export type { GetNodeHistory$Params as GetNodeHistory$Params } from './fn/node-history-controller/get-node-history';
+export { getNodeHistory as getNodeHistory } from './fn/node-history-controller/get-node-history';
+export type { ListNodeHoldings$Params as ListNodeHoldings$Params } from './fn/node-history-controller/list-node-holdings';
+export { listNodeHoldings as listNodeHoldings } from './fn/node-history-controller/list-node-holdings';
+export type { ListNodeOwners$Params as ListNodeOwners$Params } from './fn/node-history-controller/list-node-owners';
+export { listNodeOwners as listNodeOwners } from './fn/node-history-controller/list-node-owners';
 export type { GetWorkflowInstance$Params as GetWorkflowInstance$Params } from './fn/workflow-controller/get-workflow-instance';
 export { getWorkflowInstance as getWorkflowInstance } from './fn/workflow-controller/get-workflow-instance';
 export type { ClaimStage$Params as ClaimStage$Params } from './fn/workflow-controller/claim-stage';

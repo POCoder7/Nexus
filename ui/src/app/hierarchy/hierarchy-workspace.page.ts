@@ -188,6 +188,22 @@ export class HierarchyWorkspacePage implements OnDestroy {
     }, 'nx-change-title');
   }
 
+  /** ADR-036 hint for the property grid: may the user edit properties of this category in this hierarchy? */
+  protected readonly canEditCategory = (category: string | null) => this.context.canEditCategory(this.code(), category);
+
+  /** Drag and drop in the tree (mouse): opens "Move to…" with the dropped-on node as the target, for confirmation. */
+  protected onDropMove(e: { nodeId: string; nodeName: string; targetId: string; targetName: string }): void {
+    const today = this.context.businessToday();
+    if (!today) {
+      return;
+    }
+    this.dialog.open<boolean, NodeChangeData, NodeChangeDialogComponent>(NodeChangeDialogComponent, {
+      mode: 'move', hierarchyCode: this.code(), businessToday: today,
+      node: { id: e.nodeId, name: e.nodeName, description: null },
+      presetTarget: { nodeId: e.targetId, name: e.targetName },
+    }, 'nx-change-title');
+  }
+
   // ------------------------------------------------------------------ add a leaf (LLD §6.1)
 
   protected addChild(): void {

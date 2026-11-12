@@ -343,6 +343,96 @@ class UiSupportApiTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.code").value("change_item.not_in_hierarchy"));
     }
 
+    /** QRY-04: the node's attribute and placement versions, newest recorded first, keyset-paged; unreadable is 404. */
+    @Test
+    void historyListsEveryVersionOfTheNodeAndPages() throws Exception {
+        String body = mvc.perform(get("/api/v1/nodes/{id}/history", BETA).param("hierarchy", "UI_H").with(asUser(VIEWER)))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        JsonNode items = mapper.readTree(body).get("items");
+        assertThat(items).extracting(e -> e.get("kind").asText()).contains("attribute", "placement");
+        JsonNode attr = java.util.stream.StreamSupport.stream(items.spliterator(), false)
+                .filter(e -> "attribute".equals(e.get("kind").asText())).findFirst().orElseThrow();
+        assertThat(attr.get("name").asText()).isEqualTo("UI Beta desk");
+        assertThat(attr.get("validFrom").asText()).isEqualTo("2020-01-01");
+        JsonNode placement = java.util.stream.StreamSupport.stream(items.spliterator(), false)
+                .filter(e -> "placement".equals(e.get("kind").asText())).findFirst().orElseThrow();
+        assertThat(placement.get("parentName").asText()).isEqualTo("UI Alpha region");
+
+        String first = mvc.perform(get("/api/v1/nodes/{id}/history", BETA).param("limit", "1").with(asUser(VIEWER)))
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andReturn().getResponse().getContentAsString();
+        String cursor = mapper.readTree(first).get("nextCursor").asText();
+        mvc.perform(get("/api/v1/nodes/{id}/history", BETA).param("limit", "1").param("cursor", cursor).with(asUser(VIEWER)))
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].kind").value(org.hamcrest.Matchers.not(mapper.readTree(first).at("/items/0/kind").asText())));
+        mvc.perform(get("/api/v1/nodes/{id}/history", BETA).with(asUser(STRANGER))).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/nodes/{id}/history", BETA).param("limit", "201").with(asUser(VIEWER))).andExpect(status().isBadRequest());
+    }
+
+    /** NEW-02 view: direct owners and holdings at the date, paged; a node in no readable hierarchy is 404. */
+    @Test
+    void ownersAndHoldingsListDirectEdges() throws Exception {
+        ownerJdbc().sql("""
+                INSERT INTO mdm.ownership_edge (owner_node_id, owned_node_id, relation, economic_pct, voting_pct, source, valid_period)
+                SELECT :o, :b, 'shareholding', 60, 55.5, 'manual', daterange('2020-01-01', NULL)
+                WHERE NOT EXISTS (SELECT 1 FROM mdm.ownership_edge WHERE owner_node_id = :o AND owned_node_id = :b)
+                """).param("o", OUTSIDE).param("b", BETA).update();
+        mvc.perform(get("/api/v1/nodes/{id}/owners", BETA).with(asUser(VIEWER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].otherName").value("UI Alpha outsider"))
+                .andExpect(jsonPath("$.items[0].economicPct").value(60.0))
+                .andExpect(jsonPath("$.items[0].votingPct").value(55.5))
+                .andExpect(jsonPath("$.items[0].relation").value("shareholding"));
+        mvc.perform(get("/api/v1/nodes/{id}/owners", BETA).param("asOf", "2019-06-30").with(asUser(VIEWER)))
+                .andExpect(jsonPath("$.items.length()").value(0));
+        mvc.perform(get("/api/v1/nodes/{id}/holdings", BETA).with(asUser(VIEWER)))
+                .andExpect(jsonPath("$.items.length()").value(0));
+        // the owner is in no hierarchy the viewer can read
+        mvc.perform(get("/api/v1/nodes/{id}/holdings", OUTSIDE).with(asUser(VIEWER))).andExpect(status().isNotFound());
+    }
+
+    /** ADR-036: a grant limited to property categories covers only those properties; other actions are unchanged. */
+    @Test
+    void aCategoryLimitedGrantMayEditOnlyItsCategories() throws Exception {
+        JdbcClient jdbc = ownerJdbc();
+        UUID user = ensureUser("ui_finance_steward", "human");
+        jdbc.sql("""
+                INSERT INTO mdm.property_definition (property_code, label, category_code, data_type, scope)
+                VALUES ('UI.LegalForm', 'Legal form', 'Legal', 'string', 'global') ON CONFLICT DO NOTHING
+                """).update();
+        jdbc.sql("""
+                INSERT INTO mdm.user_role (user_id, role_code, hierarchy_id, granted_by, valid_period, category_codes)
+                SELECT :u, 'STEWARD', hierarchy_id, :admin, daterange(current_date - 1, NULL), '{Finance}'
+                FROM mdm.hierarchy WHERE hierarchy_code = 'UI_H'
+                  AND NOT EXISTS (SELECT 1 FROM mdm.user_role WHERE user_id = :u AND upper_inf(recorded_period))
+                """).param("u", user).param("admin", TEST_ADMIN).update();
+        mvc.perform(get("/api/v1/me").with(asUser("ui_finance_steward")))
+                .andExpect(jsonPath("$.grants[0].categoryCodes[0]").value("Finance"));
+
+        String created = mvc.perform(post("/api/v1/change-requests").with(asUser("ui_finance_steward")).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"versionName\":\"UI working\",\"title\":\"Category rights\",\"riskTier\":\"low\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String id = mapper.readTree(created).get("id").asText();
+        var finance = mvc.perform(post("/api/v1/change-requests/{id}/items", id).with(asUser("ui_finance_steward")).header("If-Match", "\"1\"")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"action\":\"set_property\",\"hierarchyCode\":\"UI_H\",\"nodeId\":\"" + BETA
+                                + "\",\"propertyCode\":\"UI.Ccy\",\"payload\":{\"value\":\"USD\"}}"))
+                .andExpect(status().isCreated()).andReturn().getResponse();
+        mvc.perform(post("/api/v1/change-requests/{id}/items", id).with(asUser("ui_finance_steward")).header("If-Match", finance.getHeader("ETag"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"action\":\"set_property\",\"hierarchyCode\":\"UI_H\",\"nodeId\":\"" + BETA
+                                + "\",\"propertyCode\":\"UI.LegalForm\",\"payload\":{\"value\":\"Synthetic form\"}}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("entitlement.missing"))
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("Legal")));
+        // structural actions are not limited by category
+        mvc.perform(post("/api/v1/change-requests/{id}/items", id).with(asUser("ui_finance_steward")).header("If-Match", finance.getHeader("ETag"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"action\":\"update_node\",\"hierarchyCode\":\"UI_H\",\"nodeId\":\"" + BETA
+                                + "\",\"payload\":{\"description\":\"Synthetic, edited\"}}"))
+                .andExpect(status().isCreated());
+    }
+
     // ------------------------------------------------------------------ client errors
 
     @Test

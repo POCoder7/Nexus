@@ -1,0 +1,66 @@
+<section class="ownership" aria-live="polite" [attr.aria-busy]="loading()" data-testid="node-ownership">
+  <p class="nx-muted">{{ t.note }}</p>
+  @if (error(); as e) {
+    <p class="nx-error-text" role="alert">{{ e.detail }}</p>
+  }
+  @for (side of ['owners', 'holdings']; track side) {
+    @let data = side === 'owners' ? owners() : holdings();
+    <h3>{{ side === 'owners' ? t.owners : t.holdings }}</h3>
+    @if (data.rows.length === 0 && !loading()) {
+      <p class="nx-muted">{{ side === 'owners' ? t.noOwners : t.noHoldings }}</p>
+    } @else {
+      <table dsTable [attr.data-testid]="'ownership-' + side">
+        <thead>
+          <tr>
+            <th scope="col">{{ t.columns.entity }}</th>
+            <th scope="col">{{ t.columns.relation }}</th>
+            <th scope="col" class="num">{{ t.columns.economic }}</th>
+            <th scope="col" class="num">{{ t.columns.voting }}</th>
+            <th scope="col">{{ t.columns.source }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of data.rows; track e.edgeId) {
+            <tr>
+              <td><button type="button" class="link" (click)="openNode.emit(e.otherNodeId!)">{{ e.otherName ?? e.otherNodeId }}</button>
+                @if (!e.direct) {
+                  <span class="nx-muted"> ({{ t.indirect }})</span>
+                }
+              </td>
+              <td>{{ e.relation }}@if (e.shareClass) { <span class="nx-muted"> · {{ e.shareClass }}</span> }</td>
+              <td class="num">{{ pct(e.economicPct) }}</td>
+              <td class="num">{{ pct(e.votingPct) }}</td>
+              <td>{{ e.source }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (data.cursor) {
+        <ds-button (pressed)="more($any(side))">{{ t.more }}</ds-button>
+      }
+    }
+  }
+
+  @if (owners().rows.length > 0 || holdings().rows.length > 0) {
+    @let d = diagram();
+    <figure class="diagram">
+      <svg [attr.viewBox]="'0 0 ' + d.width + ' ' + d.height" role="img" [attr.aria-label]="t.diagram" data-testid="ownership-diagram">
+        @for (o of d.owners; track o.e.edgeId) {
+          <line class="edge" [attr.x1]="o.x + boxW / 2" [attr.y1]="o.y + boxH" [attr.x2]="d.centre.x + boxW / 2" [attr.y2]="d.centre.y" />
+          <text class="pct" [attr.x]="(o.x + d.centre.x) / 2 + boxW / 2" [attr.y]="(o.y + boxH + d.centre.y) / 2">{{ pct(o.e.economicPct) }}%</text>
+          <rect class="box" [attr.x]="o.x" [attr.y]="o.y" [attr.width]="boxW" [attr.height]="boxH" rx="4" />
+          <text class="name" [attr.x]="o.x + boxW / 2" [attr.y]="o.y + boxH / 2">{{ label(o.e) }}</text>
+        }
+        @for (h of d.holdings; track h.e.edgeId) {
+          <line class="edge" [attr.x1]="d.centre.x + boxW / 2" [attr.y1]="d.centre.y + boxH" [attr.x2]="h.x + boxW / 2" [attr.y2]="h.y" />
+          <text class="pct" [attr.x]="(h.x + d.centre.x) / 2 + boxW / 2" [attr.y]="(d.centre.y + boxH + h.y) / 2">{{ pct(h.e.economicPct) }}%</text>
+          <rect class="box" [attr.x]="h.x" [attr.y]="h.y" [attr.width]="boxW" [attr.height]="boxH" rx="4" />
+          <text class="name" [attr.x]="h.x + boxW / 2" [attr.y]="h.y + boxH / 2">{{ label(h.e) }}</text>
+        }
+        <rect class="box box--self" [attr.x]="d.centre.x" [attr.y]="d.centre.y" [attr.width]="boxW" [attr.height]="boxH" rx="4" />
+        <text class="name name--self" [attr.x]="d.centre.x + boxW / 2" [attr.y]="d.centre.y + boxH / 2">{{ nodeName() }}</text>
+      </svg>
+      <figcaption class="nx-muted">{{ t.diagram }}</figcaption>
+    </figure>
+  }
+</section>

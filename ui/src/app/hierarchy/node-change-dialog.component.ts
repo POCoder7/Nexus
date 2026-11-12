@@ -17,6 +17,8 @@ export interface NodeChangeData {
   businessToday: string;
   node?: { id: string; name: string; description: string | null };
   property?: PropertyValue;
+  /** Drag and drop: the target is already chosen (the user still confirms with "Add to request"). */
+  presetTarget?: { nodeId: string; name: string };
 }
 
 /**
@@ -87,6 +89,9 @@ export class NodeChangeDialogComponent {
 
   constructor() {
     const { mode, hierarchyCode, node } = this.data;
+    if (this.data.presetTarget) {
+      this.chooseTarget({ nodeId: this.data.presetTarget.nodeId, name: this.data.presetTarget.name, path: [] });
+    }
     if (mode === 'property' && hierarchyCode) {
       // list values and type come from the model's submit form (the property grid does not carry them)
       this.api.submitForm(MAINTAIN_MODEL, hierarchyCode).then(

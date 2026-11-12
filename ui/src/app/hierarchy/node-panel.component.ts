@@ -3,16 +3,19 @@ import type { NodeDetail, NodeRef, PropertyValue } from '../api/generated/models
 import { STRINGS } from '../core/strings';
 import { UiError } from '../core/ui-error';
 import { DsBadgeComponent, DsButtonComponent, DsTabsComponent } from '../shared/ds';
+import { Slice } from '../api/nexus-api';
+import { NodeHistoryComponent } from './node-history.component';
+import { NodeOwnershipComponent } from './node-ownership.component';
 import { PropertyGridComponent } from './property-grid.component';
 
 /**
- * Node panel (LLD §12.2): attributes, Properties and Relationships tabs (History and Ownership wait for their phases),
+ * Node panel (LLD §12.2): attributes; Properties, Relationships, History (QRY-04) and Ownership (NEW-02, view only) tabs,
  * and "Add child" for limbs. Whether the action is offered is a hint from the server's permissions; when it is not, the
  * panel says why instead of hiding it silently (UI_STANDARD §6). In a historical view the action is not rendered at all.
  */
 @Component({
   selector: 'nx-node-panel',
-  imports: [DsTabsComponent, DsButtonComponent, DsBadgeComponent, PropertyGridComponent],
+  imports: [DsTabsComponent, DsButtonComponent, DsBadgeComponent, PropertyGridComponent, NodeHistoryComponent, NodeOwnershipComponent],
   templateUrl: './node-panel.component.html',
   styleUrl: './node-panel.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,8 +39,13 @@ export class NodePanelComponent {
   protected readonly t = STRINGS.hierarchy;
   protected readonly common = STRINGS.common;
   protected readonly tab = signal('properties');
+  readonly hierarchyCode = input<string | null>(null);
+  readonly slice = input<Slice>({});
+  readonly canEditCategory = input<(category: string | null) => boolean>(() => true);
   protected readonly tabs = [
     { id: 'properties', label: STRINGS.hierarchy.tabs.properties },
     { id: 'relationships', label: STRINGS.hierarchy.tabs.relationships },
+    { id: 'history', label: STRINGS.hierarchy.tabs.history },
+    { id: 'ownership', label: STRINGS.hierarchy.tabs.ownership },
   ];
 }

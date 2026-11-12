@@ -67,6 +67,16 @@ export class ContextStore {
     return Object.values(perms).some((list) => list.includes(permission));
   }
 
+  /**
+   * May the user propose edits to properties of this category here (ADR-036)? A hint for showing "Edit": a PROPOSE grant on
+   * the hierarchy (or every hierarchy) whose categories are unlimited or include it. The server decides.
+   */
+  canEditCategory(hierarchyCode: string | null, category: string | null | undefined): boolean {
+    return (this.me()?.grants ?? []).some((g) =>
+      (g.roleCode === 'STEWARD') && (!g.hierarchyCode || g.hierarchyCode === hierarchyCode)
+      && (!g.categoryCodes || (!!category && g.categoryCodes.includes(category))));
+  }
+
   /** True if a grant gives the permission in every hierarchy (e.g. creating a hierarchy needs PROPOSE everywhere). */
   canEverywhere(permission: PermissionName): boolean {
     return (this.me()?.permissions?.['*'] ?? []).includes(permission);

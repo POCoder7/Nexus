@@ -14,6 +14,8 @@ All notable changes to Nexus, newest first. Each entry names its capability ID o
 - Backend support: `V10__ui_support.sql` (user preferences, `pg_trgm` search indexes), `/me` preferences, permissions and working version, `/home`, in-tree search and node path, submit form, request instance link and item "before" values, the reason a stage cannot be decided, client error reports. `NEW-10`, `HIE-12`, `GOV-03` (infrastructure)
 - UI toolchain (ADR-025): Vitest component tests, Storybook stories with axe, Playwright SLICE-01 journeys with axe, Stylelint token rules, generated API client with a drift check, compressed bundle budgets and a production check that the dev identity is absent; CI job `ui`. `PROG`
 
+- Second scope extension (repository owner): History tab with every version of a node and its request (`GET /nodes/{id}/history`) `QRY-04`; Ownership tab with direct owners and holdings as tables and a diagram (`GET /nodes/{id}/owners`, `/holdings`) `NEW-02` (view only); before/after view with side-by-side and inline modes `NEW-10`; drag and drop in the tree onto "Move to…" `HIE-02`; property edit rights by category (`mdm.user_role.category_codes`, ADR-036) `PRP-09`, `SEC-03`
+
 ### Changed
 - Worklist query moved into `WorklistQuery` so Home and the worklist share it. `GOV-13`
 - springdoc answers `application/json` by default (the generated client read `*/*` bodies as blobs). `PROG`

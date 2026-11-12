@@ -54,9 +54,13 @@
           <p class="nx-muted">{{ t.noProperties }}</p>
         } @else {
           <nx-property-grid [properties]="d.properties ?? []" [nodeName]="d.name ?? ''" [sourceNames]="sourceNames()"
-                            [editable]="canPropose() && !readOnly()" (openSource)="openNode.emit($event)"
+                            [editable]="canPropose() && !readOnly()" [canEditCategory]="canEditCategory()" (openSource)="openNode.emit($event)"
                             (edit)="requestChange.emit({ mode: 'property', property: $event })" />
         }
+      } @else if (tab() === 'history') {
+        <nx-node-history [nodeId]="d.nodeId!" [nodeName]="d.name ?? ''" [hierarchyCode]="hierarchyCode()" />
+      } @else if (tab() === 'ownership') {
+        <nx-node-ownership [nodeId]="d.nodeId!" [nodeName]="d.name ?? ''" [slice]="slice()" (openNode)="openNode.emit($event)" />
       } @else {
         <h3 class="sub">{{ t.placement }}</h3>
         <ol class="path" data-testid="node-path">

@@ -29,8 +29,11 @@ export class PropertyGridComponent {
   readonly edit = output<PropertyValue>();
   protected readonly change = STRINGS.change;
 
+  /** Whether the user's grants cover a property category (ADR-036); a hint only, the server decides. */
+  readonly canEditCategory = input<(category: string | null) => boolean>(() => true);
+
   protected canEdit(p: PropertyValue): boolean {
-    return this.editable() && p.provenance !== 'derived';
+    return this.editable() && p.provenance !== 'derived' && this.canEditCategory()(p.category ?? null);
   }
 
   protected readonly t = STRINGS.properties;
