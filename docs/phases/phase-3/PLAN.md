@@ -138,9 +138,10 @@ Drag and drop is not built (UI_STANDARD §6 makes it optional; "Move to…" is t
 **Still not built:** AI suggestions (Phase 7, deferred) and notifications (GOV-08 / GOV-16), as the owner said. UBO results,
 cross-holding calculation and editing ownership stay in Phase 6; read filtering by property category stays in Phase 5.
 
-## Third scope extension (repository owner, 2026-11-12: "lets implement the versioning"; ADR-037) — awaiting approval
-Design: Phase 3 LLD, "Third scope extension: versions" (V.1 to V.8). The owner chose every ADR-037 recommendation; this plan
-and refinements R1 to R4 wait for approval before any code. One commit per increment, each after a green run.
+## Third scope extension (repository owner, 2026-11-12: "lets implement the versioning"; ADR-037) — approved and built
+Design: Phase 3 LLD, "Third scope extension: versions" (V.1 to V.8; V.9 records what was built differently). The owner chose
+every ADR-037 recommendation and approved this plan, R1 to R4 and the column privilege on 2026-11-12 ("Build it as designed").
+One commit per increment, each after a green run (commits in SUMMARY).
 
 | # | Increment | Capabilities | Tests |
 |---|---|---|---|
@@ -152,5 +153,5 @@ and refinements R1 to R4 wait for approval before any code. One commit per incre
 
 **Not in this extension:** VER-03 exports of a past picture (Phase 8), VER-04 baseline compare (Phase 5), VER-05 aliases
 (Phase 8), VER-06 (retired as a feature), VER-07 version properties (discovery). Golden parity of versions waits for Phase 4.
-**For your approval with this plan:** refinements R1 to R4 in ADR-037, including the new column privilege for the API role
+**Approved with this plan (2026-11-12):** refinements R1 to R4 in ADR-037, including the new column privilege for the API role
 (`UPDATE (version_id)` on `mdm.change_request`, still limited to drafts by `N2102`).

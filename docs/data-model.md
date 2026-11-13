@@ -5,7 +5,8 @@ PostgreSQL 16. The files are Flyway migrations in `services/mdm-api/src/main/res
 V1–V3 form the core model and work on their own. V4–V6 are the workflow layer, its bridge, and commit policies.
 V7 sets the database roles and privileges; V8 adds entitlements and idempotency keys (Phase 1). V9 holds the Phase 2
 workflow objects (configuration audit, governed membership, stage progression, worklist, outbox offsets, admin functions).
-V10 holds the Phase 3 UI support: user preferences and the trigram search indexes.
+V10 holds the Phase 3 UI support: user preferences and the trigram search indexes. V11 adds versions (VER-01, VER-02):
+the version lifecycle, its guard and transition log, and the freeze lock.
 
 ## What's in each file
 
@@ -21,6 +22,7 @@ V10 holds the Phase 3 UI support: user preferences and the trigram search indexe
 | `V8__entitlements.sql` | Roles and bitemporal role grants scoped to all hierarchies, one hierarchy or a sub-tree (ADR-022), idempotency keys (ADR-015). (`system_setting` moved to V1 in Phase 2.) |
 | `V9__workflow_phase2.sql` | Phase 2 workflow: `wf.config_audit`, governed membership changes, stage progression (`advance_instance`, `complete_stage`), model loading and four-eyes activation, refusal reasons (`why_cannot_act`), worklist functions, commit-policy administration, outbox consumer offsets, and the owner-run grants for all of these |
 | `V10__ui_support.sql` | Phase 3 UI support: `mdm.user_preference` (start page, last hierarchy, density; not governed; the API writes values of the caller's own row only, no delete, `wf` cannot write it), `pg_trgm` and trigram indexes on `node_attr.node_name` and `description` (current belief) for in-tree search; `mdm.user_role.category_codes` (NULL = every property category; ADR-036 property edit rights by category) |
+| `V11__versions.sql` | Versions (VER-01, VER-02; ADR-037): role `VERSION_ADMIN`; `mdm.version` gains created and submitted (by, at), `revision` (the ETag) and the CHECK `version_lifecycle_fields` (the pin, submit and finalize fields agree with the status); `mdm.version_transition` (append-only log written only by the guard); `trg_version_guard` (lifecycle, frozen fields, four eyes to finalize `N1029`, people only `N1030`, no delete, submit refused while requests are in flight `N2704`); `trg_cr_version_working` (a request is created in, moved to or advanced in a working version only, `N2703`, and an apply under a pin taken after its transaction began is refused with `40001` so it retries); the freeze lock (advisory key 11, 37: submit exclusive, apply shared); `create_version`, `update_version`, `transition_version`, `is_version_admin` (EXECUTE for `nexus_api`, no direct write on `mdm.version`); `user_preference.working_version_id`; column privilege `UPDATE (version_id)` on `change_request` (drafts only, through N2102); warning rule `NEXUS.VERSION_DATE` in `validate_change_request` |
 
 ## Write path (Phase 1)
 
@@ -189,8 +191,8 @@ Anything written outside it (for example by the owner role in tests) is audited 
 
 ## Known gaps and next steps
 
-- **Runs on PostgreSQL 16** (verified 2026-11-12, Phase 3): `scripts/db-test` applies V1–V10 to a fresh database and the
-  332 pgTAP tests in `db/tests` pass. Phase 1 closed D-04, D-05, D-07 and D-29; Phase 2 closed D-06, D-10 to D-15, D-32 and D-33; the remaining
+- **Runs on PostgreSQL 16** (verified 2026-11-13, Phase 3): `scripts/db-test` applies V1–V11 to a fresh database and the
+  411 pgTAP tests in `db/tests` pass. Phase 1 closed D-04, D-05, D-07 and D-29; Phase 2 closed D-06, D-10 to D-15, D-32 and D-33; the remaining
   gaps (D-22 and later-phase items) are listed in `docs/design/DESIGN_STATE.md` (OD-18).
 - Bulk inserts of many placements into a large hierarchy with stale statistics are slow (the cycle-check plan); loads
   must refresh statistics between batches (Phase 4).

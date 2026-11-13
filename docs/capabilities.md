@@ -30,7 +30,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 - **Decision / priority / phase:** Improve / — / 3 - Steward UI (third scope extension, ADR-037)
 - **Legacy behaviour:** Create a version, typically by copying the prior period's finalized version.
-- **Target design:** mdm.version as a named data slice (no physical copy).
+- **Target design:** mdm.version as a named data slice (no physical copy). A copy is a new name on its base's slice and takes its base's business date unless given one (ADR-037; built in Phase 3, V11).
 - **Acceptance criteria (draft):** A new period version can be created and shows identical data to its base at creation.
 - **Golden test source:** Version list + node counts per version
 
@@ -38,7 +38,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 - **Decision / priority / phase:** Parity / — / 3 - Steward UI (third scope extension, ADR-037)
 - **Legacy behaviour:** Working → Submitted → Finalized → Expired; finalized versions are read-only.
-- **Target design:** mdm.version.status; finalized versions pin recorded_as_of.
+- **Target design:** mdm.version.status with a guarded lifecycle (V11). Submitting pins recorded_as_of, reopening clears it, and finalize and expire keep it; a second version administrator finalizes (ADR-037; built in Phase 3).
 - **Acceptance criteria (draft):** Edits are rejected in submitted/finalized versions; finalized data is unchanged by later corrections.
 - **Golden test source:** Exports from past finalized versions
 

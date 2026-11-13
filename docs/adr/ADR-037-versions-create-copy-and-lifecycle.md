@@ -1,6 +1,6 @@
 # ADR-037: Versions: create, copy and status lifecycle (VER-01, VER-02)
 
-- **Status:** Accepted (repository owner, 2026-11-12: every recommendation, D1 to D5); D4 Audit-Risk confirmation pending (OD-45a). Refinements R1 to R4 from the detailed design await the owner's approval with the Phase 3 LLD section "Third scope extension: versions"
+- **Status:** Accepted (repository owner, 2026-11-12: every recommendation, D1 to D5); D4 Audit-Risk confirmation pending (OD-45a). Refinements R1 to R4 from the detailed design were approved by the owner with the Phase 3 LLD section "Third scope extension: versions" on 2026-11-12 ("Build it as designed") and built in Phase 3 increments 3-23 to 3-27
 - **Date:** 2026-11-12
 - **Deciders:** Repository owner (D1, D2, D3, D5); repository owner, then Audit-Risk confirmation (D4)
 - **Capabilities:** VER-01, VER-02 (VER-03 to VER-07 are placed, not built)

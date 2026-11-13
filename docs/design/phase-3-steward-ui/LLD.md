@@ -446,10 +446,12 @@ The owner added the remaining editing screens to Phase 3 (Phase 3 plan, "Scope e
   target chosen. Keyboard users use "Move to…".
 - **Property edit rights by category:** ADR-036.
 
-## Third scope extension: versions (repository owner, 2026-11-12; ADR-037) — designed, awaiting approval
+## Third scope extension: versions (repository owner, 2026-11-12; ADR-037) — built
 The owner asked for versioning and chose every ADR-037 recommendation: named slices (D2 A), freeze at submit (D3 A),
 `VERSION_ADMIN` with a second person to finalize, people only (D4 A), and VER-01 and VER-02 in Phase 3 (D5 A). ADR-037 R1 to R4
-are refinements found while writing this section. **No code until the owner approves this section and plan increments 3-23 to 3-27.**
+are refinements found while writing this section. The owner approved this section, R1 to R4 and the `version_id` column
+privilege on 2026-11-12 ("Build it as designed"); increments 3-23 to 3-27 built it. What differs from the text below is in
+V.9.
 
 ### V.1 Scope
 | In | Out (and where it goes) |
@@ -608,3 +610,34 @@ New codes, to register in `CONSISTENCY_REVIEW.md` §3:
   retried, up to `TX_RETRY_MAX` times. If every retry fails, it is recorded `apply_failed` ("retry-later"), as for any
   technical failure today.
 - **Names are unique across every status (V1).** An expired version's name cannot be reused.
+
+### V.9 Built (increments 3-23 to 3-27, 2026-11-12 to 2026-11-13)
+Built as V.1 to V.8, with these differences. None of them changes a guard.
+- **API**
+  - `VersionView` also has `edit{allowed, whyNot}`, so the UI never decides who may rename a version. The texts are "Only a
+    version administrator can edit versions", "A finalized version can only be expired" and "An expired version cannot be
+    changed". Working and submitted versions can be edited.
+  - A copy without a business date takes its base's date, so it shows its base's picture (VER-01).
+  - An unknown version name, in `PUT /me/preferences`, `PATCH /change-requests/{id}` or a copy's base, is a 400 at the field.
+    A known version that is not working is a 422 with N2703's words.
+  - A `PATCH /versions/{name}` that changes nothing makes no write and keeps the revision.
+  - Search, path, impact, owners and holdings, and home needed no change. They already take the whole slice (`asOf` and
+    `recordedAsOf`) from the same parameters, so V.5's check found nothing to add.
+- **UI**
+  - "Move to version…" and "Withdraw" after N2703 are on Review and submit, where submitting happens, not in the tray. The
+    tray only names the draft's version.
+  - The Versions page opens on All (V.6 lists the chips, not the default), so a version stays in view after a transition.
+    Under a status chip the list reloads, and a version that has left that status drops out.
+  - A refused choice in the context-bar picker shows inline under the picker. Toasts are kept for success.
+  - `hierarchiesGuard` keeps the query string when it redirects `/hierarchies` to a hierarchy, so "Open picture" keeps the
+    picture's slice.
+  - Story play functions find controls by role and name, as the end-to-end tests do.
+- **Tests**
+  - `08-versions.spec.ts` raises its requests as `e2e_architect`. `e2e_steward` still has an open draft from spec 04, and one
+    draft at a time is the tray's rule.
+  - Once the version is submitted, the architect's choice is no longer working, so the next request falls back to
+    `E2E working` (V.5). The spec asserts that fallback instead of choosing it again.
+- **Known gaps** (recorded in the test report)
+  - No index on `mdm.change_request(version_id)`. Counting a version's requests in flight scans the table. This is acceptable
+    at today's volumes; it is listed for Phase 9 hardening.
+  - Definitions drift (D-08), as V.8.

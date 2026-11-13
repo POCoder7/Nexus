@@ -73,10 +73,10 @@
 
 - **Intent:** give DRM's "versions" a meaning without copying data.
 - **Problem in Nexus:** stewards and exports work on named versions (FY26_Oct); copying whole hierarchies per period is slow and drifts.
-- **Solution:** `mdm.version(business_as_of, recorded_as_of)`. A working version reads recorded time = now; a finalized
-  version pins `recorded_as_of` (CHECK exists). Every read takes a version or an explicit (asOf, recordedAsOf) pair.
-  Planned additions: version aliases (VER-05, "to add"), version-level properties (VER-07), status-transition guard
-  (VER-02: edits rejected in submitted/finalized versions).
+- **Solution:** `mdm.version(business_as_of, recorded_as_of)`. A working version reads recorded time = now; submitting
+  pins `recorded_as_of`, reopening clears it, and finalize and expire keep it (ADR-037, V11; the V1 CHECK still holds). Every read takes a version or an explicit (asOf, recordedAsOf) pair.
+  Planned additions: version aliases (VER-05, "to add") and version-level properties (VER-07). The status-transition
+  guard (VER-02) was built in Phase 3 (V11).
 - **Invariants:** a finalized version's reads never change; `version_name` unique.
 - **Where applied:** exists in V1 `mdm.version` and V3 `mdm.export_drm`. Planned: Phase 1 read API, Phase 5 VER-*, Phase 8 exports.
 - **Trade-offs / failure modes:** a slice only freezes facts, not definitions (D-08). Two working versions with
@@ -490,6 +490,10 @@
 | P-11 Keyset paging, lazy tree | `HierarchyStore.visibleRows` (flattened rows, LLD §7.1), "Show next 200" pages, CDK virtual viewport; search reveal with a five-page bound (§7.2) |
 | P-21 Caching immutable slices | Children pages cached per open hierarchy and slice; a new as-of date starts a new cache |
 | P-18 Provenance | `nx-property-grid` marker per value: icon + text + `--nx-color-provenance-*` |
+| P-02 Version slices (VER-01, VER-02) | `mdm.version` lifecycle in V11 (ADR-037): the pin is set at submit, cleared at reopen, kept at finalize. A picture is read through the existing endpoints with `asOf` = business date and `recordedAsOf` = pin (`ContextStore.openPicture`); a copy is a new name on the same slice, never copied rows |
+| P-24 Guards | `trg_version_guard` (lifecycle, four eyes, people only, in-flight requests at submit) and `trg_cr_version_working` (V11); the freeze lock (advisory key 11, 37) orders submit against apply, and an apply that overlaps a pin retries on `40001` |
+| P-17 Entitlements (server-computed reasons) | `VersionService.whyNot` and `editWhyNot` compute each transition's and the edit's `{allowed, whyNot}` read-only from the database's rules; `nx-versions-table` renders them, so the UI holds no rule |
+| P-10 Optimistic concurrency | `mdm.version.revision` is the ETag; `PATCH` and transitions need If-Match (428, 412) |
 
 ## Where each pattern is applied (index, consistency review 2026-11-11)
 

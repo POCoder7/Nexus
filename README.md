@@ -57,7 +57,8 @@ Phase 3 (steward UI) built, awaiting gate approval: an Angular 22 UI in `ui/` wi
 search, the property grid with provenance, every editing action through the change-request tray (add leaf, edit details
 and properties, place, move, remove, delete, new hierarchy, drag and drop), History and Ownership tabs, a before/after
 view, property edit rights by category, review and submit, worklist and request pages with the
-workflow timeline. Phase 2 (governance) and Phase 1 (core write path) approved. Migrations V1–V10 apply on a fresh
-PostgreSQL 16 database and all 334 pgTAP tests pass; the API's 116 tests pass; the UI's 46 unit tests, 35 stories and
-32 end-to-end journeys pass with accessibility checks (verified 2026-11-12).
+workflow timeline, and versions (create and copy, the lifecycle to finalized and expired, a working-version picker and
+read-only version pictures). Phase 2 (governance) and Phase 1 (core write path) approved. Migrations V1–V11 apply on a
+fresh PostgreSQL 16 database and all 411 pgTAP tests pass; the API's 126 tests pass; the UI's 64 unit tests, 49 stories
+and 38 end-to-end journeys pass with accessibility checks (verified 2026-11-13).
 Current progress: [docs/BUILD_STATE.md](docs/BUILD_STATE.md).

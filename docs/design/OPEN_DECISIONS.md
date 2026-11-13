@@ -157,7 +157,7 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | ADR-034 | Observability: structured logs, Micrometer, OpenTelemetry | Accepted 2026-11-11 | Dependencies approved in the Phase 9 plan |
 | ADR-035 | Engine-neutral workflow driver | Accepted 2026-11-11 (repository owner) | |
 | ADR-036 | Property edit rights by category | Accepted 2026-11-12 (repository owner) | Security confirmation pending with ADR-022 |
-| ADR-037 | Versions: create, copy and status lifecycle | Accepted 2026-11-12 (refinements R1 to R4 await approval with the Phase 3 LLD section) | OD-45; D4 Audit-Risk confirmation pending (OD-45a) |
+| ADR-037 | Versions: create, copy and status lifecycle | Accepted 2026-11-12; refinements R1 to R4 approved with the Phase 3 LLD section the same day; built in Phase 3 (3-23 to 3-27) | OD-45; D4 Audit-Risk confirmation pending (OD-45a) |
 | ADR-027 | Golden datasets: masking and storage | Accepted 2026-11-11 (owner); Security/Audit-Risk confirmation pending | OD-31a, OD-32a |
 | ADR-009 | Golden testing as the parity standard | Accepted 2026-11-11 (OD-33) | |
 | ADR-005 to ADR-008 | (existing) | Proposed | Unchanged by this design |
