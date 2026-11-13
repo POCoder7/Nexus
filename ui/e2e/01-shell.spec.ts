@@ -8,7 +8,7 @@ test.describe('Shell and start page', () => {
     await page.goto('/');
     await expect(page).toHaveURL(/\/home$/);
     await expect(page.getByTestId('signed-in-user')).toContainText('E2E Steward');
-    await expect(page.getByTestId('context-version')).toHaveText('E2E working');
+    await expect(page.getByTestId('context-version')).toHaveValue('E2E working');   // the working-version picker (LLD V.6)
     // "today" is the server's business date even though the browser runs in another time zone (ADR-018)
     await expect(page.getByLabel('Viewing as of')).toHaveValue(await businessToday());
     await expect(page.getByTestId('home-hierarchies')).toContainText('E2E Legal Group');

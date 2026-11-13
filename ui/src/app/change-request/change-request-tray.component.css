@@ -25,3 +25,7 @@
   margin: 0;
   color: var(--nx-color-status-error);
 }
+
+.tray__version {
+  font-weight: var(--nx-font-weight-strong);
+}

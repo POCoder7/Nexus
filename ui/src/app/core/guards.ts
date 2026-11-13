@@ -20,8 +20,11 @@ export const startPageGuard: CanActivateFn = async () => {
   }
 };
 
-/** `/hierarchies` → the last hierarchy used, else the first readable one, else Home. */
-export const hierarchiesGuard: CanActivateFn = async () => {
+/**
+ * `/hierarchies` → the last hierarchy used, else the first readable one, else Home. It keeps its query parameters, so
+ * "Open picture" (`?asOf=&recordedAsOf=&version=`) survives the redirect.
+ */
+export const hierarchiesGuard: CanActivateFn = async (route) => {
   const context = inject(ContextStore);
   const prefs = inject(PreferencesStore);
   const router = inject(Router);
@@ -29,12 +32,12 @@ export const hierarchiesGuard: CanActivateFn = async () => {
   await context.load();
   const last = prefs.lastHierarchy();
   if (last) {
-    return router.createUrlTree(['/hierarchies', last]);
+    return router.createUrlTree(['/hierarchies', last], { queryParams: route.queryParams });
   }
   try {
     const page = await api.hierarchies();
     const first = page.items?.[0]?.code;
-    return first ? router.createUrlTree(['/hierarchies', first]) : router.parseUrl('/home');
+    return first ? router.createUrlTree(['/hierarchies', first], { queryParams: route.queryParams }) : router.parseUrl('/home');
   } catch {
     return router.parseUrl('/home');
   }

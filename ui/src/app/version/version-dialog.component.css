@@ -1,0 +1,22 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-4);
+}
+
+.summary {
+  padding: var(--nx-space-4);
+  border: var(--nx-border-width) solid var(--nx-color-status-error);
+  border-radius: var(--nx-radius-1);
+  color: var(--nx-color-status-error);
+}
+
+.summary p,
+.summary ul {
+  margin: 0;
+}
+
+.summary a {
+  color: var(--nx-color-status-error);
+}
+

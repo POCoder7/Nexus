@@ -1,0 +1,46 @@
+.scroll {
+  position: relative;
+  overflow-x: auto;
+  border: var(--nx-border-width) solid var(--nx-color-border-default);
+  border-radius: var(--nx-radius-1);
+}
+
+.name {
+  font-weight: var(--nx-font-weight-strong);
+  color: var(--nx-color-text-primary);
+}
+
+.description {
+  display: block;
+  font-weight: var(--nx-font-weight-regular);
+  font-size: var(--nx-font-size-label);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--nx-space-3);
+}
+
+.action {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--nx-space-1);
+  max-width: 18rem;
+}
+
+.why {
+  font-size: var(--nx-font-size-label);
+  color: var(--nx-color-text-secondary);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--nx-space-5);
+  color: var(--nx-color-text-secondary);
+}
+
+.more {
+  padding: var(--nx-space-3);
+}

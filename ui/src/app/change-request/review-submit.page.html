@@ -1,19 +1,51 @@
 <section class="nx-page">
   <h1>{{ t.title }}</h1>
   @if (request(); as r) {
-    <p class="nx-muted">{{ r.title }} · <span class="nx-identifier">{{ r.id }}</span> · {{ r.effectiveFrom | nxDate }}</p>
+    <p class="nx-muted">
+      {{ r.title }} · <span class="nx-identifier">{{ r.id }}</span> · {{ r.effectiveFrom | nxDate }}
+      @if (r.versionName) {
+        · <span data-testid="review-version">{{ t.version(r.versionName) }}</span>
+      }
+    </p>
     @if (r.status !== 'draft') {
       <p role="status">{{ t.notDraft }} <a [routerLink]="['/requests', r.id]">{{ r.id }}</a></p>
     }
   }
 
   @if (error(); as e) {
-    <div class="nx-card" role="alert">
+    <div class="nx-card" role="alert" data-testid="review-error">
+      @if (notWorking()) {
+        <h2>{{ t.notWorkingTitle }}</h2>
+      }
       <p class="nx-error-text">{{ e.detail }}</p>
       @if (e.correlationId) {
         <p class="nx-muted">{{ common.correlationId }}: <span class="nx-identifier">{{ e.correlationId }}</span></p>
       }
     </div>
+  }
+
+  @if (notWorking() && request()?.status === 'draft') {
+    <section class="nx-card" aria-labelledby="nx-move-title" data-testid="version-move">
+      <h2 id="nx-move-title">{{ t.moveTo }}</h2>
+      @if (targets().length === 0) {
+        <p>{{ t.noWorkingVersions }}</p>
+      } @else {
+        <ds-field [label]="t.moveTarget" for="nx-move-target">
+          <select id="nx-move-target" [value]="moveTarget()" (change)="moveTarget.set($any($event.target).value)">
+            <option value="">{{ t.moveChoose }}</option>
+            @for (v of targets(); track v.name) {
+              <option [value]="v.name">{{ optionText(v) }}</option>
+            }
+          </select>
+        </ds-field>
+      }
+      <div class="actions">
+        @if (targets().length > 0) {
+          <ds-button variant="primary" [disabled]="moving() || !moveTarget()" (pressed)="move()">{{ t.move }}</ds-button>
+        }
+        <ds-button [disabled]="moving()" (pressed)="withdraw()">{{ t.withdraw }}</ds-button>
+      </div>
+    </section>
   }
 
   <nx-item-list [items]="items()" [findings]="errors()" [label]="t.items" />
@@ -50,7 +82,7 @@
 
   @if (request()?.status === 'draft') {
     <div class="actions">
-      <ds-button variant="primary" [disabled]="submitting() || validating() || errors().length > 0" (pressed)="submit()">
+      <ds-button variant="primary" [disabled]="submitting() || validating() || errors().length > 0 || notWorking()" (pressed)="submit()">
         {{ t.submit }}
       </ds-button>
     </div>

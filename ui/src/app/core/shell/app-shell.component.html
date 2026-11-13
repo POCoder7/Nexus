@@ -10,8 +10,12 @@
 
 <div class="context-bar" role="region" [attr.aria-label]="t.context.label">
   <span class="context-bar__item">
-    <span class="context-bar__label">{{ t.context.version }}</span>
-    <span data-testid="context-version">{{ context.workingVersion() ?? t.context.noVersion }}</span>
+    <nx-version-picker [versions]="context.workingVersions()" [value]="context.workingVersion()" [busy]="versionBusy()"
+                       (chosen)="chooseVersion($event)" />
+    <a routerLink="/versions" class="context-bar__link" data-testid="manage-versions">{{ t.context.manageVersions }}</a>
+    @if (versionError(); as ve) {
+      <span class="nx-error-text" role="alert" data-testid="version-error">{{ ve.detail }}</span>
+    }
   </span>
   <span class="context-bar__item">
     <ds-date-input inputId="nx-as-of" [label]="t.context.viewingAsOf" [value]="context.asOf()" (changed)="changeAsOf($event)" />
@@ -26,9 +30,12 @@
     </span>
   }
 </div>
-@if (context.isHistorical()) {
+@if (context.banner(); as banner) {
   <div class="historical" role="status" data-testid="historical-banner">
-    <span aria-hidden="true">◷ </span>{{ t.context.historicalBanner(asOfText()) }}
+    <span aria-hidden="true">◷ </span>{{ banner }}
+    @if (context.versionParam() || context.recordedAsOfParam()) {
+      <ds-button variant="link" (pressed)="changeAsOf(null)">{{ t.context.backToToday }}</ds-button>
+    }
   </div>
 }
 @if (context.loadError(); as error) {
@@ -53,6 +60,7 @@
           }
         </a>
       </li>
+      <li><a routerLink="/versions" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.versions }}</a></li>
       <li><a routerLink="/settings" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.settings }}</a></li>
     </ul>
   </nav>
@@ -63,6 +71,7 @@
 
 @if (tray.hasDraft() && !context.isHistorical()) {
   <nx-change-request-tray [count]="tray.count()" [failedCount]="tray.failed().length" [busy]="tray.busy()"
+                          [otherVersion]="trayOtherVersion()"
                           (review)="review()" (retry)="tray.retryFailed()" />
 }
 <ds-toast-host />

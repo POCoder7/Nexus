@@ -3,6 +3,9 @@
     <strong>{{ t.title }}</strong>
     <span class="tray__count" data-testid="tray-count">{{ t.items(count()) }}</span>
     <span class="tray__note">{{ t.note }}</span>
+    @if (otherVersion(); as v) {
+      <span class="tray__version" data-testid="tray-version">{{ t.inVersion(v) }}</span>
+    }
   </div>
   @if (failedCount() > 0) {
     <p class="tray__failed" role="alert"><span aria-hidden="true">✕ </span>{{ t.failed(failedCount()) }}</p>

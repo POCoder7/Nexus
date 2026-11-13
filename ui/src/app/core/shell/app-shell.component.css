@@ -111,3 +111,8 @@
     flex-basis: auto;
   }
 }
+
+.context-bar__link {
+  font-size: var(--nx-font-size-label);
+  color: var(--nx-color-text-link);
+}

@@ -78,6 +78,33 @@ describe('TrayStore', () => {
     expect(tray.count()).toBe(1);
   });
 
+  it('moves the draft it holds to another version and keeps the new ETag (LLD V.6)', async () => {
+    const { tray } = setup(() => null);
+    await tray.addLeaf(leaf);
+    const api = TestBed.inject(NexusApi) as unknown as Record<string, unknown>;
+    const moves: unknown[] = [];
+    api['moveRequest'] = async (id: string, etag: string, versionName: string) => {
+      moves.push({ id, etag, versionName });
+      return { body: { id, status: 'draft', versionName }, etag: '"20"' };
+    };
+    await tray.moveTo('cr1', tray.currentEtag(), 'Synthetic other');
+    expect(moves).toEqual([{ id: 'cr1', etag: '"4"', versionName: 'Synthetic other' }]);
+    expect(tray.request()?.versionName).toBe('Synthetic other');
+    expect(tray.currentEtag()).toBe('"20"');
+  });
+
+  it('empties when the draft it holds is withdrawn, and not for another request', async () => {
+    const { tray } = setup(() => null);
+    await tray.addLeaf(leaf);
+    const api = TestBed.inject(NexusApi) as unknown as Record<string, unknown>;
+    api['withdraw'] = async (id: string) => ({ body: { id, status: 'withdrawn' }, etag: '"30"' });
+    await tray.withdraw('other', '"1"');
+    expect(tray.count()).toBe(3);
+    await tray.withdraw('cr1', tray.currentEtag());
+    expect(tray.request()).toBeNull();
+    expect(tray.count()).toBe(0);
+  });
+
   it('on 412 reloads the request and asks the user to repeat the action', async () => {
     const { tray } = setup((cmd) => (cmd.action === 'add_node'
       ? new HttpErrorResponse({ status: 412, headers: new HttpHeaders(), error: { detail: 'stale' } }) : null));

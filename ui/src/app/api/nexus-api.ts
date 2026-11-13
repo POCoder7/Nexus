@@ -5,7 +5,7 @@ import * as fn from './generated/functions';
 import type {
   ChangeRequestView, CreateRequest, DecisionResult, HomeView, Impact, InstanceView, ItemCommand, ItemView, MeView, NodeDetail,
   NodePath, PageChangeRequestView, PageHistoryEvent, PageOwnershipEdge, PageChildNode, PageHierarchySummary, PageItemView, PageSearchHit, Preferences,
-  PreferencesUpdate, SubmitForm, ValidationReport, WorklistPage,
+  PreferencesUpdate, SubmitForm, ValidationReport, WorklistPage, CreateVersion, PageVersionView, UpdateVersion, VersionView,
 } from './generated/models';
 import { HierarchySummary } from './generated/models';
 
@@ -137,6 +137,42 @@ export class NexusApi {
     return this.api.invoke(fn.getWorklist, { view, search, model, limit, cursor });
   }
 
+  /** Versions, newest business date first (VER-01, VER-02). `status` undefined = every status. */
+  versions(status?: string, cursor?: string, limit = 50): Promise<PageVersionView> {
+    return this.api.invoke(fn.listVersions, { status, cursor, limit });
+  }
+
+  async version(name: string): Promise<Tagged<VersionView>> {
+    const r = await this.api.invoke$Response(fn.getVersion, { name });
+    return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  async createVersion(body: CreateVersion, key: string): Promise<Tagged<VersionView>> {
+    const r = await this.api.invoke$Response(fn.createVersion, { body }, idem(key));
+    return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  async updateVersion(name: string, etag: string, body: UpdateVersion): Promise<Tagged<VersionView>> {
+    const r = await this.api.invoke$Response(fn.updateVersion, { name, 'If-Match': etag, body });
+    return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  async transitionVersion(name: string, etag: string, to: string, reason: string | undefined): Promise<Tagged<VersionView>> {
+    const r = await this.api.invoke$Response(fn.transitionVersion, { name, 'If-Match': etag, body: { to, reason } });
+    return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  /** Moves a draft to another working version (ADR-037); the server refuses a target that is not working. */
+  async moveRequest(id: string, etag: string, versionName: string): Promise<Tagged<ChangeRequestView>> {
+    const r = await this.api.invoke$Response(fn.updateChangeRequest, { id, 'If-Match': etag, body: { versionName } });
+    return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  async withdraw(id: string, etag: string): Promise<Tagged<ChangeRequestView>> {
+    const r = await this.api.invoke$Response(fn.withdrawChangeRequest, { id, 'If-Match': etag, body: {} });
+    return { body: r.body as ChangeRequestView, etag: etagOf(r.headers.get('ETag')) };
+  }
+
   reportClientError(status: number, type: string | null, correlationId: string | null, route: string): Promise<void> {
     return this.api.invoke(fn.reportClientError,
       { body: { status, type: type ?? undefined, correlationId: correlationId ?? undefined, route } },
@@ -151,6 +187,11 @@ function idem(key: string): HttpContext {
 /** ETags are quoted row versions (ADR-015); kept as sent so they can be echoed in If-Match. */
 function etagOf(header: string | null): string {
   return header ?? '';
+}
+
+/** The ETag of a row version as the server sends it (ADR-015), for a write from a list row. */
+export function etagOfRevision(revision: number | undefined): string {
+  return `"${revision ?? 0}"`;
 }
 
 /** A fresh key per user action. */

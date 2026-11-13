@@ -1,6 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { Injectable, computed, effect, inject } from '@angular/core';
 import { NexusApi } from '../api/nexus-api';
+import type { Preferences } from '../api/generated/models';
 import { ContextStore } from './context.store';
 import { PREFERENCE_DEBOUNCE_MS } from './config';
 
@@ -30,6 +31,16 @@ export class PreferencesStore {
     this.patch(prefs);
   }
 
+  /** Chooses the working version new requests are raised in (ADR-037). The server refuses a version that is not working. */
+  async saveWorkingVersion(name: string): Promise<void> {
+    const prefs = await this.api.updatePreferences({ workingVersion: name });
+    this.patch(prefs);
+    const me = this.context.me();
+    if (me) {
+      this.context.me.set({ ...me, workingVersion: prefs.workingVersion ?? name });
+    }
+  }
+
   /** Remembers the hierarchy in view, debounced (LLD §5.2), so Hierarchies reopens it. */
   rememberHierarchy(code: string): void {
     if (this.pendingHierarchy) {
@@ -43,7 +54,7 @@ export class PreferencesStore {
     }, PREFERENCE_DEBOUNCE_MS);
   }
 
-  private patch(prefs: { startPage?: string; density?: string; lastHierarchyCode?: string }): void {
+  private patch(prefs: Preferences): void {
     const me = this.context.me();
     if (me) {
       this.context.me.set({ ...me, preferences: { ...me.preferences, ...prefs } });

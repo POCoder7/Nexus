@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { NexusApi, newIdempotencyKey } from '../api/nexus-api';
+import { NexusApi, Tagged, newIdempotencyKey } from '../api/nexus-api';
 import type { ChangeRequestView, ItemCommand, ItemView } from '../api/generated/models';
 import { ADD_LEAF_MODEL, MAINTAIN_MODEL } from '../core/config';
 import { ContextStore } from '../core/context.store';
@@ -132,6 +132,28 @@ export class TrayStore {
     this.request.set(body.status === 'draft' ? body : null);
     this.items.set(body.status === 'draft' ? (items.items ?? []) : []);
     this.etag = etag;
+  }
+
+  /**
+   * Moves a draft to another working version (ADR-037; after `N2703`, Phase 3 LLD V.6): `PATCH versionName` with If-Match.
+   * The server refuses a target that is not working. The tray follows when it holds this draft.
+   */
+  async moveTo(id: string, etag: string, versionName: string): Promise<Tagged<ChangeRequestView>> {
+    const moved = await this.api.moveRequest(id, etag, versionName);
+    if (this.request()?.id === id) {
+      this.request.set(moved.body);
+      this.etag = moved.etag;
+    }
+    return moved;
+  }
+
+  /** Withdraws a draft (the requester only; the database re-checks). The tray empties when it held this draft. */
+  async withdraw(id: string, etag: string): Promise<Tagged<ChangeRequestView>> {
+    const withdrawn = await this.api.withdraw(id, etag);
+    if (this.request()?.id === id) {
+      this.reset();
+    }
+    return withdrawn;
   }
 
   /** After submit (or withdraw) the tray is empty until the next draft. */

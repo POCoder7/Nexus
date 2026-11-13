@@ -1,0 +1,69 @@
+@if (rows().length === 0 && !loading()) {
+  <p class="empty" role="status" data-testid="versions-empty">{{ emptyText() }}</p>
+} @else {
+  <div class="scroll" tabindex="0" role="region" [attr.aria-label]="t.tableLabel">
+    <table dsTable [attr.aria-busy]="loading()" data-testid="versions-table">
+      <caption class="nx-visually-hidden">{{ t.tableLabel }}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{{ t.columns.name }}</th>
+          <th scope="col">{{ t.columns.businessAsOf }}</th>
+          <th scope="col">{{ t.columns.status }}</th>
+          <th scope="col">{{ t.columns.frozenAt }}</th>
+          <th scope="col">{{ t.columns.base }}</th>
+          <th scope="col">{{ t.columns.actions }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (v of rows(); track v.name; let i = $index) {
+          <tr [attr.data-version]="v.name">
+            <th scope="row" class="name">
+              {{ v.name }}
+              @if (v.description) {
+                <span class="description nx-muted">{{ v.description }}</span>
+              }
+            </th>
+            <td>{{ v.businessAsOf | nxDate }}</td>
+            <td><ds-badge [tone]="tone(v.status)" data-testid="version-status">{{ t.statuses[v.status ?? ''] ?? v.status }}</ds-badge></td>
+            <td>{{ v.recordedAsOf ? (v.recordedAsOf | nxInstant: timeZone()) : t.notFrozen }}</td>
+            <td>{{ v.baseVersion ?? '—' }}</td>
+            <td>
+              <div class="actions">
+                <ds-button variant="link" (pressed)="openPicture.emit(v)">
+                  {{ t.openPicture }}<span class="nx-visually-hidden"> {{ v.name }}</span>
+                </ds-button>
+                @if (canAdmin()) {
+                  @for (tr of v.transitions ?? []; track tr.to) {
+                    <span class="action">
+                      <ds-button [variant]="tr.to === 'finalized' || tr.to === 'expired' ? 'danger' : 'secondary'"
+                                 [disabled]="!tr.allowed" [describedBy]="tr.allowed || !tr.whyNot ? null : whyId(i, tr.to ?? '')"
+                                 (pressed)="transition.emit({ version: v, to: tr.to ?? '' })">
+                        {{ verb(tr) }}<span class="nx-visually-hidden"> {{ v.name }}</span>
+                      </ds-button>
+                      @if (!tr.allowed && tr.whyNot) {
+                        <span class="why" [id]="whyId(i, tr.to ?? '')" data-testid="why-not">{{ tr.whyNot }}</span>
+                      }
+                    </span>
+                  }
+                  @if (v.edit; as e) {
+                    <span class="action">
+                      <ds-button [disabled]="!e.allowed" [describedBy]="e.allowed || !e.whyNot ? null : whyId(i, 'edit')" (pressed)="edit.emit(v)">
+                        {{ t.edit }}<span class="nx-visually-hidden"> {{ v.name }}</span>
+                      </ds-button>
+                      @if (!e.allowed && e.whyNot) {
+                        <span class="why" [id]="whyId(i, 'edit')" data-testid="why-not">{{ e.whyNot }}</span>
+                      }
+                    </span>
+                  }
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+@if (hasMore()) {
+  <div class="more"><ds-button [disabled]="loading()" (pressed)="loadMore.emit()">{{ t.loadMore }}</ds-button></div>
+}

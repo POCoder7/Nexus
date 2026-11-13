@@ -1,0 +1,60 @@
+<ds-dialog-frame [title]="editing ? t.editTitle(editing.name ?? '') : t.createTitle" [titleId]="titleId" [closeLabel]="common.close"
+                 (closed)="close()">
+  <form id="nx-version-form" class="form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    @if (summary().length > 0 || serverError()) {
+      <div id="nx-version-summary" class="summary" role="alert" tabindex="-1" data-testid="version-summary">
+        @if (summary().length > 0) {
+          <p>{{ t.errorSummary }}</p>
+          <ul>
+            @for (e of summary(); track e.field) {
+              <li><a [href]="'#' + fieldId(e.field)" (click)="focusField(e.field, $event)">{{ e.message }}</a></li>
+            }
+          </ul>
+        }
+        @if (serverError(); as se) {
+          <p>{{ se.detail }}</p>
+          @if (se.correlationId) {
+            <p class="nx-muted">{{ common.correlationId }}: <span class="nx-identifier">{{ se.correlationId }}</span></p>
+          }
+        }
+      </div>
+    }
+
+    <ds-field [label]="t.name" [for]="fieldId('name')" [required]="true" [requiredText]="common.required" [hint]="t.nameHint"
+              [error]="errorFor('name')">
+      <input [id]="fieldId('name')" formControlName="name" autocomplete="off" [attr.maxlength]="100"
+             [attr.aria-invalid]="!!errorFor('name')" [attr.aria-describedby]="describedBy('name', true)" />
+    </ds-field>
+
+    @if (!editing) {
+      <ds-field [label]="t.base" [for]="fieldId('baseVersion')" [hint]="t.baseHint" [error]="errorFor('baseVersion')">
+        <select [id]="fieldId('baseVersion')" formControlName="baseVersion" [attr.aria-invalid]="!!errorFor('baseVersion')"
+                [attr.aria-describedby]="describedBy('baseVersion', true)">
+          <option value="">{{ t.baseNone }}</option>
+          @for (b of bases(); track b.name) {
+            <option [value]="b.name">{{ b.name }}</option>
+          }
+        </select>
+      </ds-field>
+      @if (basesError(); as be) {
+        <p class="nx-error-text" role="alert">{{ be.detail }}</p>
+      }
+      <ds-field [label]="t.businessAsOf" [for]="fieldId('businessAsOf')" [required]="!baseDate()" [requiredText]="common.required"
+                [hint]="dateHint()" [error]="errorFor('businessAsOf')">
+        <input type="date" [id]="fieldId('businessAsOf')" formControlName="businessAsOf"
+               [attr.aria-invalid]="!!errorFor('businessAsOf')" [attr.aria-describedby]="describedBy('businessAsOf', true)" />
+      </ds-field>
+    }
+
+    <ds-field [label]="t.description" [for]="fieldId('description')" [error]="errorFor('description')">
+      <textarea [id]="fieldId('description')" formControlName="description" rows="2"
+                [attr.aria-invalid]="!!errorFor('description')" [attr.aria-describedby]="describedBy('description', false)"></textarea>
+    </ds-field>
+  </form>
+  <ng-container dialog-actions>
+    <ds-button (pressed)="close()">{{ common.cancel }}</ds-button>
+    <ds-button variant="primary" [disabled]="saving()" (pressed)="save()" data-testid="version-save">
+      {{ editing ? t.save : t.create }}
+    </ds-button>
+  </ng-container>
+</ds-dialog-frame>

@@ -17,6 +17,8 @@ export class ChangeRequestTrayComponent {
   readonly count = input.required<number>();
   readonly failedCount = input(0);
   readonly busy = input(false);
+  /** The draft's version, set only while it differs from the working version chosen in the context bar (Phase 3 LLD V.6). */
+  readonly otherVersion = input<string | null>(null);
   readonly review = output<void>();
   readonly retry = output<void>();
   protected readonly t = STRINGS.tray;

@@ -1,0 +1,34 @@
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nx-space-4);
+}
+
+.head h1 {
+  margin: 0;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nx-space-3);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--nx-space-2) var(--nx-space-4);
+  border: var(--nx-border-width) solid var(--nx-color-border-strong);
+  border-radius: var(--nx-radius-2);
+  background: var(--nx-color-surface-panel);
+  color: var(--nx-color-text-primary);
+  cursor: pointer;
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--nx-color-action-primary);
+  background: var(--nx-color-surface-selected);
+  font-weight: var(--nx-font-weight-strong);
+}
