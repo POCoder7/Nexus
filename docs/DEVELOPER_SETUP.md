@@ -19,6 +19,12 @@ Goal: fresh laptop to green tests in under a day.
 - **TLS inspection**: if downloads fail with certificate errors, import the corporate CA into the JDK trust store
   (`keytool -importcert -cacerts -alias corp-ca -file corp-ca.crt`).
 - **VDI**: confirm containers can run; many VDI images cannot.
+- **npm mirror with a minimum package age**: some curated registries (e.g. Artifactory Curation) refuse any version
+  published less than 72 hours ago ("CURATION BLOCK … only allowed for packages older than 72 hours"). Install the UI
+  with `npm ci`, which uses only the versions in `ui/package-lock.json`. Whoever changes that lockfile resolves it with
+  `npm install --before=<a date four days ago>` and checks that every exact pin in `ui/package.json` is older than
+  that date, so the lockfile never pins anything too new. If an install fails part-way on Windows with `EPERM … rmdir`,
+  close editors and terminals using `ui`, delete `ui\node_modules` and run `npm ci` again.
 
 ## 3. Verify
 ```
