@@ -12,7 +12,8 @@ export const DEV_IDENTITY_HEADER = 'X-Nexus-User';
 const KEY = 'nexus.dev.user';
 
 /** Synthetic logins offered by the picker (the end-to-end seed creates them); any other login can be typed. */
-export const DEV_LOGINS = ['e2e_steward', 'e2e_approver', 'e2e_committer', 'e2e_viewer', 'e2e_policy', 'e2e_architect'];
+export const DEV_LOGINS = ['e2e_steward', 'e2e_approver', 'e2e_committer', 'e2e_viewer', 'e2e_policy', 'e2e_architect',
+  'e2e_vadmin', 'e2e_vadmin2'];
 
 @Injectable({ providedIn: 'root' })
 export class DevIdentity {
