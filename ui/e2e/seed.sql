@@ -184,4 +184,12 @@ INSERT INTO wf.policy_scope (policy_id, model_code) VALUES ('00000000-0000-0000-
 SELECT wf.submit_commit_policy('00000000-0000-0000-0000-00000000f101', '00000000-0000-0000-0000-00000000e006');
 SELECT wf.approve_commit_policy('00000000-0000-0000-0000-00000000f101', '00000000-0000-0000-0000-00000000e007', 'E2E seed');
 
+-- Two version administrators (VER-01, VER-02): finalizing needs a second one (four eyes, V11 N1029) -----------------
+INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
+  ('00000000-0000-0000-0000-00000000e011', 'e2e_vadmin', 'E2E Version Admin One', 'human'),
+  ('00000000-0000-0000-0000-00000000e012', 'e2e_vadmin2', 'E2E Version Admin Two', 'human');
+INSERT INTO mdm.user_role (user_id, role_code, hierarchy_id, granted_by, valid_period)
+SELECT user_id, 'VERSION_ADMIN', NULL, '00000000-0000-0000-0000-00000000e001', daterange(current_date - 1, NULL)
+FROM mdm.app_user WHERE login IN ('e2e_vadmin', 'e2e_vadmin2');
+
 COMMIT;
