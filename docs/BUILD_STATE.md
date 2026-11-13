@@ -35,7 +35,7 @@
 | 3-23 V11: version lifecycle, guards, transition log, freeze lock, `VERSION_ADMIN` | VER-01, VER-02 | Done `abf0151`; design, R1 to R4 and the `UPDATE (version_id)` privilege approved by the repository owner 2026-11-12 ("Build it as designed") | pgTAP 22 (77) | nine codes `N1028`–`N1030`, `N2701`–`N2706`; V1 to V10 unchanged |
 | 3-24 Versions API, `/me` working version, moving a draft, `NEXUS.VERSION_DATE` | VER-01, VER-02 | Done `34393e1` | JUnit `VersionApiTest` (10) | `edit{allowed, whyNot}` added; a copy takes its base's date; no slice changes needed for search, path, impact, ownership, home (LLD V.9) |
 | 3-25 Versions page and dialogs, context-bar picker, version pictures, move on Review and submit | VER-01, VER-02 | Done `e24bf87` | unit +18; stories +14 (axe) | move and withdraw on Review and submit, not the tray; the hierarchies guard keeps the query string |
-| 3-26 End-to-end journey `08-versions` | VER-01, VER-02 | Done `0f32aa4` | e2e 08 (6) | two synthetic version administrators in the seed; requests raised as `e2e_architect`; three locator fixes, no assertion weakened |
+| 3-26 End-to-end journey `08-versions` | VER-01, VER-02 | Done `0f32aa4`; the development user picker offers both version administrators (`e8fe53a`) | e2e 08 (6) | two synthetic version administrators in the seed; requests raised as `e2e_architect`; three locator fixes, no assertion weakened |
 | 3-27 Versions records | PROG | Done (records commit) | — | LLD V.9, data model V11, patterns, capabilities, traceability, CONSISTENCY_REVIEW, changelog, README, summary, test report |
 
 ### Phase 1 progress
