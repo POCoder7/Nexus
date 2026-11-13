@@ -1,7 +1,7 @@
 # Build state
 
 - **Current phase:** 3 — Steward UI
-- **Step in loop:** Awaiting approval: the Phase 3 gate (passed with gaps), now including the versions extension (built, 3-23 to 3-27) — branch `feature/NEW-10-phase-3-steward-ui`
+- **Step in loop:** Awaiting approval: the Phase 3 gate (passed with gaps), now including the versions extension (built, 3-23 to 3-27) — branch `develop` (the repository owner merged the three phase branches into it on 2026-11-12; the versions commits were made on it)
 - **Baseline:** db-test **pass** 411/411 · mvnw verify **pass** 126/126 · UI: lint pass, contract pass, unit 64/64, stories 49/49 (axe), production build and budgets pass, end to end 38/38 (axe) (2026-11-13)
 - **Last commit:** see `git log -1`
 
@@ -87,7 +87,7 @@
 1. **Phase 3 gate: approve, or ask for changes.** Review first: the Phase 1 API fix in `ItemFactory` (properties on a node added in the same request), V10, the LLD *Built in Phase 3* and *Scope extension* notes, V11 and LLD V.9 (versions as built), and the explicit gaps in `docs/phases/phase-3/TEST_REPORT.md` (12 to 14 are new with versions).
 2. **Phase 4 performance baseline (4-9):** run it in Phase 4, or defer it with the rest of the performance work to the end of the build?
 3. **Masked extracts and DRM outputs (OD-31, OD-32)** for Phase 4 golden parity: without them Phase 4 is synthetic-only.
-4. OD-11: remote `origin` is `https://github.com/POCoder7/Nexus` (public, repository owner 2026-11-12). The three phase branches are pushed; `main` waits for the owner's one-time `git push --force origin main` (it replaces GitHub's starter commit; agents may not force-push). Every commit id changed on 2026-11-12 when the history was rewritten to the noreply email; the ids quoted in these records are the new ones.
+4. OD-11: remote `origin` is `https://github.com/POCoder7/Nexus` (public, repository owner 2026-11-12). The three phase branches are pushed and merged into `develop` by the owner; `develop`, with the versions commits, was pushed on 2026-11-13 with the owner's approval (a fast-forward, no force); `main` waits for the owner's one-time `git push --force origin main` (it replaces GitHub's starter commit; agents may not force-push). Every commit id changed on 2026-11-12 when the history was rewritten to the noreply email; the ids quoted in these records are the new ones.
 5. OD-18a: Audit-Risk review of ADR-021 and ADR-023 **skipped for now** by the repository owner (2026-11-11); merging to `main` needs the review or your explicit waiver.
 6. *Resolved 2026-11-12:* the versions design, R1 to R4, the `UPDATE (version_id)` column privilege, the nine codes and `VERSION_ADMIN` were approved by the repository owner ("Build it as designed") and built in 3-23 to 3-27. Review the build with the gate (open question 1): LLD V.9 lists what differs from the design.
 
