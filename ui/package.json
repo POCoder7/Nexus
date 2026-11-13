@@ -53,6 +53,9 @@
     "vite": "8.3.5",
     "vitest": "5.0.5"
   },
+  "overrides": {
+    "playwright": "1.64.1"
+  },
   "allowScripts": {
     "esbuild@0.28.2": true,
     "@parcel/watcher": false,

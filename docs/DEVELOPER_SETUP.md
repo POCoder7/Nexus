@@ -69,7 +69,7 @@ Performance tests (tag `perf`) are excluded from the default build and deferred 
 Steward UI (Phase 3 onwards), from `ui/`:
 ```
 npm ci                         # install the pinned toolchain (public npm registry here; point ~/.npmrc at your mirror)
-npx playwright install chromium
+npx playwright install chromium   # one browser build serves both story and end-to-end tests (package.json overrides playwright)
 npm start                      # dev server on http://localhost:4200, proxies /api to http://localhost:8080 (NEXUS_API_URL)
 npm run lint                   # Stylelint token rules + their self-test
 npm run api:check              # generated client matches docs/api/openapi.json (npm run api:generate after an API change)
