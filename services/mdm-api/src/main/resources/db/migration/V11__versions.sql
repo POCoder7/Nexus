@@ -377,6 +377,7 @@ BEGIN
   BEGIN                                                          -- the trial: always rolled back (N9999)
     PERFORM set_config('mdm.change_request_id', p_change_request_id::text, true);
     PERFORM set_config('mdm.apply_date', cr.effective_from::text, true);
+    PERFORM set_config('mdm.sandbox_capture', '', true);         -- V12 (5-1b): a validation never writes an overlay
     PERFORM mdm.apply_check_limit(cr);
     FOR it IN SELECT * FROM mdm.apply_items_of(cr) LOOP
       v_seq := it.seq;

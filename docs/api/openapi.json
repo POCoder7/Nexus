@@ -167,6 +167,39 @@
         },
         "type" : "object"
       },
+      "Conflict" : {
+        "properties" : {
+          "action" : {
+            "type" : "string"
+          },
+          "actual" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
+          "changedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "changedByRequest" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "expected" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
+          "field" : {
+            "type" : "string"
+          },
+          "itemId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "seq" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "CreateRequest" : {
         "properties" : {
           "effectiveFrom" : {
@@ -189,6 +222,24 @@
             "type" : "string"
           },
           "workflowModelCode" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "CreateSandbox" : {
+        "properties" : {
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "hierarchyCode" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "versionName" : {
             "type" : "string"
           }
         },
@@ -269,6 +320,42 @@
           },
           "groupCode" : {
             "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "DiffRow" : {
+        "properties" : {
+          "fact" : {
+            "type" : "string"
+          },
+          "hierarchyCode" : {
+            "type" : "string"
+          },
+          "nodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "parentId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "propertyCode" : {
+            "type" : "string"
+          },
+          "side" : {
+            "type" : "string"
+          },
+          "validFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "validTo" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "values" : {
+            "$ref" : "#/components/schemas/JsonNode"
           }
         },
         "type" : "object"
@@ -596,6 +683,28 @@
         },
         "type" : "object"
       },
+      "ItemFailure" : {
+        "properties" : {
+          "detail" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
+          "errorCode" : {
+            "type" : "string"
+          },
+          "itemId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "seq" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "ItemView" : {
         "properties" : {
           "action" : {
@@ -887,6 +996,34 @@
         },
         "type" : "object"
       },
+      "PageConflict" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Conflict"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PageDiffRow" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DiffRow"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "PageHierarchySummary" : {
         "properties" : {
           "items" : {
@@ -962,6 +1099,34 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/PolicySummary"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PageSandboxChild" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SandboxChild"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PageSandboxView" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SandboxView"
             },
             "type" : "array"
           },
@@ -1182,6 +1347,208 @@
         },
         "type" : "object"
       },
+      "RefreshResult" : {
+        "properties" : {
+          "failures" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ItemFailure"
+            },
+            "type" : "array"
+          },
+          "rowVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "SandboxChild" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "changed" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "hasChildren" : {
+            "type" : "boolean"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "nodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "primary" : {
+            "type" : "boolean"
+          },
+          "sortOrder" : {
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "SandboxItemAdded" : {
+        "properties" : {
+          "failures" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ItemFailure"
+            },
+            "type" : "array"
+          },
+          "item" : {
+            "$ref" : "#/components/schemas/ItemView"
+          },
+          "rowVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "SandboxNode" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "allowsChildren" : {
+            "type" : "boolean"
+          },
+          "changed" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "nodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "placements" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SandboxPlacement"
+            },
+            "type" : "array"
+          },
+          "properties" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SandboxProperty"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "SandboxPlacement" : {
+        "properties" : {
+          "changed" : {
+            "type" : "boolean"
+          },
+          "parentId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "primary" : {
+            "type" : "boolean"
+          },
+          "sortOrder" : {
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "SandboxProperty" : {
+        "properties" : {
+          "category" : {
+            "type" : "string"
+          },
+          "changed" : {
+            "type" : "boolean"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "dataType" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "provenance" : {
+            "type" : "string"
+          },
+          "scope" : {
+            "type" : "string"
+          },
+          "sourceNodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "value" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          }
+        },
+        "type" : "object"
+      },
+      "SandboxView" : {
+        "properties" : {
+          "baseRecordedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "conflictCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "itemCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "ownerId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "rowVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "versionName" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "SearchHit" : {
         "properties" : {
           "name" : {
@@ -1307,6 +1674,14 @@
               "$ref" : "#/components/schemas/FormProperty"
             },
             "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "SubmitSandbox" : {
+        "properties" : {
+          "workflowModelCode" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -2841,6 +3216,541 @@
           }
         },
         "tags" : [ "node-history-controller" ]
+      }
+    },
+    "/api/v1/sandboxes" : {
+      "get" : {
+        "operationId" : "listSandboxes",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageSandboxView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sandbox-controller" ]
+      },
+      "post" : {
+        "operationId" : "createSandbox",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateSandbox"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SandboxView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sandbox-controller" ]
+      }
+    },
+    "/api/v1/sandboxes/{id}" : {
+      "get" : {
+        "operationId" : "getSandbox",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SandboxView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sandbox-controller" ]
+      }
+    },
+    "/api/v1/sandboxes/{id}/conflicts" : {
+      "get" : {
+        "operationId" : "listSandboxConflicts",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 200,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageConflict"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sandbox-controller" ]
+      }
+    },
+    "/api/v1/sandboxes/{id}/diff" : {
+      "get" : {
+        "operationId" : "listSandboxDiff",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 200,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageDiffRow"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sandbox-controller" ]
+      }
+    },
+    "/api/v1/sandboxes/{id}/discard" : {
+      "post" : {
+        "operationId" : "discardSandbox",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SandboxView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sandbox-controller" ]
+      }
+    },
+    "/api/v1/sandboxes/{id}/hierarchies/{code}/children" : {
+      "get" : {
+        "operationId" : "listSandboxChildren",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "parentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 200,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageSandboxChild"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sandbox-controller" ]
+      }
+    },
+    "/api/v1/sandboxes/{id}/items" : {
+      "get" : {
+        "operationId" : "listSandboxItems",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 200,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageItemView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sandbox-controller" ]
+      },
+      "post" : {
+        "operationId" : "addSandboxItem",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ItemCommand"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SandboxItemAdded"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sandbox-controller" ]
+      }
+    },
+    "/api/v1/sandboxes/{id}/items/{itemId}" : {
+      "delete" : {
+        "operationId" : "deleteSandboxItem",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "itemId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RefreshResult"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sandbox-controller" ]
+      }
+    },
+    "/api/v1/sandboxes/{id}/nodes/{nodeId}" : {
+      "get" : {
+        "operationId" : "getSandboxNode",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "nodeId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "hierarchy",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SandboxNode"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sandbox-controller" ]
+      }
+    },
+    "/api/v1/sandboxes/{id}/rebase" : {
+      "post" : {
+        "operationId" : "rebaseSandbox",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RefreshResult"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sandbox-controller" ]
+      }
+    },
+    "/api/v1/sandboxes/{id}/submit" : {
+      "post" : {
+        "operationId" : "submitSandbox",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SubmitSandbox"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "sandbox-controller" ]
       }
     },
     "/api/v1/versions" : {

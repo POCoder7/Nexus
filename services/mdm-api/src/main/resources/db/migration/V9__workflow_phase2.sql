@@ -583,6 +583,7 @@ SELECT cr.change_request_id, NULL, NULL, cr.change_request_id, cr.title, cr.work
        cr.is_urgent, false, cr.requester_id
 FROM mdm.change_request cr
 WHERE p_view IN ('drafted', 'all') AND cr.requester_id = p_user AND cr.status = 'draft'
+  AND cr.kind = 'request'                      -- Phase 5: a sandbox is a private draft, listed under /sandboxes only
 $$;
 
 -- One page of a view, filtered by search (title or request id) and model, keyset on (due date, row id) with drafts

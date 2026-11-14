@@ -873,12 +873,20 @@ CREATE TABLE change_item_clearance (
 CREATE TRIGGER change_item_clearance_append_only BEFORE UPDATE OR DELETE ON change_item_clearance
   FOR EACH ROW EXECUTE FUNCTION trg_append_only();
 
+-- Sandbox capture hook (Phase 5 NEW-08, P-28): every row apply inserts ('+') or closes ('-') is passed here. A no-op
+-- in V1; V12 replaces the body so that a sandbox's trial apply records its overlay. Apply itself never captures.
+CREATE FUNCTION apply_capture(p_table text, p_op text, p_row jsonb)
+RETURNS void LANGUAGE plpgsql SET search_path = mdm, public AS $$
+BEGIN
+  RETURN;
+END $$;
+
 -- Inserts one row from JSON, using only the columns present (so the others keep their defaults) and never the
 -- surrogate key. jsonb columns are taken from the JSON directly: jsonb_populate_record would turn a JSON null into
 -- SQL NULL, and a stored JSON null is meaningful (an explicit blank that blocks inheritance).
 CREATE FUNCTION apply_insert(p_table text, p_id_col text, p_row jsonb)
 RETURNS int LANGUAGE plpgsql SET search_path = mdm, public AS $$
-DECLARE v_cols text; v_vals text;
+DECLARE v_cols text; v_vals text; v_row jsonb;
 BEGIN
   SELECT string_agg(quote_ident(a.attname), ', ' ORDER BY a.attnum),
          string_agg(CASE WHEN a.atttypid = 'jsonb'::regtype THEN format('$1 -> %L', a.attname)
@@ -887,9 +895,10 @@ BEGIN
   FROM pg_attribute a
   WHERE a.attrelid = ('mdm.' || quote_ident(p_table))::regclass AND a.attnum > 0 AND NOT a.attisdropped
     AND a.attname::text IS DISTINCT FROM p_id_col AND p_row ? a.attname::text;
-  EXECUTE format('INSERT INTO mdm.%1$I (%2$s) SELECT %3$s FROM jsonb_populate_record(NULL::mdm.%1$I, $1) r',
-                 p_table, v_cols, v_vals)
-    USING p_row;
+  EXECUTE format('INSERT INTO mdm.%1$I AS t (%2$s) SELECT %3$s FROM jsonb_populate_record(NULL::mdm.%1$I, $1) r
+                  RETURNING to_jsonb(t)', p_table, v_cols, v_vals)
+    INTO v_row USING p_row;
+  PERFORM apply_capture(p_table, '+', v_row);                    -- the row as stored, defaults included
   RETURN 1;
 END $$;
 
@@ -932,6 +941,7 @@ BEGIN
     v_valid := (r ->> 'valid_period')::daterange;
     EXECUTE format('UPDATE mdm.%I SET recorded_period = tstzrange(lower(recorded_period), $1) WHERE ctid = $2', p_table)
       USING v_t, v_ctid;
+    PERFORM apply_capture(p_table, '-', r);                      -- the row as it was before it was closed
     v_rows := v_rows + 1;
     IF lower_inf(v_valid) OR lower(v_valid) < v_d THEN           -- history before D stays as it was
       v_rows := v_rows + apply_insert(p_table, p_id_col, r || v_stamp
@@ -1384,6 +1394,7 @@ BEGIN
   PERFORM set_config('mdm.actor_id', p_actor::text, true);
   PERFORM set_config('mdm.change_request_id', p_change_request_id::text, true);
   PERFORM set_config('mdm.apply_date', cr.effective_from::text, true);
+  PERFORM set_config('mdm.sandbox_capture', '', true);           -- a committed apply never writes an overlay (V12)
 
   BEGIN                                                          -- subtransaction: all items or none
     PERFORM mdm.apply_check_limit(cr);

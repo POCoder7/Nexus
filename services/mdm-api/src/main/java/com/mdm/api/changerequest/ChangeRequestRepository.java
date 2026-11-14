@@ -114,6 +114,12 @@ public class ChangeRequestRepository {
     }
 
 
+    /** The request is (still) a sandbox: a private draft kept in step with its overlay (Phase 5 NEW-08). */
+    public boolean isSandbox(UUID id) {
+        return jdbc.sql("SELECT EXISTS (SELECT 1 FROM mdm.change_request WHERE change_request_id = :id AND kind = 'sandbox')")
+                .param("id", id).query(Boolean.class).single();
+    }
+
     public Optional<ChangeRequestView> find(UUID id) {
         return jdbc.sql(SELECT_REQUEST + " WHERE cr.change_request_id = :id").param("id", id).query(requestMapper).optional();
     }
@@ -127,6 +133,7 @@ public class ChangeRequestRepository {
     public List<ChangeRequestView> mine(UUID requester, String status, Instant afterCreated, UUID afterId, int limit) {
         return jdbc.sql(SELECT_REQUEST + """
                 WHERE cr.requester_id = :requester
+                  AND cr.kind = 'request'          -- sandboxes are listed under /sandboxes (Phase 5 NEW-08)
                   AND (CAST(:status AS text) IS NULL OR cr.status::text = :status)
                   AND (CAST(:afterCreated AS timestamptz) IS NULL
                        OR (cr.created_at, cr.change_request_id) < (CAST(:afterCreated AS timestamptz), CAST(:afterId AS uuid)))

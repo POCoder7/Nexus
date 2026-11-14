@@ -111,6 +111,15 @@ public class ChangeRequestService {
     public AddedItem addItem(Actor actor, UUID id, String ifMatch, ItemCommand cmd) {
         int expected = ETags.require(ifMatch);
         ChangeRequestView cr = lockOwnDraft(actor, id, expected);
+        return insertItem(actor, cr, cmd);
+    }
+
+    /**
+     * Builds and inserts one item (Phase 1 item rules and PROPOSE scope checks). The caller holds the request's row lock
+     * and has checked that the actor owns the draft; sandboxes use it too (Phase 5 NEW-08).
+     */
+    public AddedItem insertItem(Actor actor, ChangeRequestView cr, ItemCommand cmd) {
+        UUID id = cr.id();
         if (cmd == null) {
             throw ItemValidationException.field("action", "is required");
         }
@@ -134,6 +143,11 @@ public class ChangeRequestService {
     public int deleteItem(Actor actor, UUID id, UUID itemId, String ifMatch) {
         int expected = ETags.require(ifMatch);
         lockOwnDraft(actor, id, expected);
+        return removeItem(id, itemId);
+    }
+
+    /** Deletes one item; the caller holds the row lock and has checked ownership (also used by sandboxes). */
+    public int removeItem(UUID id, UUID itemId) {
         if (repository.deleteItem(id, itemId) == 0) {
             throw new NotFoundException("Item " + itemId + " not found in change request " + id);
         }
@@ -145,6 +159,7 @@ public class ChangeRequestService {
         int expected = ETags.require(ifMatch);
         ChangeRequestView cr = lockVisible(actor, id);
         requireRequester(actor, cr);
+        requireNotSandbox(id);
         ETags.check(expected, cr.rowVersion());
         if (cr.governedByWorkflow()) {
             // a governed request is withdrawn through its workflow; the bridge carries the outcome to the request
@@ -253,6 +268,15 @@ public class ChangeRequestService {
         if (report.hasErrors()) {
             return new SubmitOutcome(null, report);
         }
+        return new SubmitOutcome(submitValidated(actor, cr), report);
+    }
+
+    /**
+     * The submit after a clean validation: core mode, or start the chosen workflow in the same transaction. The caller
+     * holds the row lock and has validated; a sandbox submit uses it once the sandbox has become a request (NEW-08).
+     */
+    public ChangeRequestView submitValidated(Actor actor, ChangeRequestView cr) {
+        UUID id = cr.id();
         if (cr.workflowModelCode() == null && repository.requiresWorkflow(id)) {
             throw new RuleException("change_request.workflow_required",
                     "This request changes a hierarchy that requires a workflow. Choose a workflow model before submitting.");
@@ -263,7 +287,7 @@ public class ChangeRequestService {
             // request governed and in review
             workflow.startInstance(id, cr.workflowModelCode(), actor);
         }
-        return new SubmitOutcome(repository.find(id).orElseThrow(), report);
+        return repository.find(id).orElseThrow();
     }
 
     // ------------------------------------------------------------------ helpers
@@ -288,6 +312,7 @@ public class ChangeRequestService {
     private ChangeRequestView lockOwnDraft(Actor actor, UUID id, int expectedVersion) {
         ChangeRequestView cr = lockVisible(actor, id);
         requireRequester(actor, cr);
+        requireNotSandbox(id);
         ETags.check(expectedVersion, cr.rowVersion());
         if (!"draft".equals(cr.status())) {
             throw new RuleException("change_request.not_draft",
@@ -319,6 +344,17 @@ public class ChangeRequestService {
         }
         List<UUID> hierarchies = repository.itemHierarchies(cr.id());
         return !hierarchies.isEmpty() && hierarchies.stream().allMatch(h -> entitlements.canRead(actor, h));
+    }
+
+    /**
+     * A sandbox is edited, submitted and discarded only through /sandboxes, which keeps its overlay in step with its
+     * items (Phase 5 NEW-08). The database refuses a sandbox submit or decision anyway (N2303).
+     */
+    private void requireNotSandbox(UUID id) {
+        if (repository.isSandbox(id)) {
+            throw new RuleException("sandbox.use_sandbox_api",
+                    "This is a sandbox. Change, submit or discard it on its sandbox page (/sandboxes/" + id + ").");
+        }
     }
 
     private static void requireRequester(Actor actor, ChangeRequestView cr) {

@@ -147,7 +147,38 @@ Volume: ≤ `SANDBOX_MAX_ITEMS` items and a delta of the same order per sandbox;
 Errors as Phase 1; new codes `N2301` sandbox has conflicts, `N2302` too many items, `N2303` sandbox is not a draft.
 All three are class `N2`, so the existing translator returns 422 with no Java change. Built in 5-1a: `N2302` is raised
 when an item is added (not only at apply), and `N2303` carries the hints `sandbox.origin`, `sandbox.kind_one_way` and
-`sandbox.not_draft` (§4).
+`sandbox.not_draft` (§4). Built in 5-1b: `N2303` also carries `sandbox.not_sandbox`, when a sandbox operation names a
+request that is not (or no longer) a sandbox; a sandbox that is withdrawn gives `sandbox.not_draft`, and an unknown id
+gives `N2102` `change_request.not_found`.
+
+**Built in 5-2** (`SandboxController`, `SandboxService`, `SandboxRepository`; V12 `convert_sandbox`, `discard_sandbox`;
+V9 edit; JUnit `SandboxApiTest`, pgTAP `24_sandbox_submit`; no control changed):
+- *Create.* The title is the sandbox name. `hierarchyCode` is optional and is checked (the owner must be able to read it)
+  but not stored: a sandbox's scope comes from its items, and PROPOSE is checked per item as in Phase 1. The limit
+  `sandbox_max_active_per_user` (5) is checked by the API under a per-owner advisory lock, so two creates cannot both
+  pass it: 422 `sandbox.too_many_active`. It is a product limit, not a control, so it has no SQLSTATE.
+- *Submit, in one transaction.* First the conflicts: if any, 422 `sandbox.has_conflicts` (`sqlState` `N2301`) with the
+  list, and nothing changes. Then the optional `workflowModelCode`. Then validation as any request: errors give 422
+  `change_request.validation_failed`, and the findings are kept, but it stays a sandbox. Then
+  `mdm.convert_sandbox(sandbox, actor)` (definer, `nexus_apply`, which gets `UPDATE (kind)`) re-checks the conflicts
+  (`N2301`), turns the kind into `request` and clears the overlay. Finally the Phase 1/2 submit runs
+  (`ChangeRequestService.submitValidated`). The request keeps origin `sandbox`, so the sandbox item limit applies.
+- *Discard* is `mdm.discard_sandbox` (definer, `nexus_apply`): the Phase 1 withdraw, then the overlay is cleared. It
+  needs `If-Match` like every other write.
+- *Reads* default `asOf` to the sandbox's effective date, not today, because that is where its items show. `GET
+  /sandboxes/{id}` still answers after submit, with `kind = request`. `conflictCount` is computed on read for an open
+  sandbox (one rolled-back trial), so detail and list run read-write.
+- *Diff* lists the overlay fact by fact, grouped by node: each base row a sandbox replaces (`side = before`) and each
+  row it writes (`after`), with its valid dates. It is keyset-paged on a text key. It is not grouped per item, because
+  the delta does not record which item wrote a row; the items list already shows each item's before (`expected`) and
+  after (`payload`).
+- *Item writes return the refresh outcome.* Adding an item gives 201 with the item and the failing items. Deleting
+  one gives 200 with `{rowVersion, failures}` instead of 204. Conflicts are paged over the full list by seq.
+- *Kept out of the ordinary lists.* Sandboxes are left out of `GET /change-requests?mine`, the Home counts and the
+  worklist's `drafted` view (V9 `worklist_rows`). Item, submit and withdraw calls on a sandbox through
+  `/change-requests` are refused with 422 `sandbox.use_sandbox_api`; the database refuses a sandbox submit anyway (`N2303`).
+- *Metrics* (§11): the timer `nexus.sandbox.refresh.duration` (refresh and rebase), the summary
+  `nexus.sandbox.conflicts` (per conflicts listing) and the gauge `nexus.sandbox.active` (a count query at scrape).
 
 ## 6. Behaviour (designed scope)
 
@@ -201,6 +232,48 @@ Reads use `sandbox_base_recorded_at`, so the owner sees the world the sandbox wa
 ### 7.3 Conflicts
 For each item, compare `payload.expected` with the current fact at `now()` (the Phase 1 stale-base check as a query, not
 an exception). Return item, expected, actual, and the request that changed it (`change_request_id` of the current row).
+
+**Built in 5-1b** (V12, with hooks in V1 and V11; pgTAP `23_sandbox_overlay`; no control changed):
+- *Capture hook.* V1 has a no-op `mdm.apply_capture(p_table text, p_op text, p_row jsonb)`: `apply_insert` passes it
+  the stored row (`'+'`) and `apply_fact` the row it closes (`'-'`). V12 gives it a body that acts only when
+  `mdm.sandbox_capture` names the request being applied. `apply_change_request` (V1) and `validate_change_request`
+  (V11) clear that setting, so a committed apply or a validation never writes an overlay. A `'-'` for a row the trial
+  itself inserted removes that `'+'` row instead, so the overlay holds only the net effect of the items.
+- *Trial.* `mdm.sandbox_trial(sandbox, items, capture)` (invoker; only `nexus_apply` may run it) runs the items through
+  `mdm.apply_item`, as the requester and at the effective date, in a block that is always rolled back. The capture is
+  written to the delta tables inside that block and read out as jsonb before the rollback. A first pass runs straight
+  through; if an item hits a rule failure, a careful pass gives each item its own subtransaction. **Failing items are
+  reported (`seq, change_item_id, error_code, message, detail`, with `detail` as JSON when the DETAIL is JSON) and left
+  out of the overlay; the items after them still show. Faults are raised.** The trial does not check the item limit
+  (5-1a checks it as items are added).
+- *Refresh* (`refresh_sandbox_delta(sandbox, new_item)`, definer, `nexus_apply`) locks the request, then either
+  replaces the three delta sets from a full trial, or takes the incremental path of §7.1. The incremental path is taken
+  only when the new item is the last, the sandbox holds more than `sandbox_incremental_threshold` items, the action is
+  `update_node`, `set_property` or `clear_property`, and its node has no attribute or value delta yet. Its result is kept
+  only if the item applied and its new name does not overlap an attribute delta row of another node; otherwise the
+  refresh is full. The incremental path reports only the new item's outcome.
+- *Reads.* `sandbox_children`, `sandbox_node`, `sandbox_placements` and `sandbox_node_properties` are invoker,
+  `STABLE` functions over the helpers `sandbox_children_of`, `sandbox_parent_of`, `sandbox_attr_of` and
+  `sandbox_value_of`. Each helper returns the base rows recorded at the base, minus every key with a delta row on the
+  date, plus the `'+'` rows. A `'+'` primary placement also hides the child's base primary placement. `changed` compares
+  with the base on the date, so history rows the trial re-stated unchanged are not marked. Resolved properties use the
+  V3 rules over the overlay; **derived values come from the base**.
+- *Limits, recorded:* the overlay is exact only while the base equals the current state (otherwise the stale items are
+  conflicts). The `hierarchy` row an `add_hierarchy` item creates is not overlaid; its top node's attributes are.
+  Reads at a recorded instant cannot use the `upper_inf` partial indexes. A withdrawn sandbox's delta stays until the
+  5-2 discard clears it.
+
+**Built in 5-1b, conflicts (§7.3) and rebase (§5):**
+- `sandbox_conflicts(sandbox)` (definer, `nexus_apply`) takes `FOR SHARE`, runs the trial without capture and returns
+  its `N3001` failures. That is the Phase 1 stale-base check itself rather than a second copy of it as a query, so
+  **only the first stale field of each item is reported**. It writes and rolls back, so it needs a read-write
+  transaction. The request that changed the fact is the latest current row recorded after the base: `node_attr` for
+  `name` and `description`, the (hierarchy, child) placements for `parentId` and `parentIds`, and `property_value`
+  for `present` and `value`. It is NULL when there is no such row, for example after a rebase.
+- `rebase_sandbox(sandbox, actor)` (definer, `nexus_apply`, which gets `UPDATE (sandbox_base_recorded_at)`): only the
+  requester (`N1025`). It moves the base to now and refreshes. The conflicting items stay flagged until the owner
+  changes them. It writes no item: §5's "re-capture `expected` for non-conflicting items" would change nothing,
+  because an item that does not conflict already expects what is there now.
 
 ### 7.4 Sub-tree read filtering (SEC-02 full)
 Children page: filter rows to nodes that are in a readable scope or are ancestors of one (ancestors flagged

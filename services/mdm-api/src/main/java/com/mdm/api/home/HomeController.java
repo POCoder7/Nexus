@@ -80,7 +80,8 @@ public class HomeController {
         Map<String, Long> counts = new LinkedHashMap<>();
         jdbc.sql("""
                 SELECT status::text AS status, count(*) AS n FROM mdm.change_request
-                WHERE requester_id = :me GROUP BY status ORDER BY status
+                WHERE requester_id = :me AND kind = 'request'   -- sandboxes are counted under /sandboxes (NEW-08)
+                GROUP BY status ORDER BY status
                 """).param("me", actor.userId())
                 .query((rs, i) -> counts.put(rs.getString("status"), rs.getLong("n"))).list();
         List<ChangeRequestView> latest = changeRequests.mine(actor, null, null, null, MY_REQUESTS_LATEST);
