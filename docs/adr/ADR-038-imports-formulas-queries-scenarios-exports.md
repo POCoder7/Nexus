@@ -1,6 +1,7 @@
 # ADR-038: Imports, derived properties, queries and compares, scenarios and exports: decisions and sequence
 
-- **Status:** Proposed (2026-11-14). Every decision below belongs to the repository owner (OD-09, OD-12, OD-46). Nothing is built until they are taken
+- **Status:** Accepted by the repository owner on 2026-11-14 ("approved for going ahead"): every recommendation, with D3
+  amended the same day so that Phase 5 is built before Phase 4 (see Decision). Product still confirms EXP-03 from the export inventory
 - **Date:** 2026-11-14
 - **Deciders:** Repository owner (D1 to D5); Product confirms in discovery the rows marked "confirm"
 - **Capabilities:** PRP-06, QRY-01 to QRY-05, IMP-01 to IMP-03, EXP-01 to EXP-08, BLD-03, NEW-08 (BLD-01 and BLD-02 stay retired)
@@ -114,17 +115,31 @@ No other new dependencies are proposed:
 | B. Wait for masked DRM samples | Each item is built only after a masked sample of the real file is in the internal store | Exact from the start, but nothing can be built until the samples exist |
 
 ## Decision
-Not taken. Awaiting the repository owner (OD-46).
+Taken by the repository owner on 2026-11-14 (OD-46):
+- **D1:** every row as recommended. EXP-03 stays "Parity if in use"; Product confirms it from the export inventory.
+- **D2: A.** BLD-03 is Improve and is met by NEW-08 sandboxes. This closes OD-12.
+- **D3: amended.** The owner approved option A, then the same day said "if you are building phase-4, wait lets complete
+  phase-5". The build order is now **0, 1, 2, 3, 5, 4, 6, 8, 9**. Nothing had been built for Phase 4.
+- **D4: A.** Google's CEL for Java (`dev.cel`). The exact version is proposed in the Phase 5 plan and must have been
+  published at least four days earlier.
+- **D5: A.** Build with synthetic data and Oracle's published formats; each gate reports parity as not proven until the
+  golden run.
 
-## Consequences (if the recommendations are adopted)
+## Consequences
 - **Protocol stops.** Every phase goes through them in order:
   1. The phase LLD gains a detailed design section for each capability decided here (DESIGN_PROTOCOL; stop for review). The
      §15 outlines are the starting points.
   2. The phase plan (stop for approval).
   3. Build and the gate (stop for approval).
-- **Migration numbers.** `V11` is versions (ADR-037), so the Phase 4 LLD's `V11__load_runs.sql` becomes `V12`. The later
-  planned files move up by one as each phase is planned: `V12__sandboxes`, `V13__ubo_determinations`, `V15__exports`,
-  `V16__identity`. This fixes the records only; the design does not change.
+- **Building Phase 5 before Phase 4 (D3 as amended).** Three Phase 5 items need Phase 4, so they wait for it and the
+  Phase 5 gate reports them as "waits for Phase 4":
+  - Increment 5-6, the DRM access-group mapper. It reads the staged DRM access groups and writes a load run of grants.
+  - Every golden check. The harness is Phase 4 work.
+  - The translation of the formulas in use. The list comes from Phase 4's profile of the extract. Phase 5 builds the CEL
+    engine and the governed way to set a formula, and tests both with synthetic formulas only.
+- **Migration numbers.** `V11` is versions (ADR-037). Phase 5 now takes the next numbers (`V12__sandboxes.sql` as designed,
+  then the Phase 5 LLD §17 file). Phase 4's `V11__load_runs.sql` takes the next free number when Phase 4 is planned, and
+  the later phases move up the same way. This changes the records only, not the design.
 - **Records.** The catalogue, TRACEABILITY and the external working copy (OD-28) record each decision. The QRY-04 row
   records what Phase 3 built.
 - **PRP-06.** The formulas in use are listed from the profile of the extract (Phase 4) and translated one at a time,

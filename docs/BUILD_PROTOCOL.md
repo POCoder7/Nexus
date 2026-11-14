@@ -25,7 +25,8 @@ in every session and update it before you stop.
 
 ## 2. Phases
 
-Build in this order: **0, 1, 2, 3, 4, 5, 6, 8, 9.** Phase 7 is designed but **deferred** (OD-38): do not build it until a
+Build in this order: **0, 1, 2, 3, 5, 4, 6, 8, 9.** The repository owner moved Phase 5 ahead of Phase 4 on 2026-11-14
+(ADR-038 D3, amended); the Phase 5 items that need Phase 4 wait for it (Phase 5 LLD §17.1). Phase 7 is designed but **deferred** (OD-38): do not build it until a
 human resumes it. Do not start a phase until the previous one has passed its gate and a human has said to proceed.
 Capability placement follows `docs/design/TRACEABILITY.md` (OD-14); "LLD" below is `docs/design/phase-N-*/LLD.md`.
 

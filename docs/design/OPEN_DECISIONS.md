@@ -18,9 +18,8 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-06 | Authentication provider and Angular library (ADR-033 options) | Security | OIDC · SAML (with an OIDC bridge) · gateway headers | OIDC resource server in the API (ADR-033 option A) | Phase 9; any shared environment (the API refuses to start outside `local`/`test` without it) |
 | OD-07 | (Deferred with Phase 7, OD-38) AI model and provider, and where inference runs; whether data naming real people may be sent to it | Architecture / Security / Audit-Risk | External provider API · provider hosted in the organisation's cloud tenancy · self-hosted model inside the network | One that runs inside the organisation's network or tenancy, so ownership documents never leave it; the design works with any (provider adapter) | Phase 7 build beyond the stub provider |
 | OD-08 | Audit/Risk sign-off on policy-governed straight-through commit (ADR-005) | Audit-Risk | Keep STP under approved policies · require human approval for all | Keep STP, shadow mode first | Activating any commit policy |
-| OD-09 | Remaining capabilities marked "—" (75 after OD-13) | Product | Parity · Improve · Retire | Decide from discovery usage evidence; next: the rest of Phases 1–2 (HIE-06, PRP-02, PRP-03, VAL-01–03, AUD-01, AUD-02, GOV-03–09) | Detailed design of those capabilities (outline only until decided) |
+| OD-09 | Remaining capabilities marked "—" (75 after OD-13) | Product | Parity · Improve · Retire | Decide from discovery usage evidence. ADR-038 decided the 2026-11-14 request (OD-46). Next: ADR-039 (OD-47) tables every remaining Phase 1, 2 and 5 capability | Detailed design of those capabilities (outline only until decided) |
 | OD-10 | Production volumes and performance targets (NFRs) | Product / Platform | — | Parameterise (full list in "Assumptions" below) | Phases 3–5 performance design |
-| OD-12 | Scenario / restructure versions: used today? (BLD-03) | Product | Build sandboxes · retire | Confirm in discovery | Phase 5 scope |
 | OD-15a | Platform confirmation of the hosting direction (decided direction: container platform with managed PostgreSQL 16 and point-in-time recovery) | Platform | — | — | Phase 9 deployment design; first shared environment |
 | OD-16a | Platform/Security confirmation of evidence and export storage (decided direction: object storage, server-side encryption, retention lock) | Platform / Security | — | — | Phase 6, Phase 8 |
 | OD-17a | Security and Audit-Risk confirmation of ADR-014 (accepted by the repository owner) | Security / Audit-Risk | Confirm · request changes | Confirm before the first shared environment | First shared environment |
@@ -39,13 +38,16 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-42 | Security tooling and the CI jobs for it: dependency scanning, SAST, secret scanning, container scanning, licence report | Security / Platform | GitHub-native (Dependabot, CodeQL, secret scanning) · organisation's tools | Whatever the organisation already licenses; otherwise GitHub-native | Phase 9 build (CI changes need approval) |
 | OD-43 | Penetration test: scope, provider, timing | Security | — | External test of UI, API and evidence storage in pre-production before the first production release | Phase 9 gate |
 | OD-45a | Audit-Risk confirmation of ADR-037 D4: `VERSION_ADMIN` creates and moves versions, a second version administrator finalizes, people only | Audit-Risk | Confirm · amend | Confirm (same pattern as workflow-model activation, `N1014`) | Merging the versions work to `main` (OD-18a) |
-| OD-46 | The owner's 2026-11-14 request (derived-property formulas, queries and compares, imports and action scripts, all exports, the replacement for blending): ADR-038 D1 capability decisions for PRP-06, QRY-01–05, IMP-01–03, EXP-01–08 (part of OD-09); D2 scenarios BLD-03 (OD-12); D3 sequence; D4 CEL for Java (OD-19 library); D5 what parity means at each gate | Repository owner (Product confirms the rows marked "confirm") | Per ADR-038 | Every recommendation in ADR-038 (protocol order, sandboxes meet BLD-03, `dev.cel`, synthetic data with parity unproven until the golden run) | Phase 4 plan |
+| OD-47 | **ADR-039:** D1 Parity, Improve, Retire or confirm for every capability still marked "—" in Phases 1, 2 and 5 (VER-07, HIE-03…11, PRP-02…05, PRP-07…10, VAL-01…04, SEC-03 read side, SEC-04, AUD-01…04, GOV-03…09, GOV-11, GOV-14…16; part of OD-09); D2 build the Phase 1 and 2 ones in Phase 5; D3 notifications and alerts; D4 SEC-03 read side; D5 rows that wait for confirmation | Repository owner (Product confirms the "confirm" rows; Audit-Risk keeps AUD-04, OD-25) | Per ADR-039 | Every recommendation in ADR-039 | Phase 5 LLD §18 and the Phase 5 increments after 5-16; until decided these rows are explicit gaps at the Phase 5 gate |
 | OD-28 | `docs/capabilities.md` says it is regenerated from a working copy outside the repository. The OD-13 decisions must be entered there, or the next regeneration will reset them to "—" | Product (catalogue owner) | Update the external working copy · let the repository copy become the master | Update the working copy, then regenerate | Keeping decisions consistent |
 
 ## Decided
 
 | # | Decision | Decided by | Date | Effect |
 |---|---|---|---|---|
+| OD-46 | **ADR-038 accepted**: every recommendation (D1 capability decisions for PRP-06, QRY-01–05, IMP-01–03, EXP-01–08; D2 BLD-03 met by NEW-08; D4 `dev.cel`; D5 synthetic data, parity unproven until the golden run), with **D3 amended: Phase 5 is built before Phase 4** | Repository owner ("approved for going ahead"; "wait lets complete phase-5") | 2026-11-14 | Phase 5 LLD §17 (awaiting review); `BUILD_PROTOCOL.md` order 0, 1, 2, 3, 5, 4, 6, 8, 9; Product confirms EXP-03 from the export inventory |
+| OD-12 | Scenarios (BLD-03): **met by NEW-08 sandboxes** (ADR-038 D2) | Repository owner | 2026-11-14 | Phase 5 LLD §17.8; one acceptance test joins the NEW-08 tests |
+| — | **Phase 3 gate approved** (passed with the gaps in `docs/phases/phase-3/TEST_REPORT.md`) | Repository owner ("approved for going ahead") | 2026-11-14 | Build moves to Phase 5 (OD-46) |
 | OD-01 | Workflow engine: **Camunda** (supersedes the earlier in-house-worker recommendation). Camunda orchestrates through `WorkflowGateway`; all state changes go through guarded `wf` functions; one generic BPMN process over the `wf` models (ADR-017) | Repository owner | 2026-11-11 | Phase 2 LLD; edition OD-01b (Camunda 8), hosting fact OD-01c |
 | OD-22a | `BUSINESS_TIME_ZONE` = **`America/New_York`** (EST in winter, EDT in summer; OD-22b confirmed with daylight saving) | Repository owner | 2026-11-11 | Phase 1 and 2 |
 | OD-01b | Camunda **8**: self-managed if the platform team runs it, otherwise SaaS with process variables limited to identifiers; not Camunda 7 | Repository owner (adopted recommendation) | 2026-11-11 | Phase 2; hosting fact OD-01c |
@@ -75,9 +77,9 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-16 | Evidence and export storage direction: object storage with server-side encryption and retention lock | Repository owner (adopted recommendation) | 2026-11-11 | Platform/Security to confirm (OD-16a) |
 | OD-17 | ADR-014 least-privilege database roles: **adopt** before the first shared environment | Repository owner (adopted recommendation) | 2026-11-11 | Phase 1; Security/Audit-Risk to confirm (OD-17a) |
 | OD-18 | Control gaps: **fix before the first shared environment**, editing V1–V6 where the object is defined (rule 6 allows it now) and adding new files for new objects; one ADR per group of fixes; pgTAP tests for every fix; D-21 error codes at the same time. `mdm`-side gaps (D-04, D-05, D-07, D-29, D-36) in Phase 1; `wf`-side gaps (D-06, D-12, D-13, D-14, D-15, D-33) in Phase 2 | Repository owner (adopted recommendation) | 2026-11-11 | Phase 1 and 2 LLDs; Audit-Risk review per fix (OD-18a) |
-| OD-19 | Rule and derivation engines beyond `sql`: **CEL evaluated in Java**; `python` stays unused unless a DRM formula cannot be expressed otherwise | Repository owner (adopted recommendation) | 2026-11-11 | Phase 5 (a CEL library is a dependency to approve then) |
+| OD-19 | Rule and derivation engines beyond `sql`: **CEL evaluated in Java**; `python` stays unused unless a DRM formula cannot be expressed otherwise | Repository owner (adopted recommendation) | 2026-11-11 | Phase 5. Library `dev.cel` approved in principle (ADR-038 D4); the exact version is approved in the Phase 5 plan |
 | OD-20 | Events: **outbox polling first** (ADR-016); add a broker relay when a consumer needs it | Repository owner (adopted recommendation) | 2026-11-11 | Phase 2, Phase 8 |
-| OD-21 | Search (QRY-03): **PostgreSQL full-text and `pg_trgm` first**, benchmark at `MAX_NODES_PER_HIERARCHY` | Repository owner (adopted recommendation) | 2026-11-11 | Phase 5 (QRY-03 itself still undecided) |
+| OD-21 | Search (QRY-03): **PostgreSQL full-text and `pg_trgm` first**, benchmark at `MAX_NODES_PER_HIERARCHY` | Repository owner (adopted recommendation) | 2026-11-11 | Phase 5. QRY-03 decided Parity (ADR-038); design in Phase 5 LLD §17.6 |
 | OD-22 | Time: **one configured business time zone** (ADR-018) | Repository owner (adopted recommendation) | 2026-11-11 | Value still needed (OD-22a) |
 | OD-23 | Testcontainers vs Docker Engine 29: **option A**, restore the `testcontainers.version` 1.21.4 pin in `services/mdm-api/pom.xml` | Repository owner | 2026-11-11 | Phase 0 increment P0-2 |
 | OD-24 | Duplicates: **delete both** `docs/adr/ADR-012-web-ui-stack.md` and `knowledge/capabilities.md` | Repository owner | 2026-11-11 | Done in Phase 0 P0-1 |
@@ -130,6 +132,11 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | `PARALLEL_RUN_DAYS` | 30 consecutive exact matches per consumer | Cutover (P-23) | Product / Audit-Risk |
 | `API_DEPRECATION_MONTHS` | 6 | API versioning | Architecture |
 | `AUDIT_RETENTION_YEARS` | none assumed (OD-25) | Retention | Audit-Risk |
+| `CEL_MAX_EXPR_CHARS` / `CEL_MAX_ITERATIONS` | 4 000 / 1 000 | Derived-property formulas (Phase 5, §17.3.2) | Architecture |
+| `QUERY_SCAN_MAX` / `QUERY_MAX_CONDITIONS` / `QUERY_MAX_COLUMNS` | 50 000 candidates per page / 50 / 50 | Property queries (Phase 5, §17.5) | Architecture / Product |
+| `SAVED_QUERY_MAX_PER_USER` | 200 | Saved queries (Phase 5) | Product |
+| `COMPARE_PARALLELISM` / `COMPARE_TIMEOUT_MIN` / `COMPARE_RESULT_TTL_H` | 2 per instance / 15 / 24 | Compare runs (Phase 5, §17.4.3) | Architecture |
+| `P95_SEARCH_MS` / `P95_COMPARE_STRUCTURE_S` / `P95_BATCH_ADD_S` | 800 / 30 (at `MAX_NODES_PER_HIERARCHY`) / 10 (5 000 items) | Phase 5 performance targets | Product / Platform |
 
 ## ADR status
 
@@ -159,7 +166,8 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | ADR-035 | Engine-neutral workflow driver | Accepted 2026-11-11 (repository owner) | |
 | ADR-036 | Property edit rights by category | Accepted 2026-11-12 (repository owner) | Security confirmation pending with ADR-022 |
 | ADR-037 | Versions: create, copy and status lifecycle | Accepted 2026-11-12; refinements R1 to R4 approved with the Phase 3 LLD section the same day; built in Phase 3 (3-23 to 3-27) | OD-45; D4 Audit-Risk confirmation pending (OD-45a) |
-| ADR-038 | Imports, derived properties, queries and compares, scenarios and exports: decisions and sequence | Proposed 2026-11-14 | OD-46; nothing built until decided |
+| ADR-038 | Imports, derived properties, queries and compares, scenarios and exports: decisions and sequence | Accepted 2026-11-14 (repository owner); D3 amended (Phase 5 before Phase 4) | OD-46; Product confirms EXP-03 |
+| ADR-039 | Decisions for the remaining undecided capabilities (Phases 1, 2 and 5) | Proposed 2026-11-14 | OD-47; nothing built until decided |
 | ADR-027 | Golden datasets: masking and storage | Accepted 2026-11-11 (owner); Security/Audit-Risk confirmation pending | OD-31a, OD-32a |
 | ADR-009 | Golden testing as the parity standard | Accepted 2026-11-11 (OD-33) | |
 | ADR-005 to ADR-008 | (existing) | Proposed | Unchanged by this design |

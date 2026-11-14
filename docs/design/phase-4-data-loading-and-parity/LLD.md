@@ -1,6 +1,13 @@
 # Phase 4 — Data loading and parity harness: low-level design
 
-- **Status:** Approved 2026-11-11 (consistency fixes CR-nn applied the same day, see `../CONSISTENCY_REVIEW.md`)
+- **Status:** Approved 2026-11-11 (consistency fixes CR-nn applied the same day, see `../CONSISTENCY_REVIEW.md`).
+  **2026-11-14:** the repository owner moved this phase after Phase 5 (ADR-038 D3, amended). Two things follow for its plan:
+  - Migrations: V11 is now versions (Phase 3), V12 sandboxes and V13 the Phase 5 §17 objects. `V11__load_runs.sql` below takes
+    the next free number.
+  - Formulas: this phase profiles which DRM formulas are in use and loads them. It must say how a formula not yet translated
+    to CEL is held. Phase 5 LLD §17.3.6 suggests engine `cel` with the CEL literal `null` as its
+    expression text (so the definition CHECK holds), and the original kept. The access-group mapper (Phase 5
+    increment 5-6) is built straight after the loader.
 - **Migration rule (CR-07):** where this design says "edit Vn", that is allowed only while no shared environment exists (CLAUDE.md rule 6, OD-18). If one exists when this phase is built, the same change goes into a new V-numbered migration (`ALTER` / `CREATE OR REPLACE`). What counts as shared: OD-44.
 - **Phase goal (BUILD_PROTOCOL §2):** realistic volumes and objective parity checks.
 - **Exit criteria:** staging loader; synthetic data generator at production-like scale; golden-test framework; performance baseline recorded.

@@ -224,7 +224,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### PRP-06 — Derived properties (formulas/scripts)
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-038; the formulas in use are translated after Phase 4 profiles the extract)
 - **Legacy behaviour:** Values calculated from formulas or scripts.
 - **Target design:** derivation_expr (original kept in drm_formula_orig).
 - **Acceptance criteria (draft):** Each in-use derived property returns DRM's value for all nodes.
@@ -300,7 +300,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### QRY-01 — Property queries
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-038)
 - **Legacy behaviour:** Find nodes by property criteria; saved and shared.
 - **Target design:** Query builder over node_filter / property_value_asof().
 - **Acceptance criteria (draft):** Same node set returned for each saved query.
@@ -308,7 +308,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### QRY-02 — Compares
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-038)
 - **Legacy behaviour:** Structure, property and rename compares between hierarchies or versions.
 - **Target design:** Diff service on bitemporal data.
 - **Acceptance criteria (draft):** Same differences reported.
@@ -316,7 +316,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### QRY-03 — Search
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-038; in-tree search built in Phase 3)
 - **Legacy behaviour:** Find nodes by name or description.
 - **Target design:** Search index.
 - **Acceptance criteria (draft):** Results returned within NFR targets.
@@ -324,7 +324,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### QRY-04 — Node change history
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 3 - Steward UI (History tab, built in Phase 3; ADR-038)
 - **Legacy behaviour:** View the history of changes to a node.
 - **Target design:** audit_log + bitemporal history.
 - **Acceptance criteria (draft):** Complete history visible per node.
@@ -332,7 +332,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### QRY-05 — Edit from query and compare results
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-038)
 - **Legacy behaviour:** Edit nodes and properties directly from query or compare result lists.
 - **Target design:** Bulk-edit from result grids creating a change request.
 - **Acceptance criteria (draft):** Edits from results go through the same governance as other edits.
@@ -342,7 +342,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### IMP-01 — Imports
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Improve / — / 4 - Data loading (a DRM import file becomes a draft change request; ADR-038)
 - **Legacy behaviour:** Load hierarchies and properties from flat files into a version.
 - **Target design:** Import pipeline that creates change requests.
 - **Acceptance criteria (draft):** The same file produces the same structure.
@@ -350,7 +350,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### IMP-02 — Action scripts
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Improve / — / 4 - Data loading (one action script becomes one draft change request; ADR-038)
 - **Legacy behaviour:** Apply bulk actions (add, move, update property) from a file.
 - **Target design:** Bulk change request from file.
 - **Acceptance criteria (draft):** The same script produces the same result.
@@ -358,7 +358,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### IMP-03 — Bulk property updates
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-038)
 - **Legacy behaviour:** Mass-edit property values.
 - **Target design:** Bulk edit in UI creating a change request.
 - **Acceptance criteria (draft):** Bulk edits apply atomically with validation.
@@ -368,7 +368,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### EXP-01 — Hierarchy exports
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 8 - Exports (ADR-038)
 - **Legacy behaviour:** One row per node with parent and properties.
 - **Target design:** export_profile (type hierarchy) + export_drm().
 - **Acceptance criteria (draft):** Byte-for-byte match with DRM files.
@@ -376,7 +376,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### EXP-02 — Generation exports
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 8 - Exports (ADR-038)
 - **Legacy behaviour:** Ancestors spread across columns.
 - **Target design:** export_profile (type generation).
 - **Acceptance criteria (draft):** Byte-for-byte match.
@@ -384,7 +384,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### EXP-03 — Hierarchy XML exports
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity if in use, otherwise Retire (Product confirms from the export inventory) / — / 8 - Exports (ADR-038)
 - **Legacy behaviour:** XML output of hierarchies.
 - **Target design:** Export service (to build).
 - **Acceptance criteria (draft):** Output matches DRM.
@@ -392,7 +392,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### EXP-04 — Compare / difference exports
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 8 - Exports (ADR-038)
 - **Legacy behaviour:** Changes between hierarchies or versions as files.
 - **Target design:** Export service (to build).
 - **Acceptance criteria (draft):** Output matches DRM.
@@ -400,7 +400,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### EXP-05 — Transaction log exports
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 8 - Exports (ADR-038)
 - **Legacy behaviour:** Audit extracts to file.
 - **Target design:** audit_log extract.
 - **Acceptance criteria (draft):** Output matches DRM.
@@ -408,7 +408,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### EXP-06 — Export targets and delivery
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Improve / — / 8 - Exports (object storage and a file share first; ADR-038)
 - **Legacy behaviour:** Write to files, database tables or other targets.
 - **Target design:** Delivery adapters in the export service.
 - **Acceptance criteria (draft):** Files/tables delivered to the same locations on the same schedule.
@@ -416,7 +416,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### EXP-07 — Books
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 8 - Exports (ADR-038)
 - **Legacy behaviour:** Named groups of exports run together.
 - **Target design:** Export bundles (to add).
 - **Acceptance criteria (draft):** A book run produces every file.
@@ -424,7 +424,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### EXP-08 — Export filters and format options
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 8 - Exports (ADR-038)
 - **Legacy behaviour:** Query filters, inactive/shared handling, column and format options.
 - **Target design:** export_profile options.
 - **Acceptance criteria (draft):** Every option reproduces DRM's output.
@@ -450,7 +450,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### BLD-03 — Scenario / restructure versions
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Improve / — / 5 - Remaining parity (met by NEW-08 sandboxes; ADR-038 D2, OD-12)
 - **Legacy behaviour:** Isolated what-if versions for restructuring.
 - **Target design:** Sandboxes that branch and can be discarded (to add).
 - **Acceptance criteria (draft):** Scenario can be built, compared and applied or discarded.
