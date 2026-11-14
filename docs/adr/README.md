@@ -40,6 +40,6 @@
 | ADR-036 | Property edit rights by category | Accepted (Security confirmation pending with ADR-022) |
 | ADR-037 | Versions: create, copy and status lifecycle | Accepted (OD-45); D4 Audit-Risk confirmation pending (OD-45a) |
 | ADR-038 | Imports, derived properties, queries and compares, scenarios and exports | Accepted (OD-46); D3 amended: Phase 5 before Phase 4 |
-| ADR-039 | Decisions for the remaining undecided capabilities (Phases 1, 2 and 5) | Proposed (OD-47) |
+| ADR-039 | Decisions for the remaining undecided capabilities (Phases 1, 2 and 5) | Accepted (OD-47) |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.

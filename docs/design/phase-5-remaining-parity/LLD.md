@@ -1,8 +1,9 @@
 # Phase 5 — Remaining parity: low-level design
 
 - **Status:** Approved 2026-11-11 (consistency fixes CR-nn applied the same day, see `../CONSISTENCY_REVIEW.md`).
-  **§17 added 2026-11-14, awaiting review**: the detailed design for the capabilities ADR-038 decided. On the same day the
-  repository owner moved Phase 5 ahead of Phase 4 (ADR-038 D3, amended); §17.1 records what that defers.
+  **§17 added and approved 2026-11-14** (repository owner): the detailed design for the capabilities ADR-038 decided. On the same day the
+  repository owner moved Phase 5 ahead of Phase 4 (ADR-038 D3, amended); §17.1 records what that defers. Also on
+  2026-11-14, the owner approved the Phase 5 plan and accepted ADR-039 (OD-47); §18 will design the rows ADR-039 puts in Phase 5.
 - **Migration rule (CR-07):** where this design says "edit Vn", that is allowed only while no shared environment exists (CLAUDE.md rule 6, OD-18). If one exists when this phase is built, the same change goes into a new V-numbered migration (`ALTER` / `CREATE OR REPLACE`). What counts as shared: OD-44.
 - **Phase goal (BUILD_PROTOCOL §2):** the rest of the in-scope legacy capabilities.
 - **Exit criterion:** each capability with decision Parity or Improve has passing acceptance tests, or is listed as an explicit gap.
@@ -31,8 +32,8 @@ decided the versions:
 - VER-06 is retired.
 - VER-04 stays in Phase 5.
 
-§17 designs the Phase 5 ones in full. ADR-039 (proposed) gives options and a recommendation for every capability that still
-has no decision, VER-07 included. The §15.1 outlines stand until ADR-039 is decided.
+§17 designs the Phase 5 ones in full. ADR-039 (accepted 2026-11-14, OD-47) decided every capability that still had no
+decision, VER-07 included. §18 designs the rows it puts in Phase 5; their §15.1 outlines stand until §18 is approved.
 
 **Dependencies.** Phases 1–3 (apply, roles, workflow, UI shell, versions). Phase 4 supplies the loader for access-group
 mapping and the golden framework. Phase 5 is now built first, so the items that need Phase 4 wait for it (§17.1).
@@ -220,6 +221,12 @@ with "Rebase" and "Remove item"; "Submit as request". Grants: Administration →
 
 ## 14. Rollout and compatibility
 Edits to V1 (columns, actions); new V12. Removing the Phase 1 SQL grant path (F-4) is a privilege change in V7.
+
+*Clarified in the Phase 5 plan (2026-11-14):* there is no application grant path to remove.
+- `nexus_api` has only SELECT on `mdm.user_role` (V7), and no Java code writes that table.
+- The only other path is the database owner, which bootstraps the first administrators and runs the seeds and fixtures. Privileges cannot remove that path.
+
+So the V7 change grants `nexus_apply` the writes that the `grant_role` and `revoke_role` handlers need. A pgTAP test proves that `nexus_api` cannot write `user_role`. Behaviour does not change.
 Existing requests default to `kind = 'request'`.
 
 ## 15. Risks, open questions and alternatives
@@ -288,15 +295,19 @@ QRY-04. ADR-039 gives options and a recommendation for the rows that are still u
 | 5-8 | Records and gap list for the gate | S | PROG | review |
 
 §17.14 adds increments 5-9 to 5-16. Increment 5-6 waits for the Phase 4 loader (§17.1). Increment 5-7 is replaced by
-5-9 to 5-16, plus whatever ADR-039 decides.
+5-9 to 5-16, plus the rows ADR-039 puts in Phase 5 (§18).
+
+*Split in the Phase 5 plan (approved 2026-11-14):* 5-1 is built as two increments, with the same content and tests:
+- 5-1a: the V1 columns, the `kind` guard, the codes and the V12 tables;
+- 5-1b: `refresh_sandbox_delta`, the overlay functions and conflicts.
 
 ---
 
-## 17. Detailed design for the capabilities decided by ADR-038 (2026-11-14) — awaiting review
+## 17. Detailed design for the capabilities decided by ADR-038 (approved 2026-11-14)
 
 Written on 2026-11-14, after the repository owner accepted ADR-038 and amended D3 so that Phase 5 is built before Phase 4.
 It replaces the §15.1 outline rows for PRP-06, QRY-01, QRY-02, QRY-03, QRY-05, IMP-03, VER-04 and BLD-03, and records
-QRY-04. The other §15.1 rows wait for ADR-039.
+QRY-04. ADR-039 decided the other §15.1 rows (accepted 2026-11-14), and §18 designs the ones it puts in Phase 5.
 
 **Confidence**
 - **Medium** for compares, queries, search and bulk edits, because they reuse functions that are already built.
@@ -551,7 +562,7 @@ today (AUD-01).
 
 #### 17.4.4 Read scope
 A compare needs READ on both hierarchies. Rows are filtered by the reader's sub-tree scopes when read (5-5), so a reused
-run never shows a node outside the reader's scope. Property rows follow SEC-03 once it is decided (ADR-039).
+run never shows a node outside the reader's scope. Property rows follow SEC-03: under ADR-039 D4 A, the grant's categories also limit reads. §18 designs this.
 
 #### 17.4.5 VER-04 baselines
 In DRM, a baseline version is a read-only snapshot kept for comparison. In Nexus a finalized version is already a frozen
@@ -634,7 +645,7 @@ CREATE TABLE mdm.saved_query (
 - **Who sees a shared query:** everyone who can read its hierarchy. A query with no hierarchy is visible to every user.
 - **Who changes it:** only the owner edits or deletes it.
 - **Whose scope applies:** results always use the runner's own read scope, so sharing a query never shares data.
-- **SEC-04 (object access, ADR-039)** may add named sharing later; `visibility` can gain values.
+- **SEC-04 (object access, ADR-039: Parity)** gives `visibility` a `system` value, which an administrator sets. §18 designs it.
 - **Limit:** `SAVED_QUERY_MAX_PER_USER` (200).
 - **Validation:** a definition is validated when saved, with the same checks as a run (N2604, N2605, N2807).
 
@@ -817,11 +828,18 @@ All data is synthetic (ADR-038 D5).
 **Order**
 1. 5-1 to 5-5.
 2. 5-9 to 5-16.
-3. The increments for whatever ADR-039 decides.
+3. The increments for the rows ADR-039 puts in Phase 5 (§18, reviewed before they are built).
 4. 5-8, the gate.
 
 5-5 (read filtering) comes before 5-12 to 5-14, so the new read endpoints are filtered from their first commit. 5-6 follows
 the Phase 4 loader (§17.1).
+
+*Split in the Phase 5 plan (approved 2026-11-14):* three L increments are each built as two, with the same content and tests:
+- 5-10: 5-10a, the engine core, and 5-10b, the catalog, resolver, history and check endpoint.
+- 5-12: 5-12a, the compare backend and baselines, and 5-12b, the compare UI.
+- 5-13: 5-13a, the query backend and saved queries, and 5-13b, the query UI.
+
+The `dev.cel` version is `dev.cel:cel` 0.15.0. `protobuf-java` 4.36.2 and `guava` 33.7.2-jre are pinned with it.
 
 ### 17.15 Risks, choices for review, parameters
 | # | Item | Handling |

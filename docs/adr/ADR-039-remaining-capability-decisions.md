@@ -1,6 +1,6 @@
 # ADR-039: Decisions for the remaining undecided capabilities (Phases 1, 2 and 5)
 
-- **Status:** Proposed 2026-11-14. Nothing in it is built until it is decided (OD-47)
+- **Status:** **Accepted 2026-11-14** by the repository owner ("all approved", in answer to the Phase 5 plan's question 3: every recommendation). OD-47
 - **Date:** 2026-11-14
 - **Deciders:** Repository owner (as for ADR-038). Product confirms the rows marked "confirm" from discovery or the Phase 4
   extract profile. Audit-Risk keeps AUD-04 (OD-25)
@@ -128,7 +128,14 @@ VER-07, HIE-07, HIE-10, PRP-10, GOV-04 splitting and PRP-05 locks.
 | B | Build them now on the assumption they are used. Effort without evidence, and HIE-07 is large |
 
 ## Decision
-Not taken. The repository owner decides D1 to D5 (OD-47).
+Accepted 2026-11-14 by the repository owner: **every recommendation** (OD-47).
+- **D1:** each capability as the Recommendation column says. The catalogue (`docs/capabilities.md`) and `TRACEABILITY.md` record it.
+- **D2 A:** the Phase 1 and 2 capabilities are built as Phase 5 increments. Phases 1 and 2 stay closed.
+- **D3 A:** notifications and alerts (GOV-08, GOV-16) stay out. They are explicit gaps at the gate, and GOV-07 escalation waits with them.
+- **D4 A:** ADR-036's `category_codes` also limits READ. Exports keep their governed profile access (ADR-032).
+- **D5 A:** VER-07, HIE-07, HIE-10, PRP-10, GOV-04 splitting and PRP-05 locks are built only after Product confirms use. Until then they are explicit gaps at the Phase 5 gate.
+
+The Phase 5 rows get Phase 5 LLD §18, which is reviewed before they are built, after increment 5-16 and before the gate (5-8).
 
 ## Consequences
 - **If the recommendations are adopted:**

@@ -76,7 +76,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### VER-07 — Version-level properties
 
-- **Decision / priority / phase:** — / — / — (confirm use in discovery, then Phase 5; ADR-037)
+- **Decision / priority / phase:** Parity if Product confirms use, otherwise Retire (ADR-039 D5, ADR-037 D1) / — / Phase 5 follow-up after the Phase 4 extract profile
 - **Legacy behaviour:** Properties attached to a version (e.g. period, status flags).
 - **Target design:** Version property table (to add).
 - **Acceptance criteria (draft):** Version-level properties display and export as in DRM.
@@ -102,7 +102,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### HIE-03 — Shared nodes
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / built in Phases 1 and 3 (ADR-039, decision recorded); exports with shared nodes are proved in Phase 8
 - **Legacy behaviour:** Same node under multiple parents in a hierarchy (primary + shared instances).
 - **Target design:** hierarchy_relationship.is_primary = false
 - **Acceptance criteria (draft):** Shared nodes display, export and validate as in DRM.
@@ -110,7 +110,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### HIE-04 — Orphans
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039)
 - **Legacy behaviour:** Nodes in a version that belong to no hierarchy.
 - **Target design:** View of nodes without relationships (to add).
 - **Acceptance criteria (draft):** Orphan list matches DRM.
@@ -118,7 +118,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### HIE-05 — Leaf / limb and promotion
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039: promotion and demotion; leaf at add and the block are built)
 - **Legacy behaviour:** Leaf nodes cannot have children; a leaf can be promoted to a limb.
 - **Target design:** node_attr.allows_children
 - **Acceptance criteria (draft):** Adding a child under a leaf is blocked; promotion works.
@@ -126,7 +126,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### HIE-06 — Inactivate / reactivate nodes
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039 D2: built in Phase 5; Phase 1 stays closed)
 - **Legacy behaviour:** Mark nodes inactive without deleting them.
 - **Target design:** node_attr.is_active
 - **Acceptance criteria (draft):** Inactive nodes included/excluded per export settings exactly as DRM.
@@ -134,7 +134,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### HIE-07 — Node merge on delete
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity if Product confirms use, otherwise Retire (ADR-039 D5) / — / Phase 5 follow-up after the Phase 4 extract profile
 - **Legacy behaviour:** When deleting a node, repoint references to a replacement node.
 - **Target design:** New change action 'merge_node' (to add).
 - **Acceptance criteria (draft):** References repoint to the target node and the merge is logged.
@@ -142,7 +142,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### HIE-08 — Sibling sort order
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039); export row order is proved in Phase 8
 - **Legacy behaviour:** Custom ordering of children.
 - **Target design:** hierarchy_relationship.sort_order
 - **Acceptance criteria (draft):** Export row order matches DRM exactly.
@@ -150,7 +150,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### HIE-09 — Node types
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039)
 - **Legacy behaviour:** Node types control which properties and validations apply to a node.
 - **Target design:** node_kind + property applicability by type (to add).
 - **Acceptance criteria (draft):** Correct properties shown and validated per node type.
@@ -158,7 +158,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### HIE-10 — Domains
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity if Product confirms use, otherwise Retire (ADR-039 D5) / — / Phase 5 follow-up after the Phase 4 extract profile
 - **Legacy behaviour:** Govern node naming and uniqueness across versions.
 - **Target design:** Identifier schemes + uniqueness rules.
 - **Acceptance criteria (draft):** Domain rules enforced identically.
@@ -166,7 +166,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### HIE-11 — Model after (clone node)
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039; UI only)
 - **Legacy behaviour:** Create a node using another node as a template.
 - **Target design:** UI action that generates change items.
 - **Acceptance criteria (draft):** Clone has the source's property values except its name.
@@ -192,7 +192,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### PRP-02 — Property data types
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / built in Phase 1 (ADR-039, decision recorded); exact round trip is proved by the Phase 4 golden extract
 - **Legacy behaviour:** String, integer, decimal, boolean, date, list, node reference, memo and others.
 - **Target design:** property_data_type + validation trigger.
 - **Acceptance criteria (draft):** Type rules enforced; values round-trip exactly.
@@ -200,7 +200,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### PRP-03 — List properties
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / built in Phase 1 (ADR-039, decision recorded); the golden check compares the list definitions
 - **Legacy behaviour:** Allowed-value lists.
 - **Target design:** property_list_value
 - **Acceptance criteria (draft):** Only listed values accepted; lists match DRM.
@@ -208,7 +208,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### PRP-04 — Lookup properties
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039: governed lookup table and a deterministic CEL lookup())
 - **Legacy behaviour:** Value looked up from a table keyed on another property.
 - **Target design:** Derived property (sql engine) or lookup table (to add).
 - **Acceptance criteria (draft):** Lookup results match DRM for every node.
@@ -216,7 +216,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### PRP-05 — Inheritance and overrides
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / inheritance built in Phase 1 (ADR-039, decision recorded); locks only if Product confirms use (D5)
 - **Legacy behaviour:** Values inherited from ancestors, with overrides and locks at lower nodes.
 - **Target design:** property_definition.inheritance + property_value_asof()
 - **Acceptance criteria (draft):** Inherited values match DRM for every node in every hierarchy.
@@ -232,7 +232,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### PRP-07 — System / core properties
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039)
 - **Legacy behaviour:** Built-ins such as name, description, level, child count, leaf.
 - **Target design:** Columns in export and tree functions.
 - **Acceptance criteria (draft):** Values match DRM.
@@ -240,7 +240,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### PRP-08 — Property categories
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / built in Phase 3 (ADR-039, decision recorded)
 - **Legacy behaviour:** Group properties for display and access.
 - **Target design:** property_category
 - **Acceptance criteria (draft):** Same grouping in the UI.
@@ -248,7 +248,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### PRP-09 — Property-level edit permissions
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / built in Phase 3 (ADR-036; ADR-039, decision recorded)
 - **Legacy behaviour:** Restrict which users can edit which properties.
 - **Target design:** Workflow tasks + entitlement model (to add for direct edits).
 - **Acceptance criteria (draft):** Unauthorised edits rejected.
@@ -256,7 +256,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### PRP-10 — Hierarchy-level properties
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity if Product confirms use, otherwise Retire (ADR-039 D5) / — / Phase 5 follow-up after the Phase 4 extract profile
 - **Legacy behaviour:** Properties attached to a hierarchy object.
 - **Target design:** Hierarchy property table (to add).
 - **Acceptance criteria (draft):** Values display and export as in DRM.
@@ -266,7 +266,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### VAL-01 — Real-time validations
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Improve / — / 5 - Remaining parity (ADR-039 D2: node-scoped rules run when an item is added; submit stays blocked)
 - **Legacy behaviour:** Run on each edit and block invalid changes.
 - **Target design:** Rules engine run on change requests.
 - **Acceptance criteria (draft):** Invalid edits blocked with an equivalent message.
@@ -274,7 +274,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### VAL-02 — Batch validations
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039 D2)
 - **Legacy behaviour:** Run on demand across a version or hierarchy.
 - **Target design:** validation_rule + validation_result
 - **Acceptance criteria (draft):** Batch results match DRM.
@@ -282,7 +282,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### VAL-03 — Validation levels and assignments
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039 D2)
 - **Legacy behaviour:** Node, hierarchy and version levels; assigned to hierarchies or versions.
 - **Target design:** validation_rule.level + hierarchy_id
 - **Acceptance criteria (draft):** Each rule applies in exactly the same scope.
@@ -290,7 +290,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### VAL-04 — Formula / script validations
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039: CEL rules on the ADR-038 engine; the rules in use are translated after Phase 4)
 - **Legacy behaviour:** Custom validation logic in formulas or scripts.
 - **Target design:** Rules as code (original kept in drm_validation_orig).
 - **Acceptance criteria (draft):** Each rule converted with automated tests.
@@ -476,7 +476,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### GOV-03 — Workflow tasks and editable properties
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / built in Phase 2 (ADR-039, decision recorded)
 - **Legacy behaviour:** Which actions and properties each stage may change.
 - **Target design:** wf.workflow_task + task_property
 - **Acceptance criteria (draft):** Only permitted edits allowed per stage.
@@ -484,7 +484,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### GOV-04 — Conditional stages and request splitting
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / conditions built in Phase 2 (ADR-039, decision recorded); splitting only if Product confirms use (D5)
 - **Legacy behaviour:** Stages included by property values or failed validations; items split into separate requests.
 - **Target design:** workflow_stage.condition + split_instance()
 - **Acceptance criteria (draft):** Same routing and splits as DRG.
@@ -492,7 +492,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### GOV-05 — Separation of duties
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / built in Phase 2 (ADR-039, decision recorded)
 - **Legacy behaviour:** Approver must not have submitted or approved another stage.
 - **Target design:** wf.sod_violation()
 - **Acceptance criteria (draft):** SoD violations blocked.
@@ -500,7 +500,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### GOV-06 — Approval groups and methods
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / built in Phase 2 (ADR-039, decision recorded)
 - **Legacy behaviour:** Groups per stage; any-group or all-groups approval.
 - **Target design:** wf.stage_group + approval_method
 - **Acceptance criteria (draft):** Approval outcomes match DRG.
@@ -508,7 +508,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### GOV-07 — Claims, durations and SLAs
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039 D2; escalation messages wait with GOV-08)
 - **Legacy behaviour:** Claim requests; request and claim durations; overdue tracking.
 - **Target design:** claim_expires_at, due_at, v_sla_status
 - **Acceptance criteria (draft):** Overdue requests flagged correctly.
@@ -516,7 +516,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### GOV-08 — Notifications
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** — / — / out of the build (repository owner 2026-11-12; ADR-039 D3 A)
 - **Legacy behaviour:** Notify participants of request activity.
 - **Target design:** event_outbox + notifier service
 - **Acceptance criteria (draft):** Right people notified at each step.
@@ -524,7 +524,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### GOV-09 — Push-back and re-approval
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039 D2)
 - **Legacy behaviour:** Return a request to an earlier stage; re-approval rules.
 - **Target design:** workflow_stage.reapproval + instance_stage.iteration
 - **Acceptance criteria (draft):** Push-back and re-approval match DRG.
@@ -540,7 +540,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### GOV-11 — Request comments and attachments
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / comments 5 - Remaining parity (ADR-039 D2); attachments after Phase 6 (OD-16a)
 - **Legacy behaviour:** Discussion and supporting documents on requests.
 - **Target design:** instance_action comments + evidence_document
 - **Acceptance criteria (draft):** Comments and files retained with the request.
@@ -564,7 +564,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### GOV-14 — Request tags
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039)
 - **Legacy behaviour:** Free-form tags on requests for grouping and search.
 - **Target design:** Tag table on change_request (to add).
 - **Acceptance criteria (draft):** Tags can be added, searched and reported on.
@@ -572,7 +572,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### GOV-15 — Governance analytics
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039; Product confirms the metric list)
 - **Legacy behaviour:** Analytics on request volumes, ageing and SLA performance.
 - **Target design:** Dashboard over wf tables.
 - **Acceptance criteria (draft):** Same metrics available as today, refreshed at least daily.
@@ -580,7 +580,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### GOV-16 — Alerts
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** — / — / out of the build (repository owner 2026-11-12; ADR-039 D3 A)
 - **Legacy behaviour:** In-app alerts about request activity.
 - **Target design:** event_outbox + in-app notifications.
 - **Acceptance criteria (draft):** Users see alerts for their requests; volume is actionable.
@@ -606,7 +606,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### SEC-03 — Property access
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / edit side built in Phase 3 (ADR-036); read side 5 - Remaining parity (ADR-039 D4 A: the grant's categories also limit reads)
 - **Legacy behaviour:** Read/edit rights by property or category.
 - **Target design:** Entitlements by property category.
 - **Acceptance criteria (draft):** Access matches DRM.
@@ -614,7 +614,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### SEC-04 — Object access
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039)
 - **Legacy behaviour:** Personal vs shared vs system queries, exports and other objects.
 - **Target design:** Ownership/sharing on saved objects.
 - **Acceptance criteria (draft):** Visibility matches DRM.
@@ -632,7 +632,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### AUD-01 — Transaction history
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039 D2: query API over audit_log; the history itself is built)
 - **Legacy behaviour:** Who changed what and when, with filters.
 - **Target design:** mdm.audit_log (append-only)
 - **Acceptance criteria (draft):** Every change traceable to actor and request.
@@ -640,7 +640,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### AUD-02 — Request history
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 5 - Remaining parity (ADR-039 D2: read API and request-page panel)
 - **Legacy behaviour:** Full history of each governance request.
 - **Target design:** wf.instance_action
 - **Acceptance criteria (draft):** Complete, immutable request history.
@@ -648,7 +648,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### AUD-03 — Job and export run history
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** Parity / — / 8 - with the export service (ADR-039)
 - **Legacy behaviour:** Logs of batch jobs and exports.
 - **Target design:** export_run + job logs
 - **Acceptance criteria (draft):** Every run logged with outcome and file hash.
@@ -656,7 +656,7 @@ plus new capabilities. Reference a capability by its ID in prompts, branches, co
 
 ### AUD-04 — Audit retention
 
-- **Decision / priority / phase:** — / — / —
+- **Decision / priority / phase:** — / — / — (Audit-Risk decides, OD-25; ADR-039: no deletion in any phase until then)
 - **Legacy behaviour:** How long history is kept.
 - **Target design:** Retention policy + archival.
 - **Acceptance criteria (draft):** History retained for the required period.

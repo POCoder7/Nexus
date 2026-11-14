@@ -1,8 +1,8 @@
 # Build state
 
 - **Current phase:** 5 — Remaining parity, built before Phase 4 (repository owner, 2026-11-14; ADR-038 D3 amended)
-- **Step in loop:** Design stop before the plan. Awaiting review: Phase 5 LLD §17 (the detailed design for the ADR-038 decisions) and the owner's decisions in ADR-039 (OD-47) for every capability still undecided. `docs/phases/phase-5/PLAN.md` is not written; nothing is built — branch `develop`
-- **Baseline:** db-test **pass** 411/411 · mvnw verify **pass** 126/126 · UI: lint pass, contract pass, unit 64/64, stories 49/49 (axe), production build and budgets pass, end to end 38/38 (axe) (2026-11-13)
+- **Step in loop:** Build (BUILD_PROTOCOL step 3). On 2026-11-14 the owner said "all approved", which approved the Phase 5 plan, `dev.cel`, ADR-039 (every recommendation) and the demo rebuild. Building 5-1a on branch `feature/NEW-08-phase-5-remaining-parity`
+- **Baseline:** db-test **pass** 411/411 · mvnw verify **pass** 126/126 · UI: lint pass, contract pass, unit 64/64, stories 49/49 (axe), production build and budgets pass, end to end 38/38 (axe) (2026-11-14, Phase 5 orient)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -18,9 +18,9 @@
 | Step | Capability | Status | Notes |
 |---|---|---|---|
 | Orient | PROG | Done 2026-11-14 | Phase 5 LLD, ADR-028, ADR-029, ADR-038, OPEN_DECISIONS and the code it touches read. No Phase 4 work was started |
-| Design for the ADR-038 decisions | PRP-06, QRY-01 to QRY-05, IMP-03, VER-04, BLD-03 | **Written, awaiting review** | Phase 5 LLD §17. Increments 5-9 to 5-16. Error codes N2801 to N2808. Migration V13 plus edits to V1, V3, V6 and V11 (rule 6 still allows them, OD-44). Choices for the reviewer C-1 to C-5 (§17.15). §17.1 lists what waits for Phase 4 |
-| Remaining capability decisions | VER-07, HIE-03 to HIE-11, PRP-02 to PRP-10, VAL-01 to VAL-04, SEC-03, SEC-04, AUD-01 to AUD-04, GOV-03 to GOV-09, GOV-11, GOV-14 to GOV-16 | **ADR-039 proposed** (OD-47) | Options and a recommendation for each; not chosen. If decided, the Phase 5 rows get an LLD §18 before they are built |
-| Plan | PROG | Not started | Written after the design is approved. Includes the `dev.cel` version (published at least four days before; the curated-registry rule may apply to Maven) |
+| Design for the ADR-038 decisions | PRP-06, QRY-01 to QRY-05, IMP-03, VER-04, BLD-03 | **Approved 2026-11-14** by the repository owner ("approved"), with C-1 to C-5 and the parameters | Phase 5 LLD §17. Increments 5-9 to 5-16. Error codes N2801 to N2808. Migration V13 plus edits to V1, V3, V6 and V11 (rule 6 still allows them, OD-44). Choices for the reviewer C-1 to C-5 (§17.15). §17.1 lists what waits for Phase 4 |
+| Remaining capability decisions | VER-07, HIE-03 to HIE-11, PRP-02 to PRP-10, VAL-01 to VAL-04, SEC-03, SEC-04, AUD-01 to AUD-04, GOV-03 to GOV-09, GOV-11, GOV-14 to GOV-16 | **ADR-039 accepted 2026-11-14** (OD-47, every recommendation; "all approved") | Catalogue and TRACEABILITY updated. 21 rows are built in Phase 5 after 5-16, once LLD §18 has been written and reviewed (a design stop). 10 rows are recorded as already built. The gate lists these explicit gaps: the D5 "confirm" rows, GOV-08, GOV-16, AUD-04, GOV-11 attachments and AUD-03 (Phase 8) |
+| Plan | PROG | **Approved 2026-11-14** ("all approved") | `docs/phases/phase-5/PLAN.md`:<br>• 5-1, 5-10, 5-12 and 5-13 split into a and b; no other deviation from the LLD.<br>• `dev.cel:cel` 0.15.0 (18 days old), with `protobuf-java` 4.36.2 and `guava` 33.7.2-jre pinned. These also upgrade the Camunda client's 4.31.1 and 33.3.1-jre; a protobuf smoke test runs with no Docker, and the Camunda run stays deferred.<br>• Finding: there is no application SQL grant path to remove (F-4). `nexus_api` has only SELECT on `user_role`, and only the database owner can grant |
 
 ### Phase 3 progress
 | Increment | Capability | Status | Tests | Notes |
@@ -90,17 +90,22 @@
 | ADR-013 to ADR-034 | Design-track decisions | Accepted by the owner; confirmations pending for ADR-014, 021, 023, 026, 027 (Security / Audit-Risk), see `docs/design/OPEN_DECISIONS.md` |
 | ADR-037 | Versions: create, copy and status lifecycle (VER-01, VER-02) | **Accepted 2026-11-12** (every recommendation, OD-45). Refinements R1 to R4 approved with the LLD section on 2026-11-12 and built (3-23 to 3-27); D4 needs Audit-Risk confirmation (OD-45a) before merging to `main` |
 | ADR-038 | Imports, derived properties, queries and compares, scenarios and exports | **Accepted 2026-11-14** (every recommendation, OD-46); D3 amended so Phase 5 is built before Phase 4. Product confirms EXP-03 from the export inventory |
-| ADR-039 | Decisions for the remaining undecided capabilities (Phases 1, 2 and 5) | **Proposed 2026-11-14** (OD-47). The owner decides D1 to D5; nothing built until then |
+| ADR-039 | Decisions for the remaining undecided capabilities (Phases 1, 2 and 5) | **Accepted 2026-11-14** (OD-47, every recommendation). Product confirms the D5 rows; Audit-Risk keeps AUD-04 (OD-25) |
 
 
 ## Open questions for the human
-1. **Phase 5 LLD §17: approve, or ask for changes.** Most useful to check: the choices C-1 to C-5 in §17.15 (formula history; CEL-only governed formula changes; stored compare runs with a 24-hour expiry; the filter extension also applying to export filters; `version_type` with DRM's names), what waits for Phase 4 (§17.1), and the new parameters (also in OPEN_DECISIONS). If you prefer, approve the design and the plan in one step, or waive the per-increment stops as in Phase 3.
+1. *Resolved 2026-11-14:* the repository owner approved LLD §17 ("approved"), including C-1 to C-5 and the parameters. The owner then answered "all approved" to the five plan questions:
+   - the plan and its splits;
+   - `dev.cel:cel` 0.15.0 with the protobuf and guava pins;
+   - ADR-039 with every recommendation;
+   - stopping and rebuilding the demo database;
+   - committing the records.
 2. **Phase 4 performance baseline (4-9):** run it in Phase 4, or defer it with the rest of the performance work to the end of the build?
 3. **Masked extracts and DRM outputs (OD-31, OD-32)** for Phase 4 golden parity: without them Phase 4 is synthetic-only.
 4. OD-11: remote `origin` is `https://github.com/POCoder7/Nexus` (public, repository owner 2026-11-12). The three phase branches are pushed and merged into `develop` by the owner; `develop`, with the versions commits, was pushed on 2026-11-13 with the owner's approval (a fast-forward, no force); `main` waits for the owner's one-time `git push --force origin main` (it replaces GitHub's starter commit; agents may not force-push). Every commit id changed on 2026-11-12 when the history was rewritten to the noreply email; the ids quoted in these records are the new ones.
 5. OD-18a: Audit-Risk review of ADR-021 and ADR-023 **skipped for now** by the repository owner (2026-11-11); merging to `main` needs the review or your explicit waiver.
 6. *Resolved 2026-11-12:* the versions design, R1 to R4, the `UPDATE (version_id)` column privilege, the nine codes and `VERSION_ADMIN` were approved by the repository owner ("Build it as designed") and built in 3-23 to 3-27. Review the build with the gate (open question 1): LLD V.9 lists what differs from the design.
-7. **ADR-039 (OD-47), proposed 2026-11-14:** a decision for every capability still marked "—" in Phases 1, 2 and 5 (D1), where the Phase 1 and 2 ones are built (D2), notifications and alerts (D3, recommended to stay out as you decided on 2026-11-12), the read side of property access (D4) and the rows that wait for confirmation of use (D5). Until decided, those rows are explicit gaps at the Phase 5 gate.
+7. *Resolved 2026-11-14:* ADR-039 (OD-47) was accepted with every recommendation ("all approved"). Still open: Product to confirm use of VER-07, HIE-07, HIE-10, PRP-10, GOV-04 splitting and PRP-05 locks (from discovery, or from the Phase 4 extract profile), and the GOV-15 metric list.
 8. **Nexus vs Oracle DRM comparison document** (asked on 2026-11-14, then interrupted): still wanted under `docs/`? When written, it must say that DRM 11.2.x is current and Premier Support runs to at least 2030 (an earlier answer here said otherwise).
 9. *Resolved 2026-11-14:* the Phase 3 gate and ADR-038 (OD-46) were approved by the repository owner ("approved for going ahead"); D3 amended to build Phase 5 before Phase 4.
 
@@ -126,4 +131,14 @@
 - Schema control gaps and untested guards (D-04 to D-07, D-12 to D-15, D-22, D-29, D-33 in `docs/design/DESIGN_STATE.md`; OD-18).
 
 ## Next action
-Stopped at the Phase 5 design stop (open questions 1 and 7). On approval of §17: write `docs/phases/phase-5/PLAN.md` (increments 5-1 to 5-5, 5-9 to 5-16, then any ADR-039 increments, then the 5-8 gate; 5-6 after the Phase 4 loader), ask for the `dev.cel` dependency and its version there, then build. If ADR-039 is decided, write Phase 5 LLD §18 for its Phase 5 rows and stop for review before building them. Merging to `main` also needs OD-45a (Audit-Risk on ADR-037 D4) and OD-18a. On the gate approval: Phase 4 (data loading and parity harness) orient and plan. Deferred to the end: performance tests (Phases 1–3), Camunda contract run. The local demo is running with V11 (API on 8080 from a scratchpad copy of the jar, UI on 4200, database `nexus_demo`, synthetic; `e2e_vadmin` and `e2e_vadmin2` are its version administrators); stop it when the owner is done. Also requested and not yet written: an architecture code review, a summary design document and a new-machine setup guide. On 2026-11-13 `ui/package-lock.json` was re-resolved with `npm install --before=2026-11-09T10:42:56Z` (owner's approval): the owner's second laptop uses a curated npm registry that refuses versions under 72 hours old; every exact pin was already older, so only transitive versions moved (DEVELOPER_SETUP §2). An `overrides` entry holds `playwright` at 1.64.1 so the story and end-to-end tests share one browser build (`0c6b175`); after the re-pin lint, contract, unit 64/64, build, stories 49/49 and end to end 38/38 pass.
+Phase 5 build under way; the plan was approved on 2026-11-14.
+1. Branch `feature/NEW-08-phase-5-remaining-parity` from `develop`. The records commit (PROG) goes on that branch.
+2. Build, in order:
+   - 5-1a, 5-1b, 5-2, 5-3, 5-4, 5-5;
+   - 5-9, 5-10a (the `dev.cel` dependency and the protobuf smoke test come first), 5-10b, 5-11, 5-12a, 5-12b, 5-13a, 5-13b, 5-14, 5-15, 5-16;
+   - then write LLD §18 for the 21 ADR-039 rows, and **stop for review** (design stop);
+   - then the §18 increments;
+   - then the 5-8 gate.
+
+   5-6 waits for the Phase 4 loader.
+3. Ask before each commit. Never push. If ADR-039 is decided, write Phase 5 LLD §18 for its Phase 5 rows and stop for review before building them. Merging to `main` also needs OD-45a (Audit-Risk on ADR-037 D4) and OD-18a. On the gate approval: Phase 4 (data loading and parity harness) orient and plan. Deferred to the end: performance tests (Phases 1–3), Camunda contract run. The Phase 5 protobuf and guava upgrade is one more reason to do that run. The local demo is running with V11 (API on 8080 from a scratchpad copy of the jar, UI on 4200, database `nexus_demo`, synthetic; `e2e_vadmin` and `e2e_vadmin2` are its version administrators); stop it when the owner is done. Also requested and not yet written: an architecture code review, a summary design document and a new-machine setup guide. On 2026-11-13 `ui/package-lock.json` was re-resolved with `npm install --before=2026-11-09T10:42:56Z` (owner's approval): the owner's second laptop uses a curated npm registry that refuses versions under 72 hours old; every exact pin was already older, so only transitive versions moved (DEVELOPER_SETUP §2). An `overrides` entry holds `playwright` at 1.64.1 so the story and end-to-end tests share one browser build (`0c6b175`); after the re-pin lint, contract, unit 64/64, build, stories 49/49 and end to end 38/38 pass.
