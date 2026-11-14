@@ -39,6 +39,7 @@ Those rows moved to **Decided** below. Rows that need another team's sign-off, o
 | OD-42 | Security tooling and the CI jobs for it: dependency scanning, SAST, secret scanning, container scanning, licence report | Security / Platform | GitHub-native (Dependabot, CodeQL, secret scanning) · organisation's tools | Whatever the organisation already licenses; otherwise GitHub-native | Phase 9 build (CI changes need approval) |
 | OD-43 | Penetration test: scope, provider, timing | Security | — | External test of UI, API and evidence storage in pre-production before the first production release | Phase 9 gate |
 | OD-45a | Audit-Risk confirmation of ADR-037 D4: `VERSION_ADMIN` creates and moves versions, a second version administrator finalizes, people only | Audit-Risk | Confirm · amend | Confirm (same pattern as workflow-model activation, `N1014`) | Merging the versions work to `main` (OD-18a) |
+| OD-46 | The owner's 2026-11-14 request (derived-property formulas, queries and compares, imports and action scripts, all exports, the replacement for blending): ADR-038 D1 capability decisions for PRP-06, QRY-01–05, IMP-01–03, EXP-01–08 (part of OD-09); D2 scenarios BLD-03 (OD-12); D3 sequence; D4 CEL for Java (OD-19 library); D5 what parity means at each gate | Repository owner (Product confirms the rows marked "confirm") | Per ADR-038 | Every recommendation in ADR-038 (protocol order, sandboxes meet BLD-03, `dev.cel`, synthetic data with parity unproven until the golden run) | Phase 4 plan |
 | OD-28 | `docs/capabilities.md` says it is regenerated from a working copy outside the repository. The OD-13 decisions must be entered there, or the next regeneration will reset them to "—" | Product (catalogue owner) | Update the external working copy · let the repository copy become the master | Update the working copy, then regenerate | Keeping decisions consistent |
 
 ## Decided
@@ -158,6 +159,7 @@ Each is configurable (an `mdm.*` property or a table value) and must be confirme
 | ADR-035 | Engine-neutral workflow driver | Accepted 2026-11-11 (repository owner) | |
 | ADR-036 | Property edit rights by category | Accepted 2026-11-12 (repository owner) | Security confirmation pending with ADR-022 |
 | ADR-037 | Versions: create, copy and status lifecycle | Accepted 2026-11-12; refinements R1 to R4 approved with the Phase 3 LLD section the same day; built in Phase 3 (3-23 to 3-27) | OD-45; D4 Audit-Risk confirmation pending (OD-45a) |
+| ADR-038 | Imports, derived properties, queries and compares, scenarios and exports: decisions and sequence | Proposed 2026-11-14 | OD-46; nothing built until decided |
 | ADR-027 | Golden datasets: masking and storage | Accepted 2026-11-11 (owner); Security/Audit-Risk confirmation pending | OD-31a, OD-32a |
 | ADR-009 | Golden testing as the parity standard | Accepted 2026-11-11 (OD-33) | |
 | ADR-005 to ADR-008 | (existing) | Proposed | Unchanged by this design |

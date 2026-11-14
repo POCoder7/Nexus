@@ -39,5 +39,6 @@
 | ADR-035 | Engine-neutral workflow driver: Camunda behind a port, with an in-process reference driver | Accepted |
 | ADR-036 | Property edit rights by category | Accepted (Security confirmation pending with ADR-022) |
 | ADR-037 | Versions: create, copy and status lifecycle | Accepted (OD-45); D4 Audit-Risk confirmation pending (OD-45a) |
+| ADR-038 | Imports, derived properties, queries and compares, scenarios and exports | Proposed (OD-46) |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.
