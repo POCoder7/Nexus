@@ -125,4 +125,31 @@ describe('ContextStore', () => {
     expect(store.can('DECIDE', 'SYN_H')).toBe(false);
     expect(store.can('PROPOSE', 'OTHER')).toBe(false);
   });
+
+  it('takes the sandbox in view from the URL and says plainly that nothing in it is live (NEW-08)', async () => {
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), {
+        provide: NexusApi,
+        useValue: {
+          me: async () => ({ businessToday: '2031-05-17' }),
+          sandbox: async () => ({ body: { id: 'sb1', name: 'Synthetic plan', kind: 'sandbox', status: 'draft', itemCount: 3,
+            effectiveFrom: '2031-06-01' }, etag: '"4"' }),
+        },
+      }],
+    });
+    const store = TestBed.inject(ContextStore);
+    await store.load();
+    expect(store.inSandbox()).toBe(false);
+    expect(store.sandboxBanner()).toBeNull();
+    store.syncFromUrl(null, null, null, 'sb1');
+    expect(store.inSandbox()).toBe(true);
+    await store.refreshSandbox();
+    expect(store.sandboxBanner()).toContain('Synthetic plan');
+    expect(store.sandboxBanner()).toContain('3 changes');
+    expect(store.sandboxBanner()).toContain('Nothing here is live');
+    expect(store.isHistorical()).toBe(false);
+    store.syncFromUrl(null);
+    expect(store.inSandbox()).toBe(false);
+    expect(store.sandbox()).toBeNull();
+  });
 });

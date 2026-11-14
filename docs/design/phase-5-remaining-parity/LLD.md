@@ -309,6 +309,29 @@ banner, changed nodes marked with the change tokens (UI_STANDARD §3 "added, rem
 tray becomes the sandbox item list with a diff view (the Diff/compare custom component, UI_STANDARD §5); conflicts panel
 with "Rebase" and "Remove item"; "Submit as request". Grants: Administration → Access → request a grant (form) → decision in the worklist.
 
+**Built in 5-3** (`ui/src/app/sandbox/`; changes to the shell, context store, tray, hierarchy store, node store, tree,
+node panel and property grid; Vitest +8, stories +6 with axe, Playwright `09-sandboxes` (6)):
+- *The URL carries the sandbox* (`?sandbox=<id>`), like `?asOf=`, so a link opens the same view. The context-bar
+  switcher ("Work in": Live data / Sandbox: name) and the banner's "Back to live data" only change that parameter.
+  The banner names the sandbox, its number of changes and its date, and says nothing in it is live.
+- *The tray is the sandbox's change list.* In sandbox mode every existing dialog (add leaf, edit details, properties,
+  place, move, remove, delete, drag and drop) adds an item to the sandbox instead of creating a draft. Each change
+  reloads the overlay tree and the panel. The tray's action opens the sandbox page.
+- *Markers.* The overlay reports only "changed", not the kind of change, so the tree row, the node panel and each
+  value use one marker: the "modified" change token, a ✎ icon and the words "Changed in sandbox". The tree marker is
+  per placement.
+- *The diff view is `nx-item-list`*, the before/after view built in Phase 3 (the plan's "existing `nx-diff-view`").
+  The sandbox page shows it with the sandbox's items, and the changes the preview leaves out are listed above it. The
+  fact-level `GET /sandboxes/{id}/diff` is not shown yet.
+- *Sandbox page* (`/sandboxes/:id`): facts, the conflicts panel (`nx-sandbox-conflicts`, with Rebase and Remove
+  change per conflicting item), Submit as request (disabled while there are conflicts; it uses the MAINTAIN model,
+  like the tray's drafts, and opens the request), and Discard with an inline confirmation. Viewers see it read-only.
+  *Sandboxes page* (`/sandboxes`): the open sandboxes and "New sandbox" (name and date), which opens the workspace in
+  the new sandbox.
+- *Limits, recorded:* search, the path and the reveal use the live data, so after a move the panel's path shows where
+  the node is today, and a node moved in the sandbox is revealed as "found by search" under its old parent. Overlay
+  reads have no recorded-time slice.
+
 ## 13. Test design (designed scope)
 | Capability | Criterion | Cases | Type |
 |---|---|---|---|

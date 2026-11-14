@@ -5,7 +5,7 @@ import { HierarchyTreeComponent } from './hierarchy-tree.component';
 /** Keyboard behaviour of the WAI-ARIA tree (LLD §7.1, UI_STANDARD §8). Synthetic rows. */
 describe('HierarchyTreeComponent', () => {
   const node = (id: string, name: string, depth: number, parentId: string | null, hasChildren = false, expanded = false): FlatTreeRow =>
-    ({ kind: 'node', key: id, id, parentId, name, depth, hasChildren, expanded, shared: false, active: true, pinned: false });
+    ({ kind: 'node', key: id, id, parentId, name, depth, hasChildren, expanded, shared: false, active: true, pinned: false, changed: false });
   const rows: FlatTreeRow[] = [
     node('top', 'Top', 0, null, true, true),
     node('a', 'Alpha', 1, 'top', true, false),
@@ -97,5 +97,15 @@ describe('HierarchyTreeComponent', () => {
     await press('ArrowDown');
     await press('*');
     expect(events).toEqual(['siblings:top']);
+  });
+
+  it('marks a row the sandbox changes with a word, not colour alone (NEW-08)', async () => {
+    fixture.componentRef.setInput('rows', [rows[0], { ...rows[1], changed: true }, rows[2]]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const markers = [...fixture.nativeElement.querySelectorAll('[data-testid=tree-changed]')] as HTMLElement[];
+    expect(markers.length).toBe(1);
+    expect(markers[0].closest('[data-node-id]')?.getAttribute('data-node-id')).toBe('a');
+    expect(markers[0].textContent).toContain('Changed in sandbox');
   });
 });

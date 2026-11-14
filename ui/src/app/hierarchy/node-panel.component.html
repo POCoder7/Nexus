@@ -18,6 +18,9 @@
       <div class="facts">
         <span>{{ t.kind }}: {{ d.kind }}</span>
         <ds-badge [tone]="d.allowsChildren ? 'neutral' : 'info'">{{ d.allowsChildren ? t.limb : t.leaf }}</ds-badge>
+        @if (changed()) {
+          <ds-badge tone="warning" data-testid="node-changed"><span aria-hidden="true">✎ </span>{{ t.changedInSandbox }}</ds-badge>
+        }
         @if (d.active === false) {
           <ds-badge tone="warning">{{ t.inactive }}</ds-badge>
         }
@@ -54,7 +57,7 @@
           <p class="nx-muted">{{ t.noProperties }}</p>
         } @else {
           <nx-property-grid [properties]="d.properties ?? []" [nodeName]="d.name ?? ''" [sourceNames]="sourceNames()"
-                            [editable]="canPropose() && !readOnly()" [canEditCategory]="canEditCategory()" (openSource)="openNode.emit($event)"
+                            [editable]="canPropose() && !readOnly()" [canEditCategory]="canEditCategory()" [changedCodes]="changedCodes()" (openSource)="openNode.emit($event)"
                             (edit)="requestChange.emit({ mode: 'property', property: $event })" />
         }
       } @else if (tab() === 'history') {

@@ -15,6 +15,7 @@ import { HierarchyStore } from './hierarchy.store';
 import { HierarchyTreeComponent } from './hierarchy-tree.component';
 import { NodePanelComponent } from './node-panel.component';
 import { NodeStore } from './node.store';
+import { TrayStore } from '../change-request/tray.store';
 
 /**
  * Hierarchy workspace (LLD §12.2; HIE-12, SLICE-01 S1-R2/S1-R3): master-detail with the lazy tree on the left and the
@@ -42,6 +43,7 @@ export class HierarchyWorkspacePage implements OnDestroy {
   private readonly router = inject(Router);
   private readonly dialog = inject(DsDialog);
   private readonly announcer = inject(Announcer);
+  private readonly tray = inject(TrayStore);
 
   protected readonly t = STRINGS.hierarchy;
   protected readonly common = STRINGS.common;
@@ -55,12 +57,15 @@ export class HierarchyWorkspacePage implements OnDestroy {
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    // (re)open when the hierarchy or the slice changes
+    // (re)open when the hierarchy, the slice or the sandbox changes, and in a sandbox after each change to it (NEW-08):
+    // the overlay is refreshed on the server with each item, so the tree is read again and the selection revealed
     effect(() => {
       const code = this.code();
       const slice = this.context.slice();
+      const sandbox = this.context.sandboxParam();
+      this.tray.revision();
       untracked(() => {
-        void this.store.open(code, slice).then(() => {
+        void this.store.open(code, slice, sandbox).then(() => {
           const h = this.store.hierarchy();
           if (h) {
             this.context.hierarchyName.set(h.name ?? code);
@@ -76,12 +81,14 @@ export class HierarchyWorkspacePage implements OnDestroy {
         });
       });
     });
-    // the panel follows the selection
+    // the panel follows the selection, and the sandbox in view
     effect(() => {
       const id = this.store.selectedId();
       const slice = this.context.slice();
       const code = this.code();
-      untracked(() => (id ? void this.nodeStore.load(id, code, slice) : this.nodeStore.clear()));
+      const sandbox = this.context.sandboxParam();
+      this.tray.revision();
+      untracked(() => (id ? void this.nodeStore.load(id, code, slice, sandbox) : this.nodeStore.clear()));
     });
   }
 

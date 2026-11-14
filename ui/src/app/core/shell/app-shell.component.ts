@@ -1,5 +1,5 @@
 import { NgComponentOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { NexusApi } from '../../api/nexus-api';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -48,6 +48,12 @@ export class AppShellComponent {
     const draft = this.tray.request()?.versionName ?? null;
     return draft && draft !== this.context.workingVersion() ? draft : null;
   });
+  /** The switcher's sandboxes: the open ones, plus the one in view if it is not among them (for example just created). */
+  protected readonly switcherSandboxes = computed(() => {
+    const list = this.context.mySandboxes();
+    const current = this.context.sandbox();
+    return current && !list.some((s) => s.id === current.id) ? [current, ...list] : list;
+  });
   /** Count badge on Worklist (LLD §12.2): the Assigned view's count, refreshed on navigation. */
   protected readonly worklistCount = signal<number | null>(null);
   private readonly api = inject(NexusApi);
@@ -62,7 +68,7 @@ export class AppShellComponent {
         route = route.firstChild;
       }
       const q = route.queryParamMap;
-      this.context.syncFromUrl(q.get('asOf'), q.get('recordedAsOf'), q.get('version'));
+      this.context.syncFromUrl(q.get('asOf'), q.get('recordedAsOf'), q.get('version'), q.get('sandbox'));
       this.refreshCount();
       // focus moves to the page heading when the page changes (LLD §12.3); a query parameter change on the same page
       // (selecting a node, a worklist filter, the as-of date) keeps focus where the user is working
@@ -73,10 +79,20 @@ export class AppShellComponent {
     });
     void this.context.load().then((me) => {
       if (me) {
-        void this.tray.load();
         void this.context.loadWorkingVersions();
+        void this.context.loadSandboxes();
       }
     });
+    // the tray follows the sandbox in view: its items there, the latest draft in live data (NEW-08)
+    effect(() => {
+      this.context.sandboxParam();
+      untracked(() => void this.context.load().then((me) => me && this.tray.load(true)));
+    });
+  }
+
+  /** The context-bar switcher: a sandbox's id, or '' for live data. The page stays; only the data in view changes. */
+  protected chooseSandbox(id: string): void {
+    void this.context.enterSandbox(id || null);
   }
 
   protected changeAsOf(date: string | null): void {
@@ -103,6 +119,11 @@ export class AppShellComponent {
   }
 
   protected review(): void {
+    const sandbox = this.context.sandboxParam();
+    if (sandbox) {
+      void this.router.navigate(['/sandboxes', sandbox], { queryParamsHandling: 'preserve' });
+      return;
+    }
     const id = this.tray.request()?.id;
     if (id) {
       void this.router.navigate(['/requests', id, 'review']);

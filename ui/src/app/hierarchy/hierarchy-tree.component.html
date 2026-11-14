@@ -30,6 +30,9 @@
         @if (row.pinned) {
           <span class="tag">{{ t.foundBySearch }}</span>
         }
+        @if (row.changed) {
+          <span class="tag tag--changed" data-testid="tree-changed"><span aria-hidden="true">✎ </span>{{ t.changedInSandbox }}</span>
+        }
       }
       @case ('more') {
         <span class="twisty" aria-hidden="true"></span>

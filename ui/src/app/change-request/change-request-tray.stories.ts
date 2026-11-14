@@ -14,3 +14,4 @@ export const Empty: Story = { args: { count: 0 } };
 export const Busy: Story = { args: { busy: true } };
 export const PartialFailure: Story = { args: { failedCount: 1 } };
 export const InAnotherVersion: Story = { args: { otherVersion: 'FY27 plan' } };
+export const InSandbox: Story = { args: { count: 4, sandboxName: 'Synthetic plan' } };

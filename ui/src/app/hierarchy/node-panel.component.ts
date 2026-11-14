@@ -42,6 +42,9 @@ export class NodePanelComponent {
   readonly hierarchyCode = input<string | null>(null);
   readonly slice = input<Slice>({});
   readonly canEditCategory = input<(category: string | null) => boolean>(() => true);
+  /** In a sandbox (NEW-08): the node's attributes, and these values, differ from the live data. */
+  readonly changed = input(false);
+  readonly changedCodes = input<ReadonlySet<string>>(new Set());
   protected readonly tabs = [
     { id: 'properties', label: STRINGS.hierarchy.tabs.properties },
     { id: 'relationships', label: STRINGS.hierarchy.tabs.relationships },

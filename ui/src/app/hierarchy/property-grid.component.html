@@ -21,6 +21,9 @@
           </td>
           <td role="gridcell" tabindex="-1" class="value" [class.value--none]="p.provenance === 'none'">
             {{ display(p) }}
+            @if (changedCodes().has(p.code ?? '')) {
+              <span class="changed" data-testid="value-changed"><span aria-hidden="true">✎ </span>{{ hierarchyText.changedInSandbox }}</span>
+            }
             @if (canEdit(p)) {
               <button type="button" class="edit" [attr.aria-label]="change.editValueOf(p.label ?? p.code ?? '')" (click)="edit.emit(p)">
                 {{ change.editValue }}

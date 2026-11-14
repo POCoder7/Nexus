@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { NexusApi, Slice } from '../api/nexus-api';
-import type { MeView, VersionView } from '../api/generated/models';
+import type { MeView, SandboxView, VersionView } from '../api/generated/models';
 import { formatBusinessDate, formatInstant } from '../shared/format/nx-date.pipe';
 import { WORKING_VERSIONS_LIMIT } from './config';
 import { STRINGS } from './strings';
@@ -39,6 +39,16 @@ export class ContextStore {
   readonly hierarchyName = signal<string | null>(null);
   /** Working versions for the context-bar picker: the first page of `GET /versions?status=working`. */
   readonly workingVersions = signal<VersionView[]>([]);
+  /**
+   * The `?sandbox=` query parameter (NEW-08, Phase 5 LLD §12): the workspace shows that sandbox's overlay and changes
+   * become its items. Null means live data.
+   */
+  readonly sandboxParam = signal<string | null>(null);
+  /** The sandbox in view, looked up from the server; null until loaded or when it is no longer open. */
+  readonly sandbox = signal<SandboxView | null>(null);
+  /** The user's open sandboxes, for the context-bar switcher. */
+  readonly mySandboxes = signal<SandboxView[]>([]);
+  readonly inSandbox = computed(() => this.sandboxParam() !== null);
 
   readonly businessToday = computed(() => this.me()?.businessToday ?? null);
   readonly asOf = computed(() => this.asOfParam() ?? this.businessToday());
@@ -77,8 +87,51 @@ export class ContextStore {
       recorded ? formatInstant(recorded, this.me()?.businessTimeZone ?? undefined) : null);
   });
 
+  /** The sandbox banner (LLD §12): what the user is looking at, and that none of it is live. Null outside a sandbox. */
+  readonly sandboxBanner = computed<string | null>(() => {
+    const s = this.sandbox();
+    if (!this.inSandbox() || !s) {
+      return null;
+    }
+    return STRINGS.context.sandboxBanner(s.name ?? '', s.itemCount ?? 0, formatBusinessDate(this.asOfParam() ?? s.effectiveFrom ?? null));
+  });
+
   private loading: Promise<MeView | null> | null = null;
   private statusFor: string | null = null;
+  private sandboxFor: string | null = null;
+
+  /** Reloads the open sandboxes for the switcher. Failures keep the last list. */
+  async loadSandboxes(): Promise<void> {
+    try {
+      this.mySandboxes.set((await this.api.sandboxes('draft')).items ?? []);
+    } catch {
+      // the switcher then offers only live data and the sandbox in view
+    }
+  }
+
+  /** Reloads the sandbox in view (its item and conflict counts change as items are added). */
+  async refreshSandbox(): Promise<void> {
+    const id = this.sandboxParam();
+    if (!id) {
+      this.sandbox.set(null);
+      return;
+    }
+    try {
+      const { body } = await this.api.sandbox(id);
+      if (this.sandboxParam() === id) {
+        this.sandbox.set(body.kind === 'sandbox' && body.status === 'draft' ? body : null);
+      }
+    } catch {
+      if (this.sandboxParam() === id) {
+        this.sandbox.set(null);
+      }
+    }
+  }
+
+  /** Switches the workspace into a sandbox, or back to live data (null). The URL carries it so links open the same view. */
+  enterSandbox(id: string | null): Promise<boolean> {
+    return this.router.navigate([], { queryParams: { sandbox: id }, queryParamsHandling: 'merge' });
+  }
 
   load(force = false): Promise<MeView | null> {
     if (!this.loading || force) {
@@ -137,7 +190,15 @@ export class ContextStore {
   }
 
   /** Called by the shell on every navigation: the URL is the source of truth for the slice (LLD §6.3, V.6). */
-  syncFromUrl(asOf: string | null, recordedAsOf: string | null = null, version: string | null = null): void {
+  syncFromUrl(asOf: string | null, recordedAsOf: string | null = null, version: string | null = null,
+              sandbox: string | null = null): void {
+    const sandboxId = sandbox?.trim() || null;
+    this.sandboxParam.set(sandboxId);
+    if (sandboxId !== this.sandboxFor) {
+      this.sandboxFor = sandboxId;
+      this.sandbox.set(null);
+      void this.refreshSandbox();
+    }
     this.asOfParam.set(asOf && ISO_DATE.test(asOf) ? asOf : null);
     this.recordedAsOfParam.set(recordedAsOf && ISO_INSTANT.test(recordedAsOf) && !Number.isNaN(Date.parse(recordedAsOf))
       ? recordedAsOf : null);

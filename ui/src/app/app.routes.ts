@@ -20,6 +20,11 @@ export const routes: Routes = [
     path: 'requests/:id', canActivate: [contextGuard], title: 'Request · Nexus',
     loadComponent: () => import('./change-request/request.page').then((m) => m.RequestPage),
   },
+  { path: 'sandboxes', canActivate: [contextGuard], title: 'Sandboxes · Nexus', loadComponent: () => import('./sandbox/sandboxes.page').then((m) => m.SandboxesPage) },
+  {
+    path: 'sandboxes/:id', canActivate: [contextGuard], title: 'Sandbox · Nexus',
+    loadComponent: () => import('./sandbox/sandbox.page').then((m) => m.SandboxPage),
+  },
   { path: 'versions', canActivate: [contextGuard], title: 'Versions · Nexus', loadComponent: () => import('./version/versions.page').then((m) => m.VersionsPage) },
   { path: 'settings', canActivate: [contextGuard], title: 'Settings · Nexus', loadComponent: () => import('./settings/settings.page').then((m) => m.SettingsPage) },
   { path: '**', title: 'Not found · Nexus', component: NotFoundPage },

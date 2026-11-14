@@ -65,6 +65,12 @@
   color: var(--nx-color-text-secondary);
 }
 
+/* In a sandbox (NEW-08): the change token plus an icon and a word, never colour alone (UI_STANDARD §3). */
+.tag--changed {
+  border-color: currentcolor;
+  color: var(--nx-color-change-modified);
+}
+
 .action {
   color: var(--nx-color-text-link);
   text-decoration: underline;

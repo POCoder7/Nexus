@@ -116,3 +116,24 @@
   font-size: var(--nx-font-size-label);
   color: var(--nx-color-text-link);
 }
+
+/* Sandbox mode (NEW-08, Phase 5 LLD §12): a persistent banner, marked with the "moved" change colour and an icon. */
+.sandbox-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nx-space-3);
+  align-items: center;
+  padding: var(--nx-space-3) var(--nx-space-5);
+  border-bottom: var(--nx-border-width) solid var(--nx-color-change-moved);
+  background: var(--nx-color-surface-selected);
+  color: var(--nx-color-text-primary);
+}
+
+.context-bar__select {
+  padding: var(--nx-space-1) var(--nx-space-2);
+  border: var(--nx-border-width) solid var(--nx-color-border-strong);
+  border-radius: var(--nx-radius-1);
+  background: var(--nx-color-surface-panel);
+  color: var(--nx-color-text-primary);
+  font-size: var(--nx-font-size-body);
+}

@@ -77,3 +77,13 @@ thead th {
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* In a sandbox (NEW-08): a value that differs from the live data. Token, icon and word (UI_STANDARD §3). */
+.changed {
+  margin-left: var(--nx-space-2);
+  padding: 0 var(--nx-space-2);
+  border: var(--nx-border-width) solid currentcolor;
+  border-radius: var(--nx-radius-1);
+  font-size: var(--nx-font-size-label);
+  color: var(--nx-color-change-modified);
+}

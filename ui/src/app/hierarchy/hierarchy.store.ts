@@ -1,10 +1,13 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { NexusApi, Slice } from '../api/nexus-api';
-import type { HierarchySummary } from '../api/generated/models';
+import type { ChildNode, HierarchySummary } from '../api/generated/models';
 import { CHILDREN_PAGE, REVEAL_MAX_PAGES } from '../core/config';
 import { STRINGS } from '../core/strings';
 import { UiError } from '../core/ui-error';
 import { ChildrenState, FlatTreeRow, TreeNode } from './tree.model';
+
+/** A children row, live or in a sandbox (the sandbox row adds `changed`). */
+type ChildRow = ChildNode & { changed?: boolean };
 
 /**
  * State of one open hierarchy (LLD §3.2, §7.1): nodes, children pages per parent, the expanded set and the selection,
@@ -23,6 +26,8 @@ export class HierarchyStore {
   readonly expanded = signal(new Set<string>());
   readonly selectedId = signal<string | null>(null);
   private slice: Slice = {};
+  /** The sandbox whose overlay is shown (NEW-08), or null for live data. */
+  private sandboxId: string | null = null;
   private generation = 0;   // ignores responses that belong to a previous slice
 
   readonly topId = computed(() => this.hierarchy()?.topNodeId ?? null);
@@ -36,11 +41,12 @@ export class HierarchyStore {
     if (!top || !nodes.has(top)) {
       return rows;
     }
-    const walk = (id: string, parentId: string | null, depth: number, shared: boolean, pinned: boolean, key: string) => {
+    const walk = (id: string, parentId: string | null, depth: number, shared: boolean, pinned: boolean, key: string,
+                  changed = false) => {
       const n = nodes.get(id)!;
       const isExpanded = expanded.has(id);
       rows.push({ kind: 'node', key, id, parentId, name: n.name, depth, hasChildren: n.hasChildren, expanded: isExpanded,
-        shared, active: n.active, pinned });
+        shared, active: n.active, pinned, changed });
       if (!isExpanded) {
         return;
       }
@@ -49,7 +55,7 @@ export class HierarchyStore {
         return;
       }
       for (const p of c.placements) {
-        walk(p.id, id, depth + 1, p.shared, false, `${key}/${p.id}`);
+        walk(p.id, id, depth + 1, p.shared, false, `${key}/${p.id}`, !!p.changed);
       }
       for (const pinnedId of c.pinned) {
         if (nodes.has(pinnedId)) {
@@ -70,10 +76,14 @@ export class HierarchyStore {
     return rows;
   });
 
-  /** Opens a hierarchy at a slice: the top node, expanded with its first page of children. */
-  async open(code: string, slice: Slice): Promise<void> {
+  /**
+   * Opens a hierarchy at a slice: the top node, expanded with its first page of children. With `sandboxId` the children
+   * are that sandbox's overlay (NEW-08), read at its effective date unless the slice names a date.
+   */
+  async open(code: string, slice: Slice, sandboxId: string | null = null): Promise<void> {
     const generation = ++this.generation;
     this.slice = slice;
+    this.sandboxId = sandboxId;
     this.nodes.set(new Map());
     this.children.set(new Map());
     this.expanded.set(new Set());
@@ -132,7 +142,10 @@ export class HierarchyStore {
     }
     this.patchChildren(parentId, { loading: true, error: null });
     try {
-      const page = await this.api.children(code, parentId, this.slice, before?.nextCursor ?? undefined, CHILDREN_PAGE);
+      const cursor = before?.nextCursor ?? undefined;
+      const page: { items?: ChildRow[]; nextCursor?: string } = this.sandboxId
+        ? await this.api.sandboxChildren(this.sandboxId, code, parentId, this.slice.asOf, cursor, CHILDREN_PAGE)
+        : await this.api.children(code, parentId, this.slice, cursor, CHILDREN_PAGE);
       if (generation !== this.generation) {
         return;
       }
@@ -140,7 +153,8 @@ export class HierarchyStore {
       this.putNodes(items.map((c) => ({ id: c.nodeId!, name: c.name ?? c.nodeId!, hasChildren: !!c.hasChildren, active: c.active !== false })));
       const current = this.children().get(parentId)!;
       const seen = new Set(current.placements.map((p) => p.id));
-      const added = items.filter((c) => !seen.has(c.nodeId!)).map((c) => ({ id: c.nodeId!, shared: c.primary === false }));
+      const added = items.filter((c) => !seen.has(c.nodeId!))
+        .map((c) => ({ id: c.nodeId!, shared: c.primary === false, changed: c.changed === true }));
       this.patchChildren(parentId, {
         placements: [...current.placements, ...added],
         // a node pinned by search that a later page brings in is no longer pinned

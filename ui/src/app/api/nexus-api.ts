@@ -8,6 +8,10 @@ import type {
   PreferencesUpdate, SubmitForm, ValidationReport, WorklistPage, CreateVersion, PageVersionView, UpdateVersion, VersionView,
 } from './generated/models';
 import { HierarchySummary } from './generated/models';
+import type {
+  CreateSandbox, PageConflict, PageDiffRow, PageSandboxChild, PageSandboxView, RefreshResult, SandboxItemAdded, SandboxNode,
+  SandboxView,
+} from './generated/models';
 
 /** Idempotency-Key for one user action (ADR-015); the interceptor turns it into the header. */
 export const IDEMPOTENCY_KEY = new HttpContextToken<string | null>(() => null);
@@ -171,6 +175,72 @@ export class NexusApi {
   async withdraw(id: string, etag: string): Promise<Tagged<ChangeRequestView>> {
     const r = await this.api.invoke$Response(fn.withdrawChangeRequest, { id, 'If-Match': etag, body: {} });
     return { body: r.body as ChangeRequestView, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  // ------------------------------------------------------------------ sandboxes (NEW-08, Phase 5 LLD §5)
+
+  /** The caller's sandboxes in a status (default draft: the open ones), newest first. */
+  sandboxes(status?: string, limit = 50): Promise<PageSandboxView> {
+    return this.api.invoke(fn.listSandboxes, { status, limit });
+  }
+
+  async sandbox(id: string): Promise<Tagged<SandboxView>> {
+    const r = await this.api.invoke$Response(fn.getSandbox, { id });
+    return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  async createSandbox(body: CreateSandbox, key: string): Promise<Tagged<SandboxView>> {
+    const r = await this.api.invoke$Response(fn.createSandbox, { body }, idem(key));
+    return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  /** Adds an item and refreshes the overlay; the body lists the items that now fail (they stay, left out of the overlay). */
+  async addSandboxItem(id: string, etag: string, body: ItemCommand, key: string): Promise<Tagged<SandboxItemAdded>> {
+    const r = await this.api.invoke$Response(fn.addSandboxItem, { id, 'If-Match': etag, body }, idem(key));
+    return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  sandboxItems(id: string): Promise<PageItemView> {
+    return this.api.invoke(fn.listSandboxItems, { id, limit: 1000 });
+  }
+
+  async deleteSandboxItem(id: string, itemId: string, etag: string): Promise<Tagged<RefreshResult>> {
+    const r = await this.api.invoke$Response(fn.deleteSandboxItem, { id, itemId, 'If-Match': etag });
+    return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  /** The overlay's children; `asOf` undefined = the sandbox's effective date. */
+  sandboxChildren(id: string, code: string, parentId: string, asOf: string | undefined, cursor: string | undefined,
+                  limit: number): Promise<PageSandboxChild> {
+    return this.api.invoke(fn.listSandboxChildren, { id, code, parentId, asOf, cursor, limit });
+  }
+
+  sandboxNode(id: string, nodeId: string, hierarchy: string | undefined, asOf: string | undefined): Promise<SandboxNode> {
+    return this.api.invoke(fn.getSandboxNode, { id, nodeId, hierarchy, asOf });
+  }
+
+  sandboxDiff(id: string, cursor?: string, limit = 200): Promise<PageDiffRow> {
+    return this.api.invoke(fn.listSandboxDiff, { id, cursor, limit });
+  }
+
+  sandboxConflicts(id: string): Promise<PageConflict> {
+    return this.api.invoke(fn.listSandboxConflicts, { id, limit: 1000 });
+  }
+
+  async rebaseSandbox(id: string, etag: string): Promise<Tagged<RefreshResult>> {
+    const r = await this.api.invoke$Response(fn.rebaseSandbox, { id, 'If-Match': etag });
+    return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  /** Submit: the request the sandbox became, or a 422 (conflicts or validation errors) and it stays a sandbox. */
+  async submitSandbox(id: string, etag: string, workflowModelCode: string | undefined): Promise<Tagged<ChangeRequestView>> {
+    const r = await this.api.invoke$Response(fn.submitSandbox, { id, 'If-Match': etag, body: { workflowModelCode } });
+    return { body: r.body as ChangeRequestView, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  async discardSandbox(id: string, etag: string): Promise<Tagged<SandboxView>> {
+    const r = await this.api.invoke$Response(fn.discardSandbox, { id, 'If-Match': etag });
+    return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
   }
 
   reportClientError(status: number, type: string | null, correlationId: string | null, route: string): Promise<void> {

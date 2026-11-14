@@ -5,7 +5,7 @@ import { HierarchyTreeComponent } from './hierarchy-tree.component';
 // Synthetic rows only (UI_STANDARD §5: every state of every custom component).
 const node = (id: string, name: string, depth: number, extra: Partial<Extract<FlatTreeRow, { kind: 'node' }>> = {}): FlatTreeRow => ({
   kind: 'node', key: id, id, parentId: depth ? 'top' : null, name, depth, hasChildren: false, expanded: false, shared: false,
-  active: true, pinned: false, ...extra,
+  active: true, pinned: false, changed: false, ...extra,
 });
 const base: FlatTreeRow[] = [
   node('top', 'Synthetic Group', 0, { hasChildren: true, expanded: true }),
@@ -41,3 +41,7 @@ export const Empty: Story = {
 };
 export const FoundBySearch: Story = { args: { rows: [...base, node('deep', 'Deep target', 1, { pinned: true })], selectedId: 'deep' } };
 export const Comfortable: Story = { args: { rowHeight: 36 } };
+/** In a sandbox (NEW-08): changed placements carry the change token, an icon and a word. */
+export const SandboxChanges: Story = {
+  args: { rows: [...base.slice(0, 2), node('moved', 'Moved here', 1, { changed: true }), node('renamed', 'Renamed node', 1, { changed: true })] },
+};

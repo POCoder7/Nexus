@@ -12,6 +12,7 @@ export type FlatTreeRow =
       shared: boolean;      // a non-primary placement (shared node indicator)
       active: boolean;
       pinned: boolean;      // inserted by search reveal beyond the paging bound (LLD §7.2)
+      changed: boolean;     // in a sandbox: differs from the live data (NEW-08, Phase 5 LLD §12)
     }
   | { kind: 'more'; key: string; parentId: string; depth: number }
   | { kind: 'loading'; key: string; parentId: string; depth: number }
@@ -28,6 +29,8 @@ export interface TreeNode {
 export interface ChildPlacement {
   id: string;
   shared: boolean;
+  /** In a sandbox: this placement, or the node's name or state, differs from the live data. */
+  changed?: boolean;
 }
 
 export interface ChildrenState {

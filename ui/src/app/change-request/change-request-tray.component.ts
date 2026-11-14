@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { STRINGS } from '../core/strings';
 import { DsButtonComponent } from '../shared/ds';
 
@@ -19,7 +19,13 @@ export class ChangeRequestTrayComponent {
   readonly busy = input(false);
   /** The draft's version, set only while it differs from the working version chosen in the context bar (Phase 3 LLD V.6). */
   readonly otherVersion = input<string | null>(null);
+  /** In a sandbox (NEW-08) the tray is the sandbox's change list, and its action opens the sandbox page. */
+  readonly sandboxName = input<string | null>(null);
   readonly review = output<void>();
   readonly retry = output<void>();
   protected readonly t = STRINGS.tray;
+  protected readonly title = computed(() => {
+    const name = this.sandboxName();
+    return name ? this.t.sandboxTitle(name) : this.t.title;
+  });
 }

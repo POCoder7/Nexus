@@ -36,6 +36,36 @@ describe('TrayStore', () => {
     return { tray: TestBed.inject(TrayStore), sent };
   }
 
+  it('in a sandbox, adds changes to the sandbox instead of a draft and counts them for the overlay (NEW-08)', async () => {
+    const sent: { id: string; etag: string; cmd: ItemCommand }[] = [];
+    let version = 1;
+    const api = {
+      createRequest: async () => {
+        throw new Error('no draft is created in a sandbox');
+      },
+      sandbox: async () => ({ body: { id: 'sb1', name: 'Synthetic sandbox', kind: 'sandbox', status: 'draft' }, etag: '"1"' }),
+      sandboxItems: async () => ({ items: [] }),
+      addSandboxItem: async (id: string, etag: string, cmd: ItemCommand) => {
+        sent.push({ id, etag, cmd });
+        version++;
+        return { body: { item: { id: `i${version}`, action: cmd.action, nodeId: 'n1' },
+          failures: [{ seq: 1, errorCode: 'N2105', message: 'Synthetic failure' }] }, etag: `"${version}"` };
+      },
+    };
+    TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: NexusApi, useValue: api }] });
+    const context = TestBed.inject(ContextStore);
+    context.me.set({ workingVersion: 'Synthetic working' });
+    context.sandboxParam.set('sb1');
+    const tray = TestBed.inject(TrayStore);
+    await tray.load(true);
+    await tray.addChange({ action: 'update_node', hierarchyCode: 'SYN_H', nodeId: 'n1', payload: { name: 'Renamed' } }, 'unused', '2031-05-17');
+    await tray.addChange({ action: 'update_node', hierarchyCode: 'SYN_H', nodeId: 'n2', payload: { name: 'Renamed 2' } }, 'unused', '2031-05-17');
+    expect(sent.map((s) => `${s.id} ${s.etag}`)).toEqual(['sb1 "1"', 'sb1 "2"']);
+    expect(tray.count()).toBe(2);
+    expect(tray.revision()).toBe(2);
+    expect(tray.failures().map((f) => f.errorCode)).toEqual(['N2105']);
+  });
+
   it('chains ETags: each item call sends the ETag the previous one returned', async () => {
     const { tray, sent } = setup(() => null);
     await tray.addLeaf(leaf);

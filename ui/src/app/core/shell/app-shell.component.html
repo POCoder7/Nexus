@@ -23,6 +23,17 @@
       <ds-button variant="link" (pressed)="changeAsOf(null)">{{ t.context.today }}</ds-button>
     }
   </span>
+  <span class="context-bar__item">
+    <label class="context-bar__label" for="nx-work-in">{{ t.context.workIn }}</label>
+    <select id="nx-work-in" class="context-bar__select" data-testid="sandbox-switcher"
+            [value]="context.sandboxParam() ?? ''" (change)="chooseSandbox($any($event.target).value)">
+      <option value="">{{ t.context.liveData }}</option>
+      @for (s of switcherSandboxes(); track s.id) {
+        <option [value]="s.id" [selected]="s.id === context.sandboxParam()">{{ t.context.sandboxOption(s.name ?? '') }}</option>
+      }
+    </select>
+    <a routerLink="/sandboxes" class="context-bar__link" data-testid="manage-sandboxes">{{ t.nav.sandboxes }}</a>
+  </span>
   @if (context.hierarchyName(); as h) {
     <span class="context-bar__item">
       <span class="context-bar__label">{{ t.context.hierarchy }}</span>
@@ -36,6 +47,13 @@
     @if (context.versionParam() || context.recordedAsOfParam()) {
       <ds-button variant="link" (pressed)="changeAsOf(null)">{{ t.context.backToToday }}</ds-button>
     }
+  </div>
+}
+@if (context.sandboxBanner(); as banner) {
+  <div class="sandbox-banner" role="status" data-testid="sandbox-banner">
+    <span aria-hidden="true">⧉ </span>{{ banner }}
+    <a [routerLink]="['/sandboxes', context.sandboxParam()]" queryParamsHandling="preserve" class="context-bar__link">{{ t.context.openSandbox }}</a>
+    <ds-button variant="link" (pressed)="chooseSandbox('')">{{ t.context.backToLive }}</ds-button>
   </div>
 }
 @if (context.loadError(); as error) {
@@ -60,6 +78,7 @@
           }
         </a>
       </li>
+      <li><a routerLink="/sandboxes" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.sandboxes }}</a></li>
       <li><a routerLink="/versions" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.versions }}</a></li>
       <li><a routerLink="/settings" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.settings }}</a></li>
     </ul>
@@ -71,7 +90,7 @@
 
 @if (tray.hasDraft() && !context.isHistorical()) {
   <nx-change-request-tray [count]="tray.count()" [failedCount]="tray.failed().length" [busy]="tray.busy()"
-                          [otherVersion]="trayOtherVersion()"
+                          [otherVersion]="trayOtherVersion()" [sandboxName]="context.sandbox()?.name ?? null"
                           (review)="review()" (retry)="tray.retryFailed()" />
 }
 <ds-toast-host />

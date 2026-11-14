@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { NexusApi, Tagged, newIdempotencyKey } from '../api/nexus-api';
-import type { ChangeRequestView, ItemCommand, ItemView } from '../api/generated/models';
+import type { ChangeRequestView, ItemCommand, ItemFailure, ItemView } from '../api/generated/models';
 import { ADD_LEAF_MODEL, MAINTAIN_MODEL } from '../core/config';
 import { ContextStore } from '../core/context.store';
 import { STRINGS } from '../core/strings';
@@ -39,17 +39,31 @@ export class TrayStore {
   readonly items = signal<ItemView[]>([]);
   readonly failed = signal<FailedItem[]>([]);
   readonly busy = signal(false);
+  /**
+   * In a sandbox (NEW-08, Phase 5 LLD §12) the tray is the sandbox's item list: changes become its items, and the overlay
+   * is refreshed with each one. `failures` are the items the overlay leaves out (they fail their trial apply); `revision`
+   * counts changes, so the workspace knows to reload the overlay.
+   */
+  readonly failures = signal<ItemFailure[]>([]);
+  readonly revision = signal(0);
   private etag = '';
   private loaded: Promise<void> | null = null;
 
   readonly count = computed(() => this.items().length);
-  readonly hasDraft = computed(() => this.request()?.status === 'draft');
+  readonly hasDraft = computed(() => this.context.inSandbox()
+    ? this.context.sandbox() !== null
+    : this.request()?.status === 'draft');
 
-  /** Finds the user's latest draft (if any) so the tray survives a reload. */
+  /** Finds the user's latest draft (if any), or in a sandbox its items, so the tray survives a reload. */
   load(force = false): Promise<void> {
     if (!this.loaded || force) {
       this.loaded = (async () => {
         try {
+          const sandbox = this.context.sandboxParam();
+          if (sandbox) {
+            await this.reloadSandbox(sandbox);
+            return;
+          }
           const page = await this.api.myRequests('draft', 1);
           const latest = page.items?.[0];
           if (latest?.id) {
@@ -161,12 +175,22 @@ export class TrayStore {
     this.request.set(null);
     this.items.set([]);
     this.failed.set([]);
+    this.failures.set([]);
     this.etag = '';
   }
 
+  /** A sandbox's items and ETag (its request is not a draft of the tray: it is edited only through /sandboxes). */
+  async reloadSandbox(id: string): Promise<void> {
+    const [{ body, etag }, items] = await Promise.all([this.api.sandbox(id), this.api.sandboxItems(id)]);
+    this.request.set(null);
+    const open = body.kind === 'sandbox' && body.status === 'draft';
+    this.items.set(open ? (items.items ?? []) : []);
+    this.etag = etag;
+  }
+
   private async ensureDraft(title: string, effectiveFrom: string, model: string = ADD_LEAF_MODEL): Promise<void> {
-    if (this.hasDraft()) {
-      return;
+    if (this.context.inSandbox() || this.hasDraft()) {
+      return;   // in a sandbox every change joins it; its own effective date applies
     }
     const version = this.context.workingVersion();
     const created = await this.api.createRequest({ versionName: version ?? undefined, title, riskTier: 'low', effectiveFrom,
@@ -177,6 +201,10 @@ export class TrayStore {
   }
 
   private async add(command: ItemCommand, key: string): Promise<ItemView> {
+    const sandbox = this.context.sandboxParam();
+    if (sandbox) {
+      return this.addToSandbox(sandbox, command, key);
+    }
     const id = this.request()!.id!;
     try {
       const { body, etag } = await this.api.addItem(id, this.etag, command, key);
@@ -187,6 +215,25 @@ export class TrayStore {
       const error = UiError.from(e);
       if (error.status === 412) {
         await this.reload(id);   // someone changed it elsewhere: show the latest and ask to repeat (LLD §7.3)
+        throw new UiError(412, error.title, STRINGS.errors.trayStale, error.code, error.type, [], error.correlationId, error.body);
+      }
+      throw error;
+    }
+  }
+
+  private async addToSandbox(id: string, command: ItemCommand, key: string): Promise<ItemView> {
+    try {
+      const { body, etag } = await this.api.addSandboxItem(id, this.etag, command, key);
+      this.etag = etag;
+      this.items.update((items) => [...items, body.item!]);
+      this.failures.set(body.failures ?? []);
+      this.revision.update((r) => r + 1);
+      void this.context.refreshSandbox();
+      return body.item!;
+    } catch (e) {
+      const error = UiError.from(e);
+      if (error.status === 412) {
+        await this.reloadSandbox(id);
         throw new UiError(412, error.title, STRINGS.errors.trayStale, error.code, error.type, [], error.correlationId, error.body);
       }
       throw error;
