@@ -1,8 +1,8 @@
 # Build state
 
 - **Current phase:** 5 — Remaining parity, built before Phase 4 (repository owner, 2026-11-14; ADR-038 D3 amended)
-- **Step in loop:** Build (BUILD_PROTOCOL step 3). On 2026-11-14 the owner said "all approved", which approved the Phase 5 plan, `dev.cel`, ADR-039 (every recommendation) and the demo rebuild. Building 5-1a on branch `feature/NEW-08-phase-5-remaining-parity`
-- **Baseline:** db-test **pass** 411/411 · mvnw verify **pass** 126/126 · UI: lint pass, contract pass, unit 64/64, stories 49/49 (axe), production build and budgets pass, end to end 38/38 (axe) (2026-11-14, Phase 5 orient)
+- **Step in loop:** Build (BUILD_PROTOCOL step 3). On 2026-11-14 the owner said "all approved", which approved the Phase 5 plan, `dev.cel`, ADR-039 (every recommendation) and the demo rebuild. 5-1a built on branch `feature/NEW-08-phase-5-remaining-parity`; next 5-1b
+- **Baseline:** db-test **pass** 462/462 · mvnw verify **pass** 126/126 (2026-11-14, after 5-1a) · UI (not touched since): lint pass, contract pass, unit 64/64, stories 49/49 (axe), production build and budgets pass, end to end 38/38 (axe) (2026-11-14, Phase 5 orient)
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -21,6 +21,7 @@
 | Design for the ADR-038 decisions | PRP-06, QRY-01 to QRY-05, IMP-03, VER-04, BLD-03 | **Approved 2026-11-14** by the repository owner ("approved"), with C-1 to C-5 and the parameters | Phase 5 LLD §17. Increments 5-9 to 5-16. Error codes N2801 to N2808. Migration V13 plus edits to V1, V3, V6 and V11 (rule 6 still allows them, OD-44). Choices for the reviewer C-1 to C-5 (§17.15). §17.1 lists what waits for Phase 4 |
 | Remaining capability decisions | VER-07, HIE-03 to HIE-11, PRP-02 to PRP-10, VAL-01 to VAL-04, SEC-03, SEC-04, AUD-01 to AUD-04, GOV-03 to GOV-09, GOV-11, GOV-14 to GOV-16 | **ADR-039 accepted 2026-11-14** (OD-47, every recommendation; "all approved") | Catalogue and TRACEABILITY updated. 21 rows are built in Phase 5 after 5-16, once LLD §18 has been written and reviewed (a design stop). 10 rows are recorded as already built. The gate lists these explicit gaps: the D5 "confirm" rows, GOV-08, GOV-16, AUD-04, GOV-11 attachments and AUD-03 (Phase 8) |
 | Plan | PROG | **Approved 2026-11-14** ("all approved") | `docs/phases/phase-5/PLAN.md`:<br>• 5-1, 5-10, 5-12 and 5-13 split into a and b; no other deviation from the LLD.<br>• `dev.cel:cel` 0.15.0 (18 days old), with `protobuf-java` 4.36.2 and `guava` 33.7.2-jre pinned. These also upgrade the Camunda client's 4.31.1 and 33.3.1-jre; a protobuf smoke test runs with no Docker, and the Camunda run stays deferred.<br>• Finding: there is no application SQL grant path to remove (F-4). `nexus_api` has only SELECT on `user_role`, and only the database owner can grant |
+| 5-1a Sandbox kind, columns, kind guard, item limit, delta tables (V1 edit, new V12) | NEW-08 | Done (5-1a commit) | pgTAP 23 (51); 11 fixture now creates a real sandbox (setup only, assertion unchanged) | LLD §4 and §5 "Built in 5-1a": `valid_period` in the delta tables and their keys; the PK prefix replaces the parent index, plus a child index; `N2302` at item insert; origin `'sandbox'` only through a sandbox (`N2303`, hints `sandbox.origin`, `sandbox.kind_one_way`, `sandbox.not_draft`); `kind` guarded on its own, not on the frozen list; `nexus_api` cannot update `kind` or the base. Noted for later: 5-2 list queries exclude `kind = 'sandbox'`; 5-1b overlay cannot show placements under a hierarchy only an `add_hierarchy` item creates until the trial covers it |
 
 ### Phase 3 progress
 | Increment | Capability | Status | Tests | Notes |
@@ -132,13 +133,13 @@
 
 ## Next action
 Phase 5 build under way; the plan was approved on 2026-11-14.
-1. Branch `feature/NEW-08-phase-5-remaining-parity` from `develop`. The records commit (PROG) goes on that branch.
+1. Branch `feature/NEW-08-phase-5-remaining-parity` from `develop` (done; records commit `ef97d97`, then 5-1a).
 2. Build, in order:
-   - 5-1a, 5-1b, 5-2, 5-3, 5-4, 5-5;
+   - ~~5-1a~~, 5-1b, 5-2, 5-3, 5-4, 5-5;
    - 5-9, 5-10a (the `dev.cel` dependency and the protobuf smoke test come first), 5-10b, 5-11, 5-12a, 5-12b, 5-13a, 5-13b, 5-14, 5-15, 5-16;
    - then write LLD §18 for the 21 ADR-039 rows, and **stop for review** (design stop);
    - then the §18 increments;
    - then the 5-8 gate.
 
    5-6 waits for the Phase 4 loader.
-3. Ask before each commit. Never push. If ADR-039 is decided, write Phase 5 LLD §18 for its Phase 5 rows and stop for review before building them. Merging to `main` also needs OD-45a (Audit-Risk on ADR-037 D4) and OD-18a. On the gate approval: Phase 4 (data loading and parity harness) orient and plan. Deferred to the end: performance tests (Phases 1–3), Camunda contract run. The Phase 5 protobuf and guava upgrade is one more reason to do that run. The local demo is running with V11 (API on 8080 from a scratchpad copy of the jar, UI on 4200, database `nexus_demo`, synthetic; `e2e_vadmin` and `e2e_vadmin2` are its version administrators); stop it when the owner is done. Also requested and not yet written: an architecture code review, a summary design document and a new-machine setup guide. On 2026-11-13 `ui/package-lock.json` was re-resolved with `npm install --before=2026-11-09T10:42:56Z` (owner's approval): the owner's second laptop uses a curated npm registry that refuses versions under 72 hours old; every exact pin was already older, so only transitive versions moved (DEVELOPER_SETUP §2). An `overrides` entry holds `playwright` at 1.64.1 so the story and end-to-end tests share one browser build (`0c6b175`); after the re-pin lint, contract, unit 64/64, build, stories 49/49 and end to end 38/38 pass.
+3. Ask before each commit. Never push. If ADR-039 is decided, write Phase 5 LLD §18 for its Phase 5 rows and stop for review before building them. Merging to `main` also needs OD-45a (Audit-Risk on ADR-037 D4) and OD-18a. On the gate approval: Phase 4 (data loading and parity harness) orient and plan. Deferred to the end: performance tests (Phases 1–3), Camunda contract run. The Phase 5 protobuf and guava upgrade is one more reason to do that run. The local demo is stopped (2026-11-14, owner's approval): API and UI are down; database `nexus_demo` (synthetic) is still at V11 and must be rebuilt from the current migrations when the owner next wants a demo. Also requested and not yet written: an architecture code review, a summary design document and a new-machine setup guide. On 2026-11-13 `ui/package-lock.json` was re-resolved with `npm install --before=2026-11-09T10:42:56Z` (owner's approval): the owner's second laptop uses a curated npm registry that refuses versions under 72 hours old; every exact pin was already older, so only transitive versions moved (DEVELOPER_SETUP §2). An `overrides` entry holds `playwright` at 1.64.1 so the story and end-to-end tests share one browser build (`0c6b175`); after the re-pin lint, contract, unit 64/64, build, stories 49/49 and end to end 38/38 pass.

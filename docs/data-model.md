@@ -6,13 +6,13 @@ V1–V3 form the core model and work on their own. V4–V6 are the workflow laye
 V7 sets the database roles and privileges; V8 adds entitlements and idempotency keys (Phase 1). V9 holds the Phase 2
 workflow objects (configuration audit, governed membership, stage progression, worklist, outbox offsets, admin functions).
 V10 holds the Phase 3 UI support: user preferences and the trigram search indexes. V11 adds versions (VER-01, VER-02):
-the version lifecycle, its guard and transition log, and the freeze lock.
+the version lifecycle, its guard and transition log, and the freeze lock. V12 holds the sandbox overlay (Phase 5, NEW-08).
 
 ## What's in each file
 
 | File | Contents |
 |---|---|
-| `V1__core_schema.sql` | Versions, change requests (maker-checker, AI as requester, guarded status transitions, frozen content after draft, row version for ETags, origin), nodes, identifiers, legal entity profile, hierarchies (shared nodes, cycle protection), properties (global/local, inheritance, derived, typed validation), validation rules, append-only audit log; the write path: node allocation, withdraw, submit, decide, validate (trial apply), apply with its handlers, change events (outbox) and item clearance |
+| `V1__core_schema.sql` | Versions, change requests (maker-checker, AI as requester, guarded status transitions, frozen content after draft, row version for ETags, origin; Phase 5 sandboxes: `kind`, `sandbox_name`, `sandbox_base_recorded_at`, the kind guard `trg_cr_sandbox_kind` (`N2303`: origin `'sandbox'` only through a sandbox, kind moves once from sandbox to request while a draft) and the item limit at insert `change_item_sandbox_limit` (`N2302`)), nodes, identifiers, legal entity profile, hierarchies (shared nodes, cycle protection), properties (global/local, inheritance, derived, typed validation), validation rules, append-only audit log; the write path: node allocation, withdraw, submit, decide, validate (trial apply), apply with its handlers, change events (outbox) and item clearance |
 | `V2__ownership_ubo.sql` | Evidence documents, weighted ownership and control graph, UBO thresholds, deterministic effective-ownership calculation, UBO ownership and control prongs, starter validation rules |
 | `V3__drm_export.sql` | Export profiles that reproduce DRM hierarchy and generation exports, as-of tree walk, property resolution with inheritance, export file generation with SHA-256, parallel-run reconciliation, DRM migration staging tables |
 | `V4__workflow.sql` | DRG-equivalent workflow layer in schema `wf`: versioned workflow models, tasks, Submit/Enrich/Approve/Commit stages, approval groups and methods, node access scopes, separation of duties, conditional stages with request splitting, claims, SLAs, append-only request history, event outbox, user worklist |
@@ -23,6 +23,7 @@ the version lifecycle, its guard and transition log, and the freeze lock.
 | `V9__workflow_phase2.sql` | Phase 2 workflow: `wf.config_audit`, governed membership changes, stage progression (`advance_instance`, `complete_stage`), model loading and four-eyes activation, refusal reasons (`why_cannot_act`), worklist functions, commit-policy administration, outbox consumer offsets, and the owner-run grants for all of these |
 | `V10__ui_support.sql` | Phase 3 UI support: `mdm.user_preference` (start page, last hierarchy, density; not governed; the API writes values of the caller's own row only, no delete, `wf` cannot write it), `pg_trgm` and trigram indexes on `node_attr.node_name` and `description` (current belief) for in-tree search; `mdm.user_role.category_codes` (NULL = every property category; ADR-036 property edit rights by category) |
 | `V11__versions.sql` | Versions (VER-01, VER-02; ADR-037): role `VERSION_ADMIN`; `mdm.version` gains created and submitted (by, at), `revision` (the ETag) and the CHECK `version_lifecycle_fields` (the pin, submit and finalize fields agree with the status); `mdm.version_transition` (append-only log written only by the guard); `trg_version_guard` (lifecycle, frozen fields, four eyes to finalize `N1029`, people only `N1030`, no delete, submit refused while requests are in flight `N2704`); `trg_cr_version_working` (a request is created in, moved to or advanced in a working version only, `N2703`, and an apply under a pin taken after its transaction began is refused with `40001` so it retries); the freeze lock (advisory key 11, 37: submit exclusive, apply shared); `create_version`, `update_version`, `transition_version`, `is_version_admin` (EXECUTE for `nexus_api`, no direct write on `mdm.version`); `user_preference.working_version_id`; column privilege `UPDATE (version_id)` on `change_request` (drafts only, through N2102); warning rule `NEXUS.VERSION_DATE` in `validate_change_request` |
+| `V12__sandboxes.sql` | Sandbox overlay (NEW-08; ADR-028): `mdm.sandbox_delta_relationship`, `sandbox_delta_node_attr`, `sandbox_delta_value`, the rows applying a sandbox's items would close (`-`) and insert (`+`), each with its valid period. Derived, not governed: rebuilt by a rolled-back trial apply (5-1b), removed with its sandbox, never read as a fact; only `nexus_apply` writes it, every role reads it; no `wf` reference |
 
 ## Write path (Phase 1)
 
@@ -191,8 +192,8 @@ Anything written outside it (for example by the owner role in tests) is audited 
 
 ## Known gaps and next steps
 
-- **Runs on PostgreSQL 16** (verified 2026-11-13, Phase 3): `scripts/db-test` applies V1–V11 to a fresh database and the
-  411 pgTAP tests in `db/tests` pass. Phase 1 closed D-04, D-05, D-07 and D-29; Phase 2 closed D-06, D-10 to D-15, D-32 and D-33; the remaining
+- **Runs on PostgreSQL 16** (verified 2026-11-14, Phase 5 increment 5-1a): `scripts/db-test` applies V1–V12 to a fresh database and the
+  462 pgTAP tests in `db/tests` pass. Phase 1 closed D-04, D-05, D-07 and D-29; Phase 2 closed D-06, D-10 to D-15, D-32 and D-33; the remaining
   gaps (D-22 and later-phase items) are listed in `docs/design/DESIGN_STATE.md` (OD-18).
 - Bulk inserts of many placements into a large hierarchy with stale statistics are slow (the cycle-check plan); loads
   must refresh statistics between batches (Phase 4).

@@ -107,6 +107,28 @@ CREATE INDEX ON mdm.sandbox_delta_relationship (sandbox_id, hierarchy_id, parent
 Bitemporal behaviour: none until submit; the sandbox only describes changes. On apply, the normal Phase 1 apply writes facts.
 Volume: ≤ `SANDBOX_MAX_ITEMS` items and a delta of the same order per sandbox; `SANDBOX_MAX_ACTIVE_PER_USER` (5).
 
+**Built in 5-1a** (refinements of the sketch above; no control changed):
+- *Valid period in the delta.* Apply never edits a fact in place: it closes the current row and re-states the parts that
+  stay true, so one item can close one row and insert two for the same key (a move). Each delta table therefore has
+  `valid_period daterange NOT NULL`, and the period is part of its primary key. Reads at an as-of date use it.
+- *Indexes.* The relationship primary key starts `(sandbox_id, hierarchy_id, parent_node_id, …)`, so it serves the
+  overlay children page and replaces the separate parent index. A `(sandbox_id, hierarchy_id, child_node_id)` index
+  serves node detail.
+- *No foreign keys to facts* from the delta tables: rows for a hierarchy that only the sandbox's own `add_hierarchy`
+  item creates exist only inside the rolled-back trial. All columns are `NOT NULL` except `description`;
+  `hierarchy_key` is the zero uuid for a global value, as in `property_value`'s exclusion constraint.
+- *Writers.* Only `nexus_apply` (owner of the trial apply) has `INSERT, DELETE` on the delta tables; every role reads them.
+- *The kind guard* (`trg_cr_sandbox_kind`, `N2303`): origin `'sandbox'` is reachable only by creating a sandbox
+  (insert with origin and kind both `'sandbox'` or neither; hint `sandbox.origin`); kind moves only `sandbox → request`
+  (hint `sandbox.kind_one_way`) and only while the request is a draft; a request of kind `'sandbox'` can be only `draft`
+  or `withdrawn` (hint `sandbox.not_draft`, which also covers submitting without the flip). `kind` has this guard of its
+  own and is not on the frozen-content list; `sandbox_name` and `sandbox_base_recorded_at` are (`N2102` once submitted).
+- *Item limit at insert.* `change_item_sandbox_limit` (statement level) raises `N2302` as soon as an origin-`'sandbox'`
+  request would hold more than `sandbox_max_items` items, so a sandbox can never grow past what apply allows (CR-04).
+- *Grants.* `nexus_api` inserts sandboxes and their items but cannot update `kind` or `sandbox_base_recorded_at`;
+  submit (with the `N2301` conflicts check and the flip) and rebase are `SECURITY DEFINER` functions added in 5-1b/5-2.
+  The settings `sandbox_max_active_per_user` and `sandbox_incremental_threshold` are added with their first use.
+
 ## 5. Interface design (designed scope)
 | Endpoint | Purpose | Auth |
 |---|---|---|
@@ -123,6 +145,9 @@ Volume: ≤ `SANDBOX_MAX_ITEMS` items and a delta of the same order per sandbox;
 | `POST /change-requests` with `grant_role` / `revoke_role` items | Governed grants | `SYSTEM_ADMIN` (propose), another `SYSTEM_ADMIN` (decide) |
 
 Errors as Phase 1; new codes `N2301` sandbox has conflicts, `N2302` too many items, `N2303` sandbox is not a draft.
+All three are class `N2`, so the existing translator returns 422 with no Java change. Built in 5-1a: `N2302` is raised
+when an item is added (not only at apply), and `N2303` carries the hints `sandbox.origin`, `sandbox.kind_one_way` and
+`sandbox.not_draft` (§4).
 
 ## 6. Behaviour (designed scope)
 

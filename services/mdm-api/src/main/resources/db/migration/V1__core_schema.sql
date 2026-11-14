@@ -158,6 +158,15 @@ CREATE TABLE change_request (
   -- wf.start_instance) and the GOV-13 urgent flag. Both editable while draft only.
   workflow_model_code text,
   is_urgent         boolean NOT NULL DEFAULT false,
+  -- Phase 5 (NEW-08, ADR-028): a sandbox is a draft of kind 'sandbox' and origin 'sandbox'. At submit it becomes an
+  -- ordinary request, once and one way (trg_cr_sandbox_kind); origin stays 'sandbox', so apply uses its item limit.
+  -- The base is the recorded instant the sandbox overlay reads; rebase moves it. Name and base stay on the request
+  -- after submit, as the record of where it came from.
+  kind              text NOT NULL DEFAULT 'request' CHECK (kind IN ('request', 'sandbox')),
+  sandbox_name      text,
+  sandbox_base_recorded_at timestamptz,
+  CHECK (kind <> 'sandbox' OR (sandbox_name IS NOT NULL AND sandbox_base_recorded_at IS NOT NULL)),
+  CHECK (origin = 'sandbox' OR (sandbox_name IS NULL AND sandbox_base_recorded_at IS NULL)),
   CHECK (requester_kind <> 'ai_agent' OR (ai_model IS NOT NULL AND ai_confidence IS NOT NULL)),
   CHECK (decision_basis IS DISTINCT FROM 'approved_policy' OR decision_policy_ref IS NOT NULL),
   CHECK (decision_policy_ref IS NULL OR decision_basis = 'approved_policy')
@@ -240,16 +249,19 @@ CREATE TRIGGER cr_status_transition BEFORE UPDATE OF status ON change_request
   EXECUTE FUNCTION trg_cr_status_transition();
 
 -- What was submitted is what gets decided and applied (D-07): content is frozen once the request leaves draft.
--- Status, decision, apply and version columns keep changing through the lifecycle.
+-- Status, decision, apply and version columns keep changing through the lifecycle. kind has its own guard
+-- (trg_cr_sandbox_kind), which reports a kind change as a sandbox error.
 CREATE FUNCTION trg_cr_frozen_content() RETURNS trigger
 LANGUAGE plpgsql SET search_path = mdm, public AS $$
 BEGIN
   IF OLD.status <> 'draft'
      AND (NEW.title, NEW.rationale, NEW.risk_tier, NEW.effective_from, NEW.version_id, NEW.requester_id, NEW.workflow_model_code, NEW.is_urgent,
-          NEW.requester_kind, NEW.ai_model, NEW.ai_confidence, NEW.origin, NEW.created_at)
+          NEW.requester_kind, NEW.ai_model, NEW.ai_confidence, NEW.origin, NEW.created_at,
+          NEW.sandbox_name, NEW.sandbox_base_recorded_at)
          IS DISTINCT FROM
          (OLD.title, OLD.rationale, OLD.risk_tier, OLD.effective_from, OLD.version_id, OLD.requester_id, OLD.workflow_model_code, OLD.is_urgent,
-          OLD.requester_kind, OLD.ai_model, OLD.ai_confidence, OLD.origin, OLD.created_at) THEN
+          OLD.requester_kind, OLD.ai_model, OLD.ai_confidence, OLD.origin, OLD.created_at,
+          OLD.sandbox_name, OLD.sandbox_base_recorded_at) THEN
     RAISE EXCEPTION 'Change request % is % and its content can no longer change', OLD.change_request_id, OLD.status
       USING ERRCODE = 'N2102', HINT = 'change_request.not_draft';
   END IF;
@@ -261,6 +273,39 @@ BEGIN
 END $$;
 CREATE TRIGGER cr_frozen_content BEFORE UPDATE ON change_request
   FOR EACH ROW EXECUTE FUNCTION trg_cr_frozen_content();
+
+-- Sandboxes (Phase 5 NEW-08, ADR-028, LLD §4). A sandbox is a private draft that is never decided or applied as a
+-- sandbox: it stays a draft until its owner submits it, when it becomes an ordinary request, or discards it.
+--   * origin 'sandbox' (and its larger item limit, CR-04) is reached only by creating a sandbox;
+--   * the kind changes once, from sandbox to request, while the request is still a draft (the submit);
+--   * a request of kind sandbox never leaves draft except by withdrawal (discard), so it cannot be submitted,
+--     enter a workflow or be decided without first becoming a request.
+CREATE FUNCTION trg_cr_sandbox_kind() RETURNS trigger
+LANGUAGE plpgsql SET search_path = mdm, public AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF (NEW.origin = 'sandbox') <> (NEW.kind = 'sandbox') THEN
+      RAISE EXCEPTION 'A request of origin sandbox is created only as a sandbox, and a sandbox only with origin sandbox'
+        USING ERRCODE = 'N2303', HINT = 'sandbox.origin';
+    END IF;
+  ELSIF NEW.kind IS DISTINCT FROM OLD.kind THEN
+    IF NOT (OLD.kind = 'sandbox' AND NEW.kind = 'request') THEN
+      RAISE EXCEPTION 'Change request % cannot change kind from % to %; only a sandbox becomes a request',
+        OLD.change_request_id, OLD.kind, NEW.kind USING ERRCODE = 'N2303', HINT = 'sandbox.kind_one_way';
+    END IF;
+    IF OLD.status <> 'draft' THEN
+      RAISE EXCEPTION 'Sandbox % is % and can no longer become a request', OLD.change_request_id, OLD.status
+        USING ERRCODE = 'N2303', HINT = 'sandbox.not_draft';
+    END IF;
+  END IF;
+  IF NEW.kind = 'sandbox' AND NEW.status NOT IN ('draft', 'withdrawn') THEN
+    RAISE EXCEPTION 'Sandbox % must stay a draft (here: %); submit turns it into a request first',
+      NEW.change_request_id, NEW.status USING ERRCODE = 'N2303', HINT = 'sandbox.not_draft';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER cr_sandbox_kind BEFORE INSERT OR UPDATE OF kind, status ON change_request
+  FOR EACH ROW EXECUTE FUNCTION trg_cr_sandbox_kind();
 
 -- Only drafts can be deleted: deleting a submitted or decided request would also delete its items (cascade)
 -- and erase what was approved. Withdraw instead.
@@ -606,6 +651,31 @@ BEGIN
 END $$;
 CREATE TRIGGER change_item_row_version AFTER INSERT OR UPDATE OR DELETE ON change_item
   FOR EACH ROW EXECUTE FUNCTION trg_change_item_row_version();
+
+-- CR-04 while drafting, for sandboxes (Phase 5 NEW-08, N2302): a sandbox may hold up to sandbox_max_items items.
+-- Ordinary requests are bounded at apply (N2103); a sandbox is refused as it grows, so its owner learns before
+-- building on it. Apply still checks (apply_check_limit). Statement-level, so a bulk insert counts once per request.
+CREATE FUNCTION trg_change_item_sandbox_limit() RETURNS trigger
+LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE
+  v_limit int;
+  v_cr    uuid;
+  v_count int;
+BEGIN
+  SELECT setting_value::int INTO v_limit FROM mdm.system_setting WHERE setting_key = 'sandbox_max_items';
+  FOR v_cr IN SELECT DISTINCT n.change_request_id FROM new_items n
+              JOIN mdm.change_request cr ON cr.change_request_id = n.change_request_id
+              WHERE cr.origin = 'sandbox' LOOP
+    SELECT count(*) INTO v_count FROM mdm.change_item WHERE change_request_id = v_cr;
+    IF v_count > coalesce(v_limit, 20000) THEN
+      RAISE EXCEPTION 'Sandbox % would hold % items; the limit is %', v_cr, v_count, coalesce(v_limit, 20000)
+        USING ERRCODE = 'N2302', HINT = 'sandbox.too_many_items';
+    END IF;
+  END LOOP;
+  RETURN NULL;
+END $$;
+CREATE TRIGGER change_item_sandbox_limit AFTER INSERT ON change_item
+  REFERENCING NEW TABLE AS new_items FOR EACH STATEMENT EXECUTE FUNCTION trg_change_item_sandbox_limit();
 
 -- -----------------------------------------------------------------------------
 -- Validations  (DRM Validations, rewritten as versioned, testable rules)

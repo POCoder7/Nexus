@@ -34,9 +34,13 @@ INSERT INTO mdm.property_value (node_id, property_id, value, valid_period) VALUE
   ('00000000-0000-0000-0000-000000000b01', '00000000-0000-0000-0000-000000000bd1', '"EUR"', daterange('2020-01-01', NULL));
 
 -- Helpers (owner, setup only): approved requests effective 2030-01-01, applied through the API's privileges.
+-- Origin sandbox is reached only through a sandbox (Phase 5 NEW-08), which pg_temp.apply turns into a request at submit.
 CREATE FUNCTION pg_temp.cr(p_id uuid, p_origin text) RETURNS void LANGUAGE sql AS $$
-  INSERT INTO mdm.change_request (change_request_id, version_id, title, requester_id, requester_kind, effective_from, origin)
-  VALUES (p_id, '00000000-0000-0000-0000-000000000bb1', 'K ' || p_id, '00000000-0000-0000-0000-000000000ba1', 'human', '2030-01-01', p_origin)
+  INSERT INTO mdm.change_request (change_request_id, version_id, title, requester_id, requester_kind, effective_from, origin,
+                                  kind, sandbox_name, sandbox_base_recorded_at)
+  VALUES (p_id, '00000000-0000-0000-0000-000000000bb1', 'K ' || p_id, '00000000-0000-0000-0000-000000000ba1', 'human', '2030-01-01', p_origin,
+          CASE WHEN p_origin = 'sandbox' THEN 'sandbox' ELSE 'request' END,
+          CASE WHEN p_origin = 'sandbox' THEN 'K sandbox' END, CASE WHEN p_origin = 'sandbox' THEN now() END)
 $$;
 CREATE FUNCTION pg_temp.item(p_cr uuid, p_seq int, p_action text, p_h uuid, p_node uuid, p_prop uuid, p_payload jsonb)
 RETURNS void LANGUAGE sql AS $$
@@ -46,7 +50,7 @@ $$;
 CREATE FUNCTION pg_temp.apply(p_cr uuid) RETURNS int LANGUAGE plpgsql AS $$
 DECLARE v int;
 BEGIN
-  UPDATE mdm.change_request SET status = 'submitted' WHERE change_request_id = p_cr;
+  UPDATE mdm.change_request SET kind = 'request', status = 'submitted' WHERE change_request_id = p_cr;
   UPDATE mdm.change_request SET status = 'approved', decided_by = '00000000-0000-0000-0000-000000000ba2',
          decided_at = now(), decision_basis = 'human_review' WHERE change_request_id = p_cr;
   SET LOCAL ROLE nexus_api;
