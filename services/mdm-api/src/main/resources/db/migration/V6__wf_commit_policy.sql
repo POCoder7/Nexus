@@ -59,7 +59,8 @@ CREATE TABLE wf.commit_policy (
   CHECK (NOT (allowed_actions && ARRAY['move_node', 'remove_node', 'inactivate_node',
                                        'add_ownership_edge', 'update_ownership_edge',
                                        'end_ownership_edge',
-                                       'delete_node', 'update_node', 'add_hierarchy']::mdm.change_action[])),
+                                       'delete_node', 'update_node', 'add_hierarchy',
+                                       'set_property_derivation']::mdm.change_action[])),   -- formulas: Phase 5 §17.10
   CHECK (cardinality(allowed_actions) > 0),
   CHECK (status <> 'approved' OR (approved_by IS NOT NULL AND approved_by <> proposed_by AND review_due IS NOT NULL))
 );

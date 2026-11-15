@@ -41,7 +41,8 @@ CREATE TYPE change_action      AS ENUM (
   'set_property', 'clear_property', 'add_identifier',
   'add_ownership_edge', 'update_ownership_edge', 'end_ownership_edge',
   'delete_node',      -- end a node in the version: all relationships and its attributes (HIE-02)
-  'add_hierarchy'     -- create a hierarchy and its top node (HIE-01, ADR-026)
+  'add_hierarchy',    -- create a hierarchy and its top node (HIE-01, ADR-026)
+  'set_property_derivation'   -- set a CEL formula on a derived property (PRP-06, Phase 5 LLD §17.3.5; applied from 5-11)
 );
 CREATE TYPE validation_level   AS ENUM ('node', 'hierarchy', 'version', 'ownership');
 CREATE TYPE validation_severity AS ENUM ('error', 'warning', 'info');
@@ -76,6 +77,9 @@ CREATE TABLE version (
   description     text,
   finalized_at    timestamptz,
   finalized_by    uuid REFERENCES app_user,
+  -- DRM's version types (VER-04, Phase 5 LLD §17.4.5): a baseline is a finalized version kept for compares; an as_of
+  -- version names a past slice (VER-03). Set at create and never changed (trg_version_guard, V11).
+  version_type    text NOT NULL DEFAULT 'normal' CHECK (version_type IN ('normal', 'baseline', 'as_of')),
   CHECK (status <> 'finalized' OR recorded_as_of IS NOT NULL)
 );
 

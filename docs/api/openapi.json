@@ -1108,6 +1108,20 @@
         },
         "type" : "object"
       },
+      "PagePropertyDefinitionView" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PropertyDefinitionView"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "PageSandboxChild" : {
         "properties" : {
           "items" : {
@@ -1127,6 +1141,20 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/SandboxView"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PageSavedQueryView" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SavedQueryView"
             },
             "type" : "array"
           },
@@ -1274,6 +1302,47 @@
         },
         "type" : "object"
       },
+      "PropertyDefinitionView" : {
+        "properties" : {
+          "category" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "dataType" : {
+            "type" : "string"
+          },
+          "derivationEngine" : {
+            "type" : "string"
+          },
+          "derivationExpr" : {
+            "type" : "string"
+          },
+          "drmFormulaOrig" : {
+            "type" : "string"
+          },
+          "inheritance" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "listValues" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "origin" : {
+            "type" : "string"
+          },
+          "scope" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "PropertyValue" : {
         "properties" : {
           "category" : {
@@ -1347,6 +1416,96 @@
         },
         "type" : "object"
       },
+      "QueryCell" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "provenance" : {
+            "type" : "string"
+          },
+          "sourceNodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "value" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          }
+        },
+        "type" : "object"
+      },
+      "QueryDefinition" : {
+        "properties" : {
+          "columns" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "hierarchyCode" : {
+            "type" : "string"
+          },
+          "include" : {
+            "type" : "string"
+          },
+          "includeInactive" : {
+            "type" : "boolean"
+          },
+          "rootNodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "where" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          }
+        },
+        "type" : "object"
+      },
+      "QueryPage" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/QueryRow"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "partial" : {
+            "type" : "boolean"
+          },
+          "scanned" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "QueryRow" : {
+        "properties" : {
+          "columns" : {
+            "items" : {
+              "$ref" : "#/components/schemas/QueryCell"
+            },
+            "type" : "array"
+          },
+          "leaf" : {
+            "type" : "boolean"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "nodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "parentName" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "RefreshResult" : {
         "properties" : {
           "failures" : {
@@ -1358,6 +1517,14 @@
           "rowVersion" : {
             "format" : "int32",
             "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "RunQuery" : {
+        "properties" : {
+          "definition" : {
+            "$ref" : "#/components/schemas/QueryDefinition"
           }
         },
         "type" : "object"
@@ -1544,6 +1711,66 @@
             "type" : "string"
           },
           "versionName" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "SaveQuery" : {
+        "properties" : {
+          "definition" : {
+            "$ref" : "#/components/schemas/QueryDefinition"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "visibility" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "SavedQueryView" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "definition" : {
+            "$ref" : "#/components/schemas/QueryDefinition"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "hierarchyCode" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "mine" : {
+            "type" : "boolean"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "ownerId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "rowVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "visibility" : {
             "type" : "string"
           }
         },
@@ -3216,6 +3443,337 @@
           }
         },
         "tags" : [ "node-history-controller" ]
+      }
+    },
+    "/api/v1/property-definitions" : {
+      "get" : {
+        "operationId" : "listPropertyDefinitions",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "origin",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 500,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PagePropertyDefinitionView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "property-definition-controller" ]
+      }
+    },
+    "/api/v1/queries" : {
+      "get" : {
+        "operationId" : "listSavedQueries",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 100,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageSavedQueryView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "query-controller" ]
+      },
+      "post" : {
+        "operationId" : "createSavedQuery",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveQuery"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SavedQueryView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "query-controller" ]
+      }
+    },
+    "/api/v1/queries/run" : {
+      "post" : {
+        "operationId" : "runQuery",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "version",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recordedAsOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 100,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RunQuery"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QueryPage"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "query-controller" ]
+      }
+    },
+    "/api/v1/queries/{id}" : {
+      "delete" : {
+        "operationId" : "deleteSavedQuery",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "query-controller" ]
+      },
+      "get" : {
+        "operationId" : "getSavedQuery",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SavedQueryView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "query-controller" ]
+      },
+      "put" : {
+        "operationId" : "updateSavedQuery",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveQuery"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SavedQueryView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "query-controller" ]
+      }
+    },
+    "/api/v1/queries/{id}/run" : {
+      "post" : {
+        "operationId" : "runSavedQuery",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "version",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "asOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "recordedAsOf",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 100,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QueryPage"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "query-controller" ]
       }
     },
     "/api/v1/sandboxes" : {

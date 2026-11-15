@@ -101,6 +101,11 @@ BEGIN
     RAISE EXCEPTION 'The identity and creation details of version % never change', OLD.version_name
       USING ERRCODE = 'N2702', HINT = 'version.frozen';
   END IF;
+  -- The type is chosen when the version is created and never changes (VER-04, Phase 5 LLD §17.4.5).
+  IF NEW.version_type IS DISTINCT FROM OLD.version_type THEN
+    RAISE EXCEPTION 'The type of version % is set when it is created and never changes', OLD.version_name
+      USING ERRCODE = 'N2701', HINT = 'version.type_fixed';
+  END IF;
   -- The business date and the base belong to a working version (before and after this update).
   IF (NEW.business_as_of, NEW.base_version_id) IS DISTINCT FROM (OLD.business_as_of, OLD.base_version_id)
      AND NOT (OLD.status = 'working' AND NEW.status = 'working') THEN
@@ -249,19 +254,28 @@ BEGIN
   END IF;
 END $$;
 
+-- With a version type (VER-04, Phase 5 5-9): 'normal', 'baseline' or 'as_of'; the CHECK refuses anything else.
 CREATE FUNCTION mdm.create_version(p_name text, p_business_as_of date, p_base_version_id uuid, p_description text,
-                                   p_actor uuid)
+                                   p_actor uuid, p_version_type text)
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
 DECLARE v_id uuid;
 BEGIN
   PERFORM mdm.version_require_admin(p_actor);
   PERFORM set_config('mdm.actor_id', p_actor::text, true);
   -- "Copy from" records the base only: no rows are copied (ADR-037 D2).
-  INSERT INTO mdm.version (version_name, business_as_of, base_version_id, description, created_by)
-  VALUES (p_name, p_business_as_of, p_base_version_id, p_description, p_actor)
+  INSERT INTO mdm.version (version_name, business_as_of, base_version_id, description, created_by, version_type)
+  VALUES (p_name, p_business_as_of, p_base_version_id, p_description, p_actor, coalesce(p_version_type, 'normal'))
   RETURNING version_id INTO v_id;
   RETURN v_id;
 END $$;
+
+-- The original signature (Phase 3) creates a normal version. Kept as its own function, not a DEFAULT on the one above,
+-- so existing callers and grants are unchanged and a five-argument call is never ambiguous.
+CREATE FUNCTION mdm.create_version(p_name text, p_business_as_of date, p_base_version_id uuid, p_description text,
+                                   p_actor uuid)
+RETURNS uuid LANGUAGE sql SECURITY DEFINER SET search_path = mdm, public AS $$
+  SELECT mdm.create_version(p_name, p_business_as_of, p_base_version_id, p_description, p_actor, 'normal')
+$$;
 
 CREATE FUNCTION mdm.update_version(p_version_id uuid, p_name text, p_description text, p_actor uuid)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
@@ -316,9 +330,11 @@ BEGIN
 END $$;
 
 REVOKE EXECUTE ON FUNCTION mdm.is_version_admin(uuid), mdm.version_require_admin(uuid),
-                           mdm.create_version(text, date, uuid, text, uuid), mdm.update_version(uuid, text, text, uuid),
+                           mdm.create_version(text, date, uuid, text, uuid), mdm.create_version(text, date, uuid, text, uuid, text),
+                           mdm.update_version(uuid, text, text, uuid),
                            mdm.transition_version(uuid, text, text, uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION mdm.is_version_admin(uuid), mdm.create_version(text, date, uuid, text, uuid),
+                          mdm.create_version(text, date, uuid, text, uuid, text),
                           mdm.update_version(uuid, text, text, uuid), mdm.transition_version(uuid, text, text, uuid)
   TO nexus_api;
 

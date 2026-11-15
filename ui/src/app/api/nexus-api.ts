@@ -10,7 +10,7 @@ import type {
 import { HierarchySummary } from './generated/models';
 import type {
   CreateSandbox, PageConflict, PageDiffRow, PageSandboxChild, PageSandboxView, RefreshResult, SandboxItemAdded, SandboxNode,
-  SandboxView,
+  SandboxView, PagePropertyDefinitionView, PageSavedQueryView, QueryDefinition, QueryPage, SaveQuery, SavedQueryView,
 } from './generated/models';
 
 /** Idempotency-Key for one user action (ADR-015); the interceptor turns it into the header. */
@@ -241,6 +241,36 @@ export class NexusApi {
   async discardSandbox(id: string, etag: string): Promise<Tagged<SandboxView>> {
     const r = await this.api.invoke$Response(fn.discardSandbox, { id, 'If-Match': etag });
     return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  // ------------------------------------------------------------------ queries (QRY-01, Phase 5 LLD §17.5, §17.11)
+
+  /** Every property definition (reference data), for the query builder's picker. */
+  propertyDefinitions(): Promise<PagePropertyDefinitionView> {
+    return this.api.invoke(fn.listPropertyDefinitions, { limit: 1000 });
+  }
+
+  /** Runs a query that is not saved; `asOf` undefined = today. A partial page continues with its cursor. */
+  runQuery(definition: QueryDefinition, asOf: string | undefined, cursor: string | undefined, limit: number): Promise<QueryPage> {
+    return this.api.invoke(fn.runQuery, { body: { definition }, asOf, cursor, limit });
+  }
+
+  savedQueries(): Promise<PageSavedQueryView> {
+    return this.api.invoke(fn.listSavedQueries, { limit: 200 });
+  }
+
+  async saveQuery(body: SaveQuery, key: string): Promise<Tagged<SavedQueryView>> {
+    const r = await this.api.invoke$Response(fn.createSavedQuery, { body }, idem(key));
+    return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  async updateSavedQuery(id: string, etag: string, body: SaveQuery): Promise<Tagged<SavedQueryView>> {
+    const r = await this.api.invoke$Response(fn.updateSavedQuery, { id, 'If-Match': etag, body });
+    return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  deleteSavedQuery(id: string, etag: string): Promise<void> {
+    return this.api.invoke(fn.deleteSavedQuery, { id, 'If-Match': etag });
   }
 
   reportClientError(status: number, type: string | null, correlationId: string | null, route: string): Promise<void> {

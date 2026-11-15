@@ -770,6 +770,37 @@ CREATE TABLE mdm.saved_query (
 - **Limit:** `SAVED_QUERY_MAX_PER_USER` (200).
 - **Validation:** a definition is validated when saved, with the same checks as a run (N2604, N2605, N2807).
 
+**Built in 5-9, 5-13a and 5-13b** (ADR-041 order; V1, V3, V6 and V11 edits; new V13; pgTAP `25_query_foundations` (25)
+and `26_saved_queries` (10); JUnit `QueryApiTest` (9); Vitest +9; stories +6 with axe; Playwright `12-queries` (4)):
+- *One filter language for exports and queries.* `node_passes_filter` is rebuilt on three new functions:
+  `filter_compile` checks a filter once (N2604, N2605, N2807) and notes the type each condition compares as;
+  `filter_holds` evaluates it over a node's facts; `filter_node_attrs` computes the attributes it names. The query
+  runner calls `filter_holds` itself over facts from `resolve_properties_batch`, so a filter means the same in an
+  export and in a query. Bare arrays keep their meaning, and an export filter keeps its row order.
+- *What counts as CEL-derived:* `origin = 'derived'` and `derivation_engine = 'cel'`. `export_drm` refuses such a column
+  or filter with N2805, and `node_passes_filter` refuses such a condition with N2806.
+- *`resolve_properties_batch`* walks at most 100 levels, the same bound as `node_properties_resolved`, so the two cannot
+  differ (the design said `max_hierarchy_depth`). A pgTAP test compares them row for row, now and at a past recorded time.
+- *`version_type`:* `create_version` gains an overload with the type. The five-argument function stays and creates a
+  normal version, so existing callers and grants are unchanged. Changing a type is refused with N2701,
+  `version.type_fixed`. Choosing a type in the API and UI comes with baselines in 5-12.
+- *The planner* puts only conditions directly under the top-level `all` into candidate selection. Every candidate is
+  then checked against the whole filter, so a predicate can only narrow candidates to a superset of the matches. A
+  stored-only property is stored, not inherited and has no default; only `=`, `in` and `not_null` on one are indexed.
+- *Paging:* candidates are scanned in (name, id) order, `COLLATE "C"`. The page cursor is the last row returned when the
+  page fills, and the last candidate scanned when the budget runs out, so a continued scan neither skips nor repeats a
+  match. A test checks that the union of the pages equals the full answer.
+- *Until 5-5 and 5-10 (ADR-041):* results are filtered by readable hierarchy. A query that compares a CEL-derived
+  property is refused with 422 `query.cel_not_available`. CEL-derived columns show no value, as node detail does today.
+- *Other API refusals:* more than `query_max_columns` columns (`query.too_many_columns`); an unknown column
+  (`query.unknown_column`); more than `saved_query_max_per_user` saved queries (`query.too_many_saved`). An owner change
+  is refused by a trigger (N2807, `query.owner_fixed`); the API also has no UPDATE right on the owner or the ETag.
+- *`GET /api/v1/property-definitions`* (§17.11) is built now, for the builder's property picker. It returns every
+  definition with its list values, to anyone with READ somewhere. The `origin` filter is there for 5-10.
+- *UI:* the results are a table with "Show more" and "Continue searching" (for a partial page), not a virtual-scroll
+  grid. The DOM holds only the pages the user asked for. Multi-select and "Set property…" come with 5-15. A date-time
+  value is entered in the browser's local form and compared as UTC.
+
 ### 17.6 QRY-03 search across hierarchies
 `GET /api/v1/search?q&hierarchy&version|asOf&in=name,description,identifier&cursor&limit`.
 
@@ -954,6 +985,10 @@ All data is synthetic (ADR-038 D5).
 
 5-5 (read filtering) comes before 5-12 to 5-14, so the new read endpoints are filtered from their first commit. 5-6 follows
 the Phase 4 loader (§17.1).
+
+*Amended 2026-11-15 by ADR-041 (repository owner):* 5-9, 5-13a and 5-13b are built first, then 5-4 and 5-5, then the
+rest. Until 5-5 the query runner filters by readable hierarchy, as every read does today, and 5-5 adds the query
+endpoints to its matrix. The 5-13a test "a CEL condition" moves to 5-11.
 
 *Split in the Phase 5 plan (approved 2026-11-14):* three L increments are each built as two, with the same content and tests:
 - 5-10: 5-10a, the engine core, and 5-10b, the catalog, resolver, history and check endpoint.

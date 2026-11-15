@@ -311,38 +311,298 @@ SELECT CASE
 END
 $$;
 
+-- -----------------------------------------------------------------------------
+-- Node filters (export profiles; queries, QRY-01, Phase 5 LLD §17.5.1). One implementation of the filter language for
+-- exports and queries:
+--   * a condition is {"property": code, "op", "value"} or {"attribute": name, "op", "value"}, with "ci": true for
+--     case-insensitive text operators;
+--   * conditions group with {"all": [...]} and {"any": [...]}; a bare JSON array means "all of", so the export filters
+--     written before groups existed keep their meaning;
+--   * operators: =, <>, in, not_in, is_null, not_null; contains, starts_with, ends_with, like; gt, ge, lt, le, between;
+--   * attributes: name, description, kind, level (1 = top, along the primary path), isLeaf (no children in this
+--     hierarchy at the slice), isActive.
+-- filter_compile checks a filter once and annotates each condition with the value type it compares; filter_holds then
+-- evaluates it over a node's facts. The query service gathers facts for a batch of nodes and calls filter_holds itself.
+-- -----------------------------------------------------------------------------
+
+-- The value type each attribute compares as.
+CREATE FUNCTION filter_attribute_type(p_attribute text)
+RETURNS text LANGUAGE sql IMMUTABLE SET search_path = mdm, public AS $$
+  SELECT CASE p_attribute
+           WHEN 'name' THEN 'text' WHEN 'description' THEN 'text' WHEN 'kind' THEN 'text'
+           WHEN 'level' THEN 'number' WHEN 'isLeaf' THEN 'boolean' WHEN 'isActive' THEN 'boolean' END
+$$;
+
+-- Checks a filter and returns {"tree": annotated filter, "attrs": [names], "props": [{code, id, type, cel}]}.
+-- Raises N2604 (unknown operator), N2605 (unknown property or attribute), N2807 (malformed, or over the limits:
+-- query_max_conditions conditions, groups nested at most 5 deep). A CEL-derived property is allowed here and flagged
+-- ("cel": true); the caller decides (N2805 for exports, N2806 for node_passes_filter, Java for queries).
+CREATE FUNCTION filter_compile(p_filter jsonb)
+RETURNS jsonb LANGUAGE plpgsql STABLE SET search_path = mdm, public AS $$
+DECLARE
+  v_attrs text[] := '{}';
+  v_props jsonb := '{}';
+  v_count int := 0;
+  v_max   int := coalesce((SELECT setting_value::int FROM mdm.system_setting WHERE setting_key = 'query_max_conditions'), 50);
+  v_tree  jsonb;
+
+  -- nested functions are not available in PL/pgSQL, so the walk is an explicit stack over (node, path, depth)
+  v_stack jsonb[];
+  v_item  jsonb;
+  v_node  jsonb;
+  v_depth int;
+  v_path  text[];
+  v_kids  jsonb;
+  v_i     int;
+  d       mdm.property_definition%ROWTYPE;
+  v_type  text;
+BEGIN
+  v_tree := CASE WHEN p_filter IS NULL THEN '{"all": []}'::jsonb
+                 WHEN jsonb_typeof(p_filter) = 'array' THEN jsonb_build_object('all', p_filter)
+                 ELSE p_filter END;
+  v_stack := ARRAY[jsonb_build_object('path', '[]'::jsonb, 'depth', 0)];
+  WHILE cardinality(v_stack) > 0 LOOP
+    v_item  := v_stack[cardinality(v_stack)];
+    v_stack := v_stack[1:cardinality(v_stack) - 1];
+    v_path  := ARRAY(SELECT jsonb_array_elements_text(v_item -> 'path'));
+    v_depth := (v_item ->> 'depth')::int;
+    v_node  := CASE WHEN cardinality(v_path) = 0 THEN v_tree ELSE v_tree #> v_path END;
+
+    IF jsonb_typeof(v_node) <> 'object' THEN
+      RAISE EXCEPTION 'A filter condition or group must be a JSON object' USING ERRCODE = 'N2807', HINT = 'query.invalid';
+    END IF;
+    IF v_node ? 'all' OR v_node ? 'any' THEN
+      IF v_depth >= 5 THEN
+        RAISE EXCEPTION 'Filter groups nest at most 5 deep' USING ERRCODE = 'N2807', HINT = 'query.too_deep';
+      END IF;
+      v_kids := coalesce(v_node -> 'all', v_node -> 'any');
+      IF jsonb_typeof(v_kids) <> 'array' THEN
+        RAISE EXCEPTION 'A filter group holds a JSON array' USING ERRCODE = 'N2807', HINT = 'query.invalid';
+      END IF;
+      FOR v_i IN 0 .. jsonb_array_length(v_kids) - 1 LOOP
+        v_stack := v_stack || jsonb_build_object('path',
+                     to_jsonb(v_path || ARRAY[CASE WHEN v_node ? 'all' THEN 'all' ELSE 'any' END, v_i::text]),
+                     'depth', v_depth + 1);
+      END LOOP;
+      CONTINUE;
+    END IF;
+
+    v_count := v_count + 1;
+    IF v_count > v_max THEN
+      RAISE EXCEPTION 'A filter has at most % conditions', v_max USING ERRCODE = 'N2807', HINT = 'query.too_many_conditions';
+    END IF;
+    IF NOT (v_node ->> 'op') = ANY (ARRAY['=', '<>', 'in', 'not_in', 'is_null', 'not_null', 'contains', 'starts_with',
+                                          'ends_with', 'like', 'gt', 'ge', 'lt', 'le', 'between'])
+       OR v_node ->> 'op' IS NULL THEN
+      RAISE EXCEPTION 'Unsupported filter op %', coalesce(v_node ->> 'op', 'none') USING ERRCODE = 'N2604', HINT = 'export.filter_op';
+    END IF;
+    IF v_node ->> 'op' IN ('in', 'not_in') AND jsonb_typeof(v_node -> 'value') IS DISTINCT FROM 'array'
+       OR v_node ->> 'op' = 'between' AND (jsonb_typeof(v_node -> 'value') IS DISTINCT FROM 'array'
+                                          OR jsonb_array_length(v_node -> 'value') <> 2) THEN
+      RAISE EXCEPTION 'Operator % needs a JSON array value%', v_node ->> 'op',
+        CASE WHEN v_node ->> 'op' = 'between' THEN ' of two bounds' ELSE '' END USING ERRCODE = 'N2807', HINT = 'query.invalid';
+    END IF;
+
+    IF v_node ? 'attribute' THEN
+      v_type := filter_attribute_type(v_node ->> 'attribute');
+      IF v_type IS NULL THEN
+        RAISE EXCEPTION 'Unknown attribute in filter: %', v_node ->> 'attribute' USING ERRCODE = 'N2605', HINT = 'export.filter_property';
+      END IF;
+      v_attrs := array_append(v_attrs, v_node ->> 'attribute');
+    ELSE
+      SELECT * INTO d FROM mdm.property_definition WHERE property_code = v_node ->> 'property';
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Unknown property in filter: %', coalesce(v_node ->> 'property', 'none') USING ERRCODE = 'N2605', HINT = 'export.filter_property';
+      END IF;
+      v_type := CASE WHEN d.data_type IN ('integer', 'decimal') THEN 'number'
+                     WHEN d.data_type = 'date' THEN 'date'
+                     WHEN d.data_type = 'datetime' THEN 'datetime'
+                     WHEN d.data_type = 'boolean' THEN 'boolean'
+                     ELSE 'text' END;
+      v_props := v_props || jsonb_build_object(d.property_code, jsonb_build_object('code', d.property_code,
+                   'id', d.property_id, 'type', v_type,
+                   'cel', d.origin = 'derived' AND d.derivation_engine = 'cel'));
+    END IF;
+    v_tree := CASE WHEN cardinality(v_path) = 0 THEN v_node || jsonb_build_object('type', v_type)
+                   ELSE jsonb_set(v_tree, v_path, v_node || jsonb_build_object('type', v_type)) END;
+  END LOOP;
+
+  RETURN jsonb_build_object('tree', v_tree,
+           'attrs', to_jsonb(ARRAY(SELECT DISTINCT unnest(v_attrs) ORDER BY 1)),
+           'props', coalesce((SELECT jsonb_agg(p ORDER BY p ->> 'code') FROM jsonb_each(v_props) AS e(k, p)), '[]'::jsonb));
+END $$;
+
+-- One condition over one value (jsonb; SQL NULL or JSON null = no value), compared as the condition's annotated type.
+-- Text compares by code point (COLLATE "C"), so results do not depend on the database's locale.
+CREATE FUNCTION filter_condition_holds(c jsonb, v jsonb)
+RETURNS boolean LANGUAGE plpgsql IMMUTABLE SET search_path = mdm, public AS $$
+DECLARE
+  op   text := c ->> 'op';
+  t    text := c ->> 'type';
+  ci   boolean := coalesce((c ->> 'ci')::boolean, false);
+  s    text;
+  pat  text;
+BEGIN
+  IF v = 'null'::jsonb THEN
+    v := NULL;
+  END IF;
+  CASE op
+    WHEN '='        THEN RETURN coalesce(v = c -> 'value', false);
+    WHEN '<>'       THEN RETURN v IS DISTINCT FROM c -> 'value';
+    WHEN 'in'       THEN RETURN v IS NOT NULL AND (c -> 'value') @> jsonb_build_array(v);
+    WHEN 'not_in'   THEN RETURN v IS NULL OR NOT ((c -> 'value') @> jsonb_build_array(v));
+    WHEN 'is_null'  THEN RETURN v IS NULL;
+    WHEN 'not_null' THEN RETURN v IS NOT NULL;
+    ELSE NULL;
+  END CASE;
+  IF v IS NULL THEN
+    RETURN false;                                                -- no value matches no text or range condition
+  END IF;
+
+  IF op IN ('contains', 'starts_with', 'ends_with', 'like') THEN
+    s   := v #>> '{}';
+    pat := c ->> 'value';
+    IF ci THEN
+      s := lower(s);
+      pat := lower(pat);
+    END IF;
+    RETURN CASE op
+             WHEN 'contains'    THEN strpos(s, pat) > 0
+             WHEN 'starts_with' THEN left(s, length(pat)) = pat
+             WHEN 'ends_with'   THEN right(s, length(pat)) = pat
+             ELSE s COLLATE "C" LIKE pat
+           END;
+  END IF;
+
+  -- ranges: gt, ge, lt, le, between (inclusive), by type
+  RETURN CASE t
+    WHEN 'number' THEN mdm.filter_compare((v #>> '{}')::numeric, op, c -> 'value')
+    WHEN 'date' THEN mdm.filter_compare_date((v #>> '{}')::date, op, c -> 'value')
+    WHEN 'datetime' THEN mdm.filter_compare_ts((v #>> '{}')::timestamptz, op, c -> 'value')
+    ELSE mdm.filter_compare_text(v #>> '{}', op, c -> 'value')
+  END;
+END $$;
+
+CREATE FUNCTION filter_compare(x numeric, op text, b jsonb)
+RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path = mdm, public AS $$
+  SELECT CASE op
+    WHEN 'gt' THEN x >  (b #>> '{}')::numeric WHEN 'ge' THEN x >= (b #>> '{}')::numeric
+    WHEN 'lt' THEN x <  (b #>> '{}')::numeric WHEN 'le' THEN x <= (b #>> '{}')::numeric
+    WHEN 'between' THEN x BETWEEN (b ->> 0)::numeric AND (b ->> 1)::numeric END
+$$;
+CREATE FUNCTION filter_compare_date(x date, op text, b jsonb)
+RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path = mdm, public AS $$
+  SELECT CASE op
+    WHEN 'gt' THEN x >  (b #>> '{}')::date WHEN 'ge' THEN x >= (b #>> '{}')::date
+    WHEN 'lt' THEN x <  (b #>> '{}')::date WHEN 'le' THEN x <= (b #>> '{}')::date
+    WHEN 'between' THEN x BETWEEN (b ->> 0)::date AND (b ->> 1)::date END
+$$;
+CREATE FUNCTION filter_compare_ts(x timestamptz, op text, b jsonb)
+RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path = mdm, public AS $$
+  SELECT CASE op
+    WHEN 'gt' THEN x >  (b #>> '{}')::timestamptz WHEN 'ge' THEN x >= (b #>> '{}')::timestamptz
+    WHEN 'lt' THEN x <  (b #>> '{}')::timestamptz WHEN 'le' THEN x <= (b #>> '{}')::timestamptz
+    WHEN 'between' THEN x BETWEEN (b ->> 0)::timestamptz AND (b ->> 1)::timestamptz END
+$$;
+CREATE FUNCTION filter_compare_text(x text, op text, b jsonb)
+RETURNS boolean LANGUAGE sql IMMUTABLE SET search_path = mdm, public AS $$
+  SELECT CASE op
+    WHEN 'gt' THEN x COLLATE "C" >  (b #>> '{}') WHEN 'ge' THEN x COLLATE "C" >= (b #>> '{}')
+    WHEN 'lt' THEN x COLLATE "C" <  (b #>> '{}') WHEN 'le' THEN x COLLATE "C" <= (b #>> '{}')
+    WHEN 'between' THEN x COLLATE "C" BETWEEN (b ->> 0) AND (b ->> 1) END
+$$;
+
+-- Evaluates a compiled filter tree over one node's facts: {"attrs": {name: value}, "props": {code: value}}.
+-- An empty "all" holds; an empty "any" does not.
+CREATE FUNCTION filter_holds(p_tree jsonb, p_facts jsonb)
+RETURNS boolean LANGUAGE plpgsql IMMUTABLE SET search_path = mdm, public AS $$
+DECLARE c jsonb;
+BEGIN
+  IF p_tree ? 'all' THEN
+    FOR c IN SELECT jsonb_array_elements(p_tree -> 'all') LOOP
+      IF NOT mdm.filter_holds(c, p_facts) THEN
+        RETURN false;
+      END IF;
+    END LOOP;
+    RETURN true;
+  END IF;
+  IF p_tree ? 'any' THEN
+    FOR c IN SELECT jsonb_array_elements(p_tree -> 'any') LOOP
+      IF mdm.filter_holds(c, p_facts) THEN
+        RETURN true;
+      END IF;
+    END LOOP;
+    RETURN false;
+  END IF;
+  RETURN coalesce(mdm.filter_condition_holds(p_tree, CASE WHEN p_tree ? 'attribute'
+                                                          THEN p_facts -> 'attrs' -> (p_tree ->> 'attribute')
+                                                          ELSE p_facts -> 'props' -> (p_tree ->> 'property') END), false);
+END $$;
+
+-- A node's attributes for filters, as jsonb, at a slice: only the ones a filter names (level and isLeaf walk the tree).
+CREATE FUNCTION filter_node_attrs(p_node_id uuid, p_hierarchy_id uuid, p_attrs text[], p_as_of date,
+                                  p_recorded_as_of timestamptz)
+RETURNS jsonb LANGUAGE plpgsql STABLE SET search_path = mdm, public AS $$
+DECLARE
+  a   mdm.node_attr;
+  out jsonb := '{}';
+BEGIN
+  IF cardinality(p_attrs) = 0 THEN
+    RETURN out;
+  END IF;
+  a := node_attr_asof(p_node_id, p_as_of, p_recorded_as_of);
+  IF 'name' = ANY (p_attrs) THEN out := out || jsonb_build_object('name', a.node_name); END IF;
+  IF 'description' = ANY (p_attrs) THEN out := out || jsonb_build_object('description', a.description); END IF;
+  IF 'isActive' = ANY (p_attrs) THEN out := out || jsonb_build_object('isActive', coalesce(a.is_active, false)); END IF;
+  IF 'kind' = ANY (p_attrs) THEN
+    out := out || jsonb_build_object('kind', (SELECT n.node_kind::text FROM mdm.node n WHERE n.node_id = p_node_id));
+  END IF;
+  IF 'isLeaf' = ANY (p_attrs) THEN
+    out := out || jsonb_build_object('isLeaf', NOT EXISTS (
+             SELECT 1 FROM mdm.hierarchy_relationship r
+             WHERE r.hierarchy_id = p_hierarchy_id AND r.parent_node_id = p_node_id
+               AND r.valid_period @> p_as_of AND r.recorded_period @> p_recorded_as_of));
+  END IF;
+  IF 'level' = ANY (p_attrs) THEN
+    out := out || jsonb_build_object('level', (
+             WITH RECURSIVE up(node_id, lvl) AS (
+               SELECT p_node_id, 1
+               UNION ALL
+               SELECT r.parent_node_id, up.lvl + 1 FROM up JOIN mdm.hierarchy_relationship r
+                 ON r.child_node_id = up.node_id AND r.hierarchy_id = p_hierarchy_id AND r.is_primary
+                AND r.valid_period @> p_as_of AND r.recorded_period @> p_recorded_as_of
+               WHERE up.lvl < 100)
+             SELECT max(lvl) FROM up));
+  END IF;
+  RETURN out;
+END $$;
+
+-- The export filter of one node (V3; extended in Phase 5 5-9). A condition on a CEL-derived property is refused (N2806):
+-- SQL would read NULL for it, so the query service evaluates such conditions in Java (LLD §17.3.7).
 CREATE FUNCTION node_passes_filter(p_node_id uuid, p_hierarchy_id uuid, p_filter jsonb,
                                    p_as_of date, p_recorded_as_of timestamptz)
 RETURNS boolean LANGUAGE plpgsql STABLE SET search_path = mdm, public AS $$
 DECLARE
-  c   jsonb;
-  pid uuid;
-  v   jsonb;
-  ok  boolean;
+  f     jsonb;
+  p     jsonb;
+  props jsonb := '{}';
 BEGIN
-  FOR c IN SELECT * FROM jsonb_array_elements(coalesce(p_filter, '[]'::jsonb)) LOOP
-    IF c->>'op' NOT IN ('=', '<>', 'in', 'not_in', 'is_null', 'not_null') THEN
-      RAISE EXCEPTION 'Unsupported filter op %', c->>'op' USING ERRCODE = 'N2604', HINT = 'export.filter_op';
+  IF p_filter IS NULL OR p_filter = '[]'::jsonb THEN
+    RETURN true;                                                 -- most export profiles have no filter
+  END IF;
+  f := filter_compile(p_filter);
+  FOR p IN SELECT jsonb_array_elements(f -> 'props') LOOP
+    IF (p ->> 'cel')::boolean THEN
+      RAISE EXCEPTION 'The filter names %, a CEL-derived property, which only the query service evaluates', p ->> 'code'
+        USING ERRCODE = 'N2806', HINT = 'filter.cel_property';
     END IF;
-    SELECT property_id INTO pid FROM property_definition WHERE property_code = c->>'property';
-    IF pid IS NULL THEN
-      RAISE EXCEPTION 'Unknown property in filter: %', c->>'property' USING ERRCODE = 'N2605', HINT = 'export.filter_property';
-    END IF;
-    v := property_value_asof(p_node_id, pid, p_hierarchy_id, p_as_of, p_recorded_as_of);
-    IF v = 'null'::jsonb THEN v := NULL; END IF;
-    ok := CASE c->>'op'
-            WHEN '='        THEN v = c->'value'
-            WHEN '<>'       THEN v IS DISTINCT FROM c->'value'
-            WHEN 'in'       THEN v IS NOT NULL AND (c->'value') @> jsonb_build_array(v)
-            WHEN 'not_in'   THEN v IS NULL OR NOT ((c->'value') @> jsonb_build_array(v))
-            WHEN 'is_null'  THEN v IS NULL
-            WHEN 'not_null' THEN v IS NOT NULL
-          END;
-    IF NOT coalesce(ok, false) THEN
-      RETURN false;
-    END IF;
+    props := props || jsonb_build_object(p ->> 'code',
+               property_value_asof(p_node_id, (p ->> 'id')::uuid, p_hierarchy_id, p_as_of, p_recorded_as_of));
   END LOOP;
-  RETURN true;
+  RETURN filter_holds(f -> 'tree', jsonb_build_object(
+           'attrs', filter_node_attrs(p_node_id, p_hierarchy_id, ARRAY(SELECT jsonb_array_elements_text(f -> 'attrs')),
+                                      p_as_of, p_recorded_as_of),
+           'props', props));
 END $$;
 
 CREATE FUNCTION export_column_value(
@@ -416,6 +676,14 @@ BEGIN
   END IF;
   IF p.export_type NOT IN ('hierarchy', 'generation') THEN
     RAISE EXCEPTION 'Export type % is produced by the export service, not SQL', p.export_type USING ERRCODE = 'N2608', HINT = 'export.type_not_in_sql';
+  END IF;
+  -- SQL reads NULL for a CEL-derived property, so a profile that outputs or filters on one would export blanks without
+  -- saying so. It runs through the export service instead (Phase 5 LLD §17.3.7, Phase 8).
+  IF EXISTS (SELECT 1 FROM export_profile_column ec JOIN property_definition d ON d.property_id = ec.property_id
+             WHERE ec.export_profile_id = p.export_profile_id AND d.origin = 'derived' AND d.derivation_engine = 'cel')
+     OR EXISTS (SELECT 1 FROM jsonb_array_elements(filter_compile(p.node_filter) -> 'props') x WHERE (x ->> 'cel')::boolean) THEN
+    RAISE EXCEPTION 'Export profile % reads a CEL-derived property, so it must run through the export service', p_profile_code
+      USING ERRCODE = 'N2805', HINT = 'export.cel_property';
   END IF;
 
   SELECT * INTO v FROM version WHERE version_name = p_version_name;
