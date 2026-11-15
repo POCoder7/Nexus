@@ -28,6 +28,7 @@ Capabilities: [docs/capabilities.md](docs/capabilities.md)
 |---|---|
 | [CLAUDE.md](CLAUDE.md) | Non-negotiable working rules for AI agents and humans |
 | [docs/capabilities.md](docs/capabilities.md) | What must be built: 91 capabilities with IDs, decisions and acceptance criteria |
+| [docs/DRM_COMPARISON.md](docs/DRM_COMPARISON.md) | Review of Nexus against Oracle DRM: coverage, architecture, highlights, gaps and recommendations (2026-11-14) |
 | [docs/DESIGN_PROTOCOL.md](docs/DESIGN_PROTOCOL.md) | How the low-level design per phase is produced (do this first) |
 | [docs/BUILD_PROTOCOL.md](docs/BUILD_PROTOCOL.md) | The phase-by-phase build loop: plan, build, test, document, approve |
 | [docs/BUILD_STATE.md](docs/BUILD_STATE.md) | Where the build currently stands |
