@@ -58,3 +58,6 @@ Thumbs.db
 
 # Personal Claude Code overrides
 .claude/settings.local.json
+
+# Local demo (scripts/demo.sh): logs and process ids
+.demo/

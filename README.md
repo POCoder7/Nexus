@@ -17,7 +17,11 @@ for beneficial-ownership analysis, and AI assistance under human approval.
    adapter; the `local` profile reads the user from `mdm.api.local-user` or the `X-Nexus-User` header. The login must
    be a synthetic user in `mdm.app_user` with a role grant in `mdm.user_role` (see
    [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md#3-verify)).
-   If your local database predates Phase 1, recreate it once: `docker compose down -v` (V1, V5 and V6 were edited).
+   If the API refuses to start with a Flyway checksum error after a pull, an applied migration was edited (allowed until
+   the first shared environment): recreate the local database with `docker compose down -v`
+   ([details](docs/DEVELOPER_SETUP.md#which-databases-are-built-from-scratch)).
+5. Try the whole app with synthetic data: `scripts\demo.ps1` or `scripts/demo.sh` builds a fresh demo database, starts
+   the API and the UI, and prints the users to sign in as; `scripts\demo-stop.ps1` or `scripts/demo-stop.sh` stops it.
 
 Full setup: [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md) · Working rules: [CLAUDE.md](CLAUDE.md) ·
 Contributing: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) · Data model: [docs/data-model.md](docs/data-model.md) ·

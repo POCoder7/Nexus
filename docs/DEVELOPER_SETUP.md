@@ -7,7 +7,7 @@ Goal: fresh laptop to green tests in under a day.
 |---|---|---|
 | Git | any recent | Configure `user.name` / `user.email` |
 | JDK | 21 (Eclipse Temurin or your approved build) | `java -version` must show 21 |
-| Maven | 3.9+ (optional) | The Maven wrapper is committed: `services/mdm-api/mvnw` (`mvnw.cmd` on Windows) downloads and uses Maven 3.9.9. `scripts/check-setup` still checks for a local `mvn` |
+| Maven | not needed | The Maven wrapper is committed: `services/mdm-api/mvnw` (`mvnw.cmd` on Windows) downloads and uses Maven 3.9.9 |
 | Container runtime | Docker Desktop, Rancher Desktop or Podman | Check which is licensed/approved. Needed for the database and Testcontainers. **Windows 11 Home:** Docker Desktop needs WSL 2 — run `wsl --install --no-distribution` in an administrator PowerShell and reboot before starting Docker Desktop |
 | VS Code | latest | Accept the recommended extensions when prompted (`.vscode/extensions.json`) |
 | Node.js | 26 LTS (npm 11) | UI from Phase 3. Windows: `winget install OpenJS.NodeJS.LTS`. Versions in `ui/package.json` are pinned exactly (`ui/.npmrc` `save-exact`) |
@@ -28,15 +28,44 @@ Goal: fresh laptop to green tests in under a day.
 
 ## 3. Verify
 ```
-scripts\check-setup.ps1        # or scripts/check-setup.sh
+scripts\check-setup.ps1        # or scripts/check-setup.sh: Git, Java 21, Docker, Node.js 26 and npm
 scripts\db-test.ps1            # migrations + pgTAP on a fresh database (or bash scripts/db-test.sh, also in Git Bash)
 cd services\mdm-api
 .\mvnw.cmd -B verify           # or ./mvnw -B verify
 ```
 
-Run the API locally (Phase 1 onwards):
+### Which databases are built from scratch
+| Database | Built by | From scratch? |
+|---|---|---|
+| `nexus_test` | `scripts/db-test` | Yes, every run: migrations V1 onwards, then the pgTAP tests |
+| Testcontainers databases | `mvnw verify` | Yes, a new container every run |
+| `nexus_e2e` | `npx playwright test` (in `ui/`) | Yes, every run: the API migrates it, then the synthetic seed `ui/e2e/seed.sql` |
+| `nexus_demo` | `scripts/demo` (below) | Yes, unless you pass `-Keep` / `--keep` |
+| `nexus` | Flyway, when you start the API yourself | No: it keeps its data, and you add users by hand (below) |
+
+**After pulling changes, recreate the databases that are not built from scratch** (`nexus`, and `nexus_demo` if you
+kept it) whenever the pull edited a migration that was already applied. Until the first shared environment exists,
+applied migrations may still be edited (CLAUDE.md rule 6; Phase 5 edited V1, V3, V6, V9 and V11, for example). You can
+tell it happened: the API refuses to start with a Flyway `Validate failed: Migrations have failed validation` /
+`checksum mismatch` error. Recreate `nexus` with `docker compose down -v` (it removes the database volume, so every
+local database starts again; the test databases are rebuilt anyway), or run `scripts/demo` again for the demo.
+Once a shared environment exists, migrations are never edited again and existing databases upgrade in place.
+
+### Demo: the whole app with synthetic data, in one command
 ```
-docker compose down -v         # once, if your local database predates Phase 1 (V1, V5, V6 were edited)
+scripts\demo.ps1               # or bash scripts/demo.sh (also in Git Bash)
+scripts\demo-stop.ps1          # or bash scripts/demo-stop.sh
+```
+`demo` recreates the database `nexus_demo`, builds the API jar if it is missing (`-Build` / `--build` rebuilds it),
+starts the API on 8080 with the in-process workflow worker (which migrates the database), loads the synthetic seed
+`ui/e2e/seed.sql`, starts the UI on http://localhost:4200, and prints the synthetic users to sign in as with the
+development user picker. `-Keep` / `--keep` keeps the existing `nexus_demo` (Flyway applies new migrations) and skips the
+seed. Logs and process ids are in `.demo/` (git-ignored). `DEMO_DB`, `DEMO_API_PORT` and `DEMO_UI_PORT` override the
+database name and ports. Rebuild the jar with `--build` after pulling Java changes. The API runs with the docker-compose
+owner account, as below, so the demo does not prove privileges: the tests do.
+
+Run the API yourself instead (Phase 1 onwards):
+```
 docker compose up -d db
 cd services\mdm-api
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local" "-Dspring-boot.run.arguments=--mdm.api.local-user=dev_steward"
@@ -49,6 +78,12 @@ INSERT INTO mdm.user_role (user_id, role_code, granted_by, valid_period)
 SELECT s.user_id, 'STEWARD', a.user_id, daterange(current_date - 1, NULL)
 FROM mdm.app_user s, mdm.app_user a WHERE s.login = 'dev_steward' AND a.login = 'dev_admin';
 ```
+Or load the synthetic seed the demo and the end-to-end tests use (users, hierarchies, properties, workflow models),
+once, after the API has migrated an empty `nexus` database:
+```
+docker compose exec -T db psql -q -v ON_ERROR_STOP=1 -U nexus -d nexus -f /workspace/ui/e2e/seed.sql
+```
+(In Git Bash, put `MSYS_NO_PATHCONV=1` in front, or the `/workspace/...` path is rewritten.)
 Locally the API connects with the single docker-compose account; in tests it runs as the least-privilege login
 `nexus_api_test` (role `nexus_api`), which is how shared environments must run it (ADR-014).
 
@@ -86,8 +121,16 @@ Known issues:
 - **"Could not find a valid Docker environment" with Docker Engine 29 or later.** Testcontainers older than 1.21.4
   requests a Docker API version that Engine 29 rejects. `pom.xml` pins `testcontainers.version` to 1.21.4; keep the
   pin until the Spring Boot parent manages a compatible version.
-- **Git Bash on Windows** rewrites `/workspace/...` paths passed to `docker`; `scripts/db-test.sh` sets
-  `MSYS_NO_PATHCONV=1` for this.
+- **Git Bash on Windows** rewrites `/workspace/...` paths passed to `docker`; `scripts/db-test.sh` and `scripts/demo.sh`
+  set `MSYS_NO_PATHCONV=1` for this.
+- **Node.js in Git Bash on Windows.** The installer puts Node.js in `C:\Program Files\nodejs`, which Git Bash may not have
+  on its PATH. `scripts/check-setup.sh` and `scripts/demo.sh` add it; elsewhere run
+  `export PATH="/c/Program Files/nodejs:$PATH"` first.
+- **Storybook tests find no stories from Git Bash** (`No tests found` with a `c:/...` path) when the working directory's
+  drive letter is lower case. Run them from `cd "C:/Projects/Nexus/ui"` (upper-case drive), or from PowerShell.
+- **The API jar is locked while the demo runs.** On Windows, `mvnw verify` fails at its last step (`repackage`: "Unable to
+  rename … mdm-api-…jar") while the demo API runs from that jar. The tests have already run by then. Stop the demo
+  (`scripts/demo-stop`) to build the jar.
 
 ## 4. Claude Code (if approved by your organisation)
 Install the Claude Code extension, open this folder, and start with:
