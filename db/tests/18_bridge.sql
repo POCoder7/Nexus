@@ -86,9 +86,9 @@ SELECT throws_ok($$SELECT mdm.decide_change_request('00000000-0000-0000-0000-000
 RESET ROLE;
 
 -- Enrichment items (ADR-023) ----------------------------------------------------------------------------------------
-INSERT INTO wf.user_group (group_id, group_code, name) VALUES
+INSERT INTO mdm.user_group (group_id, group_code, name) VALUES
   ('00000000-0000-0000-0000-000000001781', 'G2_ENRICHERS', 'Enrichers'), ('00000000-0000-0000-0000-000000001782', 'G2_COMMITTERS', 'Committers');
-INSERT INTO wf.user_group_member (group_id, user_id) VALUES
+INSERT INTO mdm.user_group_member (group_id, user_id) VALUES
   ('00000000-0000-0000-0000-000000001781', '00000000-0000-0000-0000-000000001704'), ('00000000-0000-0000-0000-000000001782', '00000000-0000-0000-0000-000000001702');
 INSERT INTO wf.workflow_task (task_id, task_code, label, allowed_actions) VALUES
   ('00000000-0000-0000-0000-000000001791', 'G2_SUBMIT', 'Submit', '{set_property}'),

@@ -24,7 +24,7 @@ CREATE TYPE wf.policy_outcome AS ENUM ('auto_committed', 'routed_to_human',
                                        'shadow_would_commit', 'shadow_would_route');
 
 -- Group whose members approve commit policies (membership managed by Risk/Audit).
-INSERT INTO wf.user_group (group_code, name, description)
+INSERT INTO mdm.user_group (group_code, name, description)   -- a workflow-only group (no role, ADR-042)
 VALUES ('POLICY_APPROVERS', 'Commit policy approvers',
         'Approve straight-through commit policies. Typically Risk/Audit-nominated data owners.')
 ON CONFLICT (group_code) DO NOTHING;
@@ -45,7 +45,7 @@ CREATE TABLE wf.commit_policy (
   max_items_per_request    int NOT NULL DEFAULT 50  CHECK (max_items_per_request > 0),
   max_auto_commits_per_day int NOT NULL DEFAULT 500 CHECK (max_auto_commits_per_day > 0),
   kill_switch              boolean NOT NULL DEFAULT false,
-  owner_group_id           uuid NOT NULL REFERENCES wf.user_group,   -- may engage the kill switch
+  owner_group_id           uuid NOT NULL REFERENCES mdm.user_group,   -- may engage the kill switch
   proposed_by              uuid NOT NULL REFERENCES mdm.app_user,
   proposed_at              timestamptz NOT NULL DEFAULT now(),
   approved_by              uuid REFERENCES mdm.app_user,
@@ -60,7 +60,11 @@ CREATE TABLE wf.commit_policy (
                                        'add_ownership_edge', 'update_ownership_edge',
                                        'end_ownership_edge',
                                        'delete_node', 'update_node', 'add_hierarchy',
-                                       'set_property_derivation']::mdm.change_action[])),   -- formulas: Phase 5 §17.10
+                                       'set_property_derivation',                     -- formulas: Phase 5 §17.10
+                                       -- access changes always need a second ADMIN (ADR-042 D3)
+                                       'create_group', 'update_group', 'add_group_scope', 'end_group_scope',
+                                       'add_group_member', 'remove_group_member', 'grant_role', 'revoke_role'
+                                      ]::mdm.change_action[])),
   CHECK (cardinality(allowed_actions) > 0),
   CHECK (status <> 'approved' OR (approved_by IS NOT NULL AND approved_by <> proposed_by AND review_due IS NOT NULL))
 );
@@ -148,7 +152,7 @@ BEGIN
       IF NEW.approved_by = NEW.proposed_by THEN
         RAISE EXCEPTION 'Maker-checker violation: the proposer cannot approve their own policy' USING ERRCODE = 'N1001', HINT = 'maker_checker.self_decision';
       END IF;
-      IF NOT wf.is_member((SELECT group_id FROM wf.user_group WHERE group_code = 'POLICY_APPROVERS'),
+      IF NOT wf.is_member((SELECT group_id FROM mdm.user_group WHERE group_code = 'POLICY_APPROVERS'),
                           NEW.approved_by, mdm.business_today()) THEN
         RAISE EXCEPTION 'Approver is not in POLICY_APPROVERS' USING ERRCODE = 'N1020', HINT = 'policy.not_approver';
       END IF;
@@ -239,7 +243,7 @@ BEGIN
   WHERE p.policy_code = p_policy_code AND p.status = 'approved'
     -- D-15: membership on the business day, start date included (this check used to ignore valid_from)
     AND (wf.is_member(p.owner_group_id, p_actor, mdm.business_today())
-         OR wf.is_member((SELECT group_id FROM wf.user_group WHERE group_code = 'POLICY_APPROVERS'),
+         OR wf.is_member((SELECT group_id FROM mdm.user_group WHERE group_code = 'POLICY_APPROVERS'),
                          p_actor, mdm.business_today()));
   IF v_policy IS NULL THEN
     RAISE EXCEPTION 'No approved policy % that user % may stop', p_policy_code, p_actor USING ERRCODE = 'N1023', HINT = 'policy.kill_switch_not_allowed';

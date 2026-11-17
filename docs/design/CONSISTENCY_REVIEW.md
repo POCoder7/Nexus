@@ -63,7 +63,7 @@
 | `N2107` | core-mode decision on a `requires_workflow` hierarchy (V1, Phase 2) | `change_request.workflow_required` |
 | `N2201`, `N2202` | conflicting decision; conditional split not enabled (V4/V9, Phase 2) | `wf.conflicting_decision`, `wf.split_not_enabled` |
 | `N2225` | active policy before Audit-Risk sign-off (V6, Phase 2, OD-08) | `policy.activation_not_allowed` |
-| `N2230`–`N2236` | membership change not pending / nothing to end / already a member / back-dated; stage not approved; unknown group; model mismatch (V9, V4, Phase 2) | `wf.membership_not_pending`, `wf.membership_missing`, `wf.membership_exists`, `wf.membership_backdated`, `wf.stage_not_approved`, `wf.unknown_group`, `wf.model_mismatch` |
+| `N2230`–`N2236` | membership change not pending (retired in Phase 5) / nothing to end / already a member / back-dated (reused by the V14 access actions); stage not approved; unknown group; model mismatch (V9, V4, Phase 2) | `wf.membership_not_pending`, `wf.membership_missing`, `wf.membership_exists`, `wf.membership_backdated`, `wf.stage_not_approved`, `wf.unknown_group`, `wf.model_mismatch` |
 | `N1015` | decider not a member of the deciding group (V4) | `wf.not_group_member` |
 | `N1016` | user cannot act on the stage (V4) | `wf.cannot_act` |
 | `N1017` | actor kind does not match the user record (V4, V6) | `wf.actor_kind_mismatch` |
@@ -87,6 +87,8 @@
 | `N2216`–`N2224` | policy: only drafts deleted; must be submitted first; frozen while pending; overlapping scope; invalid status change; immutable once approved; scope frozen; not pending approval; completed review frozen (V6) | `policy.*` |
 | `N2604`–`N2609` | export: unsupported filter op; unknown filter property; unsupported column source; unknown or inactive profile; type not produced in SQL; unknown version (V3) | `export.*` |
 | `N1028`–`N1030` | not a version administrator; a version finalized by the person who submitted it; a version transition without an identified person (V11, Phase 3 third extension, built) | `version.not_admin`, `version.self_finalize`, `version.actor_not_human` |
+| `N1031`–`N1034` | workflow override refused (V15); role holder kind (V8); access change by a non-ADMIN; access change for oneself (V14) (Phase 5 ADR-042, built) | `wf.override_refused.*`, `roles.holder_kind`, `access.not_admin`, `access.self_grant` |
+| `N2237` | access request shape: mixed, in a sandbox, item with a hierarchy or node, governed by a workflow (V14, Phase 5, built) | `access.mixed_request`, `access.not_in_sandbox`, `access.item_shape`, `access.core_only` |
 | `N2701`–`N2706` | version: invalid status change; field frozen in this status; the request's version is not working; requests still in flight at submit; delete refused; a new version not starting as working (V11, built) | `version.status_transition`, `version.frozen`, `version.not_working`, `version.requests_open`, `version.no_delete`, `version.must_start_working` |
 Codes are kept in `docs/data-model.md` when each phase is built (BUILD_PROTOCOL step 6).
 
@@ -94,19 +96,17 @@ Codes are kept in `docs/data-model.md` when each phase is built (BUILD_PROTOCOL 
 | Role | Phase | Permissions |
 |---|---|---|
 | `VIEWER` | 1 | READ |
-| `STEWARD` | 1 | READ, PROPOSE |
+| `EDITOR` (was `STEWARD`, ADR-042) | 1 | READ, PROPOSE |
 | `APPROVER` | 1 | READ, DECIDE (core mode); eligible for workflow groups |
-| `WORKFLOW_ADMIN` | 1 (used 2) | READ, ADMIN_WORKFLOW (models, governed membership) |
-| `POLICY_ADMIN` | 1 (used 2) | READ, ADMIN_POLICY (propose policies) |
-| `SYSTEM_ADMIN` | 1 | READ, ADMIN_SYSTEM (grants, identity links: always maker-checked) |
-| `VERSION_ADMIN` | 3 (third extension, ADR-037, built) | READ, ADMIN_VERSION (create, copy, rename, submit, reopen, expire; finalize only a version someone else submitted) |
+| `ADMIN` (ADR-042 C-1, Phase 5, built) | 5 | every permission but READ_PUBLISHED: READ, PROPOSE, DECIDE, ADMIN_WORKFLOW, ADMIN_POLICY, ADMIN_SYSTEM, ADMIN_VERSION, OVERRIDE_WORKFLOW, PUBLISH. Replaces `WORKFLOW_ADMIN`, `POLICY_ADMIN`, `SYSTEM_ADMIN` (Phase 1) and `VERSION_ADMIN` (Phase 3). Two-person rules still need two different ADMINs; access changes are proposed by one ADMIN and decided by another |
+| `CONSUMER` (ADR-042 D5, Phase 5, built) | 5 | READ_PUBLISHED only (guards no endpoint until Phase 8); held only by service accounts |
 | `OWNERSHIP_ANALYST` | 6 | READ_OWNERSHIP, PROPOSE_OWNERSHIP, upload evidence |
 | `COMPLIANCE_OFFICER` | 6 | READ_OWNERSHIP, DECIDE_OWNERSHIP, thresholds, determinations |
 | `EXPORT_ADMIN` | 8 | ADMIN_EXPORT (profile versions; maker-checked) |
 | `EXPORT_RUNNER` | 8 | RUN_EXPORT |
 | `RECON_REVIEWER` | 8 | REVIEW_RECON (acceptance by a second reviewer) |
 | `INTEGRATION_READER` | 8 | READ_EVENTS, READ (scoped) — for integration identities only |
-Workflow groups (`wf.user_group`, including `POLICY_APPROVERS`) are a separate, governed membership model (CR-10).
+Groups (`mdm.user_group`, including `POLICY_APPROVERS`; in `wf` until ADR-042) carry an optional role and scopes (ADR-042 D2) and serve as workflow groups too; their membership is governed by change requests (V14). The later-phase roles below are to be reconciled with the five roles of ADR-042 when their phases are designed.
 
 ## 5. Verified consistent (no change needed)
 - **Layer rule:** no design adds an `mdm` → `wf` reference; `mdm.change_item_clearance` and enrichment items are written only by `wf_bridge`; `wf` audits itself in `wf.config_audit`; `mdm_stage` is written only by `nexus_loader`.

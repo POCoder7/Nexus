@@ -129,6 +129,8 @@ export type { DecideStage$Params as DecideStage$Params } from './fn/workflow-con
 export { decideStage as decideStage } from './fn/workflow-controller/decide-stage';
 export type { AddEnrichmentItem$Params as AddEnrichmentItem$Params } from './fn/workflow-controller/add-enrichment-item';
 export { addEnrichmentItem as addEnrichmentItem } from './fn/workflow-controller/add-enrichment-item';
+export type { OverrideStage$Params as OverrideStage$Params } from './fn/workflow-controller/override-stage';
+export { overrideStage as overrideStage } from './fn/workflow-controller/override-stage';
 export type { GetSubmitForm$Params as GetSubmitForm$Params } from './fn/submit-form-controller/get-submit-form';
 export { getSubmitForm as getSubmitForm } from './fn/submit-form-controller/get-submit-form';
 export type { GetWorklist$Params as GetWorklist$Params } from './fn/worklist-controller/get-worklist';

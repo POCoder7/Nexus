@@ -23,11 +23,11 @@ INSERT INTO wf.workflow_instance (instance_id, change_request_id, model_id, stat
 VALUES ('00000000-0000-0000-0000-0000000001d1', '00000000-0000-0000-0000-0000000001f1',
         '00000000-0000-0000-0000-0000000001c1', 'in_flight', 1, '00000000-0000-0000-0000-0000000001a1', now());
 
-INSERT INTO wf.user_group (group_id, group_code, name)
+INSERT INTO mdm.user_group (group_id, group_code, name)
 VALUES ('00000000-0000-0000-0000-0000000001e1', 'W_OWNERS', 'Test owners');
 
-INSERT INTO wf.user_group_member (group_id, user_id)
-SELECT group_id, '00000000-0000-0000-0000-0000000001a2' FROM wf.user_group WHERE group_code = 'POLICY_APPROVERS';
+INSERT INTO mdm.user_group_member (group_id, user_id)
+SELECT group_id, '00000000-0000-0000-0000-0000000001a2' FROM mdm.user_group WHERE group_code = 'POLICY_APPROVERS';
 
 -- ---------------------------------------------------------------- history guard
 SELECT throws_like(

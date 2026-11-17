@@ -1,15 +1,16 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { NexusApi, newIdempotencyKey } from '../api/nexus-api';
-import type { ChangeRequestView, InstanceView, ItemView } from '../api/generated/models';
+import type { ChangeRequestView, InstanceView, ItemView, StageView } from '../api/generated/models';
 import { Announcer } from '../core/announcer';
 import { ContextStore } from '../core/context.store';
 import { STRINGS } from '../core/strings';
 import { UiError } from '../core/ui-error';
-import { DsBadgeComponent, DsToast, DsTone } from '../shared/ds';
+import { DsBadgeComponent, DsDialog, DsToast, DsTone } from '../shared/ds';
 import { CopyIdComponent } from '../shared/format/copy-id.component';
 import { NxDatePipe } from '../shared/format/nx-date.pipe';
 import { DecisionIntent, DecisionPanelComponent } from './decision-panel.component';
 import { ItemListComponent } from './item-list.component';
+import { OverrideDialogComponent, OverrideDialogData, OverrideResult } from './override-dialog.component';
 import { WorkflowTimelineComponent } from './workflow-timeline.component';
 
 /**
@@ -31,6 +32,7 @@ export class RequestPage implements OnDestroy {
   private readonly context = inject(ContextStore);
   private readonly toast = inject(DsToast);
   private readonly announcer = inject(Announcer);
+  private readonly dialog = inject(DsDialog);
   protected readonly t = STRINGS.request;
   protected readonly statuses = STRINGS.statuses;
   protected readonly common = STRINGS.common;
@@ -94,6 +96,22 @@ export class RequestPage implements OnDestroy {
     } catch (e) {
       this.error.set(UiError.from(e));
     }
+  }
+
+  /** ADR-042 D4: the override dialog; on a decision, refresh and follow the engine as for any decision. */
+  protected openOverride(stage: StageView): void {
+    const stageId = stage.instanceStageId ?? '';
+    const ref = this.dialog.open<OverrideResult, OverrideDialogData, OverrideDialogComponent>(
+      OverrideDialogComponent, { stageId, stageLabel: stage.label ?? '' }, 'nx-override-title');
+    ref.closed.subscribe(async (result) => {
+      if (!result) {
+        return;
+      }
+      this.toast.confirm(STRINGS.decision.overrideDone);
+      this.announcer.polite(STRINGS.decision.overrideDone);
+      await this.load(this.id());
+      this.followEngine(stageId, 15);
+    });
   }
 
   protected async decide(intent: DecisionIntent): Promise<void> {

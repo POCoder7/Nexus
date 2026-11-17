@@ -53,7 +53,7 @@ class WorkflowSubmitApiTest extends PostgresIntegrationTest {
                     SELECT hierarchy_id, :t, :l, daterange('2020-01-01', NULL) FROM mdm.hierarchy WHERE hierarchy_code IN ('WS_H', 'WS_GOV')
                     """).param("t", TOP).param("l", LEAF).update();
             UUID admin = ensureUser("ws_admin", "human");
-            jdbc.sql("INSERT INTO wf.user_group (group_code, name) VALUES ('WS_APPROVERS', 'Approvers') ON CONFLICT DO NOTHING").update();
+            jdbc.sql("INSERT INTO mdm.user_group (group_code, name) VALUES ('WS_APPROVERS', 'Approvers') ON CONFLICT DO NOTHING").update();
             jdbc.sql("INSERT INTO wf.workflow_task (task_code, label, allowed_actions) VALUES ('WS_TASK', 'Task', '{update_node}')").update();
             jdbc.sql("INSERT INTO wf.workflow_model (model_id, model_code, label) VALUES (:m, 'WS_MODEL', 'Approve then commit')")
                     .param("m", MODEL).update();
@@ -66,14 +66,14 @@ class WorkflowSubmitApiTest extends PostgresIntegrationTest {
             jdbc.sql("INSERT INTO wf.submit_task SELECT :m, task_id FROM wf.workflow_task WHERE task_code = 'WS_TASK'").param("m", MODEL).update();
             jdbc.sql("""
                     INSERT INTO wf.stage_group (stage_id, group_id)
-                    SELECT s.stage_id, g.group_id FROM wf.workflow_stage s, wf.user_group g
+                    SELECT s.stage_id, g.group_id FROM wf.workflow_stage s, mdm.user_group g
                     WHERE s.model_id = :m AND s.seq > 1 AND g.group_code = 'WS_APPROVERS'
                     """).param("m", MODEL).update();
             jdbc.sql("UPDATE wf.workflow_model SET status = 'active', activated_by = :a WHERE model_id = :m")
                     .param("a", admin).param("m", MODEL).update();
         }
-        grant(STEWARD, "STEWARD", "WS_H", null);
-        grant(STEWARD, "STEWARD", "WS_GOV", null);
+        grant(STEWARD, "EDITOR", "WS_H", null);
+        grant(STEWARD, "EDITOR", "WS_GOV", null);
     }
 
     @Test

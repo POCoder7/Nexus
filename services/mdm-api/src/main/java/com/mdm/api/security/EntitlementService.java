@@ -12,7 +12,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Answers "may this actor do this here?" from the actor's current grants in {@code mdm.user_role} (ADR-022).
+ * Answers "may this actor do this here?" from the actor's current effective grants (ADR-022, ADR-042 D2): direct grants
+ * in {@code mdm.user_role} plus the role and scopes of each group they belong to, read through {@code mdm.effective_grants}.
  * <ul>
  *   <li>A grant covers all hierarchies, one hierarchy, or one sub-tree of a hierarchy.</li>
  *   <li>Phase 1 reads are checked per hierarchy; sub-tree read filtering comes with SEC-02 in full (Phase 5).</li>
@@ -38,23 +39,35 @@ public class EntitlementService {
     }
 
     public List<Grant> grants(Actor actor, LocalDate on) {
+        // mdm.effective_grants: direct grants plus group role × group scope, current recorded belief (ADR-042 D2)
         return jdbc.sql("""
-                SELECT ur.role_code, ur.hierarchy_id, h.hierarchy_code, ur.top_node_id, ur.category_codes,
-                       lower(ur.valid_period) AS valid_from, upper(ur.valid_period) AS valid_to
-                FROM mdm.user_role ur
-                LEFT JOIN mdm.hierarchy h ON h.hierarchy_id = ur.hierarchy_id
-                WHERE ur.user_id = :user
-                  AND upper_inf(ur.recorded_period)
-                  AND ur.valid_period @> CAST(:on AS date)
-                ORDER BY ur.role_code, h.hierarchy_code NULLS FIRST
+                SELECT eg.role_code, eg.hierarchy_id, h.hierarchy_code, eg.top_node_id, eg.category_codes,
+                       lower(eg.valid_period) AS valid_from, upper(eg.valid_period) AS valid_to, g.group_code
+                FROM mdm.effective_grants(:user, CAST(:on AS date)) eg
+                LEFT JOIN mdm.hierarchy h ON h.hierarchy_id = eg.hierarchy_id
+                LEFT JOIN mdm.user_group g ON g.group_id = eg.source_group_id
+                ORDER BY eg.role_code, h.hierarchy_code NULLS FIRST, g.group_code NULLS FIRST
                 """)
                 .param("user", actor.userId())
                 .param("on", on)
                 .query((rs, i) -> new Grant(rs.getString("role_code"), rs.getObject("hierarchy_id", UUID.class),
                         rs.getString("hierarchy_code"), rs.getObject("top_node_id", UUID.class),
                         rs.getObject("valid_from", LocalDate.class), rs.getObject("valid_to", LocalDate.class),
-                        categories(rs.getArray("category_codes"))))
+                        categories(rs.getArray("category_codes")), rs.getString("group_code")))
                 .list();
+    }
+
+    /** Codes of the active groups the actor belongs to today, with or without a role (e.g. POLICY_APPROVERS). */
+    public List<String> groups(Actor actor) {
+        return jdbc.sql("""
+                SELECT g.group_code
+                FROM mdm.user_group_member m JOIN mdm.user_group g ON g.group_id = m.group_id AND g.is_active
+                WHERE m.user_id = :user AND upper_inf(m.recorded_period) AND m.valid_period @> CAST(:on AS date)
+                ORDER BY g.group_code
+                """)
+                .param("user", actor.userId())
+                .param("on", clock.today())
+                .query(String.class).list();
     }
 
     /** Hierarchies the actor may read; empty Optional means every hierarchy. */
@@ -164,6 +177,9 @@ public class EntitlementService {
             case ADMIN_POLICY -> "policy administration";
             case ADMIN_SYSTEM -> "system administration";
             case ADMIN_VERSION -> "version administration";
+            case OVERRIDE_WORKFLOW -> "workflow override";
+            case PUBLISH -> "publish";
+            case READ_PUBLISHED -> "read published output";
         };
     }
 }

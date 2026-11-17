@@ -17,6 +17,9 @@ public interface WorkflowGateway {
     /** Records a person's decision on a stage; returns the stage outcome (pending, approved or rejected). */
     String recordDecision(UUID instanceStageId, Actor actor, String decision, String comment);
 
+    /** An ADMIN's decision in place of the stage's groups, with a reason (ADR-042 D4); returns the stage outcome. */
+    String overrideStage(UUID instanceStageId, Actor actor, String decision, String reason);
+
     void claim(UUID instanceStageId, Actor actor);
 
     void unclaim(UUID instanceStageId, Actor actor);

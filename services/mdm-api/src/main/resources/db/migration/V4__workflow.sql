@@ -39,43 +39,20 @@ CREATE TYPE wf.stage_status    AS ENUM ('pending', 'active', 'claimed', 'complet
 CREATE TYPE wf.wf_action       AS ENUM (
   'submit', 'claim', 'unclaim', 'reassign', 'enrich', 'approve', 'reject', 'push_back',
   'commit', 'withdraw', 'comment', 'escalate', 'split', 'condition_evaluated',
-  'sla_breached', 'ai_suggestion'
+  'sla_breached', 'ai_suggestion',
+  'override'          -- an ADMIN decided a stage in place of its groups, with a reason (ADR-042 D4, V15)
 );
 
 -- =============================================================================
 -- CONFIGURATION
 -- =============================================================================
-CREATE TABLE wf.user_group (
-  group_id    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_code  text NOT NULL UNIQUE,
-  name        text NOT NULL,
-  description text,
-  is_active   boolean NOT NULL DEFAULT true
-);
+-- Groups and their members are mdm.user_group and mdm.user_group_member (V1; ADR-042 D2): one group concept for access
+-- and workflow. The workflow layer reads them and never writes them (CLAUDE.md rule 3); stages and policies name them.
 
--- Group membership decides who may approve requests and policies, so its history must be reconstructable (D-33):
--- bitemporal like the core facts, by business date (ADR-018). Rows are never updated or deleted; a membership ends by
--- closing its recorded_period and re-stating the period it was true. Changes go through governed membership changes
--- (V9, CR-10); only the owner writes directly (bootstrap, tests).
-CREATE TABLE wf.user_group_member (
-  group_id        uuid NOT NULL REFERENCES wf.user_group,
-  user_id         uuid NOT NULL REFERENCES mdm.app_user,
-  valid_period    daterange NOT NULL DEFAULT daterange(mdm.business_today(), NULL),
-  recorded_period tstzrange NOT NULL DEFAULT tstzrange(now(), NULL),
-  granted_by      uuid REFERENCES mdm.app_user,
-  change_id       uuid,                                 -- the governed change that wrote the row (V9); NULL for bootstrap rows
-  EXCLUDE USING gist (group_id WITH =, user_id WITH =, valid_period WITH &&) WHERE (upper_inf(recorded_period))
-);
-CREATE INDEX ON wf.user_group_member (user_id) WHERE upper_inf(recorded_period);
-CREATE TRIGGER user_group_member_guard BEFORE UPDATE OR DELETE ON wf.user_group_member
-  FOR EACH ROW EXECUTE FUNCTION mdm.trg_bitemporal_guard();   -- raises only; writes nothing in mdm
-
--- The one membership test (D-15): every check of who belongs to a group uses it, on the business day it concerns.
+-- Kept so the workflow functions keep their calls: the membership test is mdm.is_member (D-15).
 CREATE FUNCTION wf.is_member(p_group uuid, p_user uuid, p_on date)
 RETURNS boolean LANGUAGE sql STABLE SET search_path = wf, mdm, public AS $$
-  SELECT EXISTS (SELECT 1 FROM wf.user_group_member m
-                 WHERE m.group_id = p_group AND m.user_id = p_user
-                   AND m.valid_period @> p_on AND upper_inf(m.recorded_period))
+  SELECT mdm.is_member(p_group, p_user, p_on)
 $$;
 
 -- What a participant may do in a stage: allowed actions and editable properties.
@@ -169,7 +146,7 @@ CREATE TABLE wf.submit_task (
 
 CREATE TABLE wf.stage_group (
   stage_id uuid NOT NULL REFERENCES wf.workflow_stage ON DELETE CASCADE,
-  group_id uuid NOT NULL REFERENCES wf.user_group,
+  group_id uuid NOT NULL REFERENCES mdm.user_group,
   seq      int  NOT NULL DEFAULT 1,           -- order for sequential_groups
   PRIMARY KEY (stage_id, group_id)
 );
@@ -311,7 +288,7 @@ CREATE TABLE wf.instance_stage (
 -- 'approve' means "enrichment complete".
 CREATE TABLE wf.stage_group_decision (
   instance_stage_id uuid NOT NULL REFERENCES wf.instance_stage,
-  group_id          uuid NOT NULL REFERENCES wf.user_group,
+  group_id          uuid NOT NULL REFERENCES mdm.user_group,
   decided_by        uuid NOT NULL REFERENCES mdm.app_user,
   decision          text NOT NULL CHECK (decision IN ('approve', 'reject', 'push_back')),
   comment           text,

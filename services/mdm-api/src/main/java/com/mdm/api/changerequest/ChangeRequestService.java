@@ -125,6 +125,9 @@ public class ChangeRequestService {
         }
         List<ItemView> earlier = repository.allItems(cr.id());
         ItemFactory.NewItem item = items.build(cr, cmd, earlier);
+        if (AccessItems.isAccess(item.action())) {
+            entitlements.require(actor, Permission.ADMIN_SYSTEM, null, null);   // ADR-042 D3; the database re-checks (N1033)
+        }
         for (ItemFactory.Scope s : item.scopes()) {
             entitlements.require(actor, Permission.PROPOSE, s.hierarchyId(), existingAncestor(s.nodeId(), earlier), s.categoryCode(), s.propertyEdit());
         }
@@ -215,19 +218,28 @@ public class ChangeRequestService {
             throw ItemValidationException.field("decision", "must be approve or reject");
         }
         ChangeRequestView cr = lockVisible(actor, id);
-        for (UUID[] scope : repository.itemScopes(id)) {
-            entitlements.require(actor, Permission.DECIDE, scope[0], scope[1]);
-        }
+        requireDecider(actor, id);
         ETags.check(expected, cr.rowVersion());
         repository.decide(id, actor.userId(), body.decision(), body.note());
         return repository.find(id).orElseThrow();
     }
 
+    /**
+     * DECIDE on every item's scope; for a request of access changes, ADMIN as well (ADR-042 D3: an APPROVER for every
+     * hierarchy does not decide who may do what). The database re-checks both (N1033, maker-checker).
+     */
+    private void requireDecider(Actor actor, UUID id) {
+        if (repository.hasAccessItems(id)) {
+            entitlements.require(actor, Permission.ADMIN_SYSTEM, null, null);
+        }
+        for (UUID[] scope : repository.itemScopes(id)) {
+            entitlements.require(actor, Permission.DECIDE, scope[0], scope[1]);
+        }
+    }
+
     private boolean mayDecide(Actor actor, UUID id) {
         try {
-            for (UUID[] scope : repository.itemScopes(id)) {
-                entitlements.require(actor, Permission.DECIDE, scope[0], scope[1]);
-            }
+            requireDecider(actor, id);
             return true;
         } catch (ForbiddenException e) {
             return false;
@@ -249,9 +261,7 @@ public class ChangeRequestService {
     public ValidationReport validate(Actor actor, UUID id) {
         ChangeRequestView cr = visible(actor, id);
         if (!actor.userId().equals(cr.requesterId())) {
-            for (UUID[] scope : repository.itemScopes(id)) {
-                entitlements.require(actor, Permission.DECIDE, scope[0], scope[1]);
-            }
+            requireDecider(actor, id);
         }
         return validation.run(id, cr.effectiveFrom());
     }
@@ -341,6 +351,9 @@ public class ChangeRequestService {
     private boolean canSee(Actor actor, ChangeRequestView cr) {
         if (actor.userId().equals(cr.requesterId())) {
             return true;
+        }
+        if (repository.hasAccessItems(cr.id())) {
+            return entitlements.hasAny(actor, Permission.ADMIN_SYSTEM);   // access changes: ADMINs only (ADR-042)
         }
         List<UUID> hierarchies = repository.itemHierarchies(cr.id());
         return !hierarchies.isEmpty() && hierarchies.stream().allMatch(h -> entitlements.canRead(actor, h));

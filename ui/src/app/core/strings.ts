@@ -9,6 +9,7 @@ export const STRINGS = {
     label: 'Main',
     home: 'Home',
     hierarchies: 'Hierarchies',
+    browse: 'All hierarchies',
     worklist: 'Worklist',
     versions: 'Versions',
     sandboxes: 'Sandboxes',
@@ -215,6 +216,17 @@ export const STRINGS = {
     openWorklist: 'Open worklist',
     browse: 'Browse hierarchies',
     noResults: 'No matches.',
+  },
+  browse: {
+    title: 'All hierarchies',
+    treeLabel: 'All hierarchies in the version',
+    rootLabel: (version: string, status: string | null, date: string) =>
+      `${version}${status ? ` (${status})` : ''} · as of ${date}`,
+    noVersion: 'Live data',
+    hierarchyRow: (name: string, code: string) => `${name} (${code})`,
+    pickNode: 'Select a node to see its details.',
+    openIn: (hierarchy: string) => `Open in ${hierarchy}`,
+    readOnlyNote: 'Read-only here. Open the node in its hierarchy to change it.',
   },
   hierarchy: {
     treeLabel: (name: string) => `Nodes of ${name}`,
@@ -430,10 +442,19 @@ export const STRINGS = {
     committedByPolicy: (policy: string) => `Committed by policy ${policy}`,
     coreMode: 'This request is not governed by a workflow.',
   },
+  override: {
+    title: (stage: string) => `Override ${stage}`,
+    warning: 'This decides the stage in place of its approvers, passing over their groups, claims and order. It is logged on the request with your name and reason. Separation of duties still applies.',
+    reason: 'Reason (required, at least 10 characters)',
+    reasonRequired: 'Say why the stage is overridden, in at least 10 characters.',
+    approve: 'Approve by override',
+    reject: 'Reject by override',
+  },
   timeline: {
     label: 'Workflow stages',
     stage: (seq: number, label: string) => `${seq}. ${label}`,
     decidedBy: 'decided by',
+    overriddenBy: (who: string, decision: string) => `Overridden by ${who} (${decision})`,
     evaluations: 'Policy evaluations',
     evaluation: (policy: string, outcome: string) => `${policy}: ${outcome}`,
     outcomes: {
@@ -462,6 +483,9 @@ export const STRINGS = {
     unavailable: 'You cannot act on this stage.',
     decided: 'Decision recorded',
     nothingOpen: 'No stage is waiting for a decision.',
+    override: 'Override…',
+    overrideHint: 'As an ADMIN you can decide this stage in place of its approvers.',
+    overrideDone: 'Stage overridden',
   },
   statuses: {
     draft: 'Draft',

@@ -43,7 +43,7 @@ class WorklistApiTest extends PostgresIntegrationTest {
     @BeforeEach
     void seed() throws Exception {
         JdbcClient jdbc = ownerJdbc();
-        grant(STEWARD, "STEWARD", null, null);
+        grant(STEWARD, "EDITOR", null, null);
         grant(A1, "APPROVER", null, null);
         grant(A2, "APPROVER", null, null);
         if (jdbc.sql("SELECT count(*) FROM mdm.hierarchy WHERE hierarchy_code = 'WL_H'").query(Integer.class).single() == 0) {
@@ -56,9 +56,9 @@ class WorklistApiTest extends PostgresIntegrationTest {
                     INSERT INTO mdm.hierarchy_relationship (hierarchy_id, parent_node_id, child_node_id, valid_period)
                     SELECT hierarchy_id, :t, :l, daterange('2020-01-01', NULL) FROM mdm.hierarchy WHERE hierarchy_code = 'WL_H'
                     """).param("t", TOP).param("l", LEAF).update();
-            jdbc.sql("INSERT INTO wf.user_group (group_code, name) VALUES ('WL_APPROVERS', 'Approvers'), ('WL_COMMITTERS', 'Committers')").update();
+            jdbc.sql("INSERT INTO mdm.user_group (group_code, name) VALUES ('WL_APPROVERS', 'Approvers'), ('WL_COMMITTERS', 'Committers')").update();
             for (String[] m : new String[][] {{"WL_APPROVERS", A1}, {"WL_APPROVERS", A2}, {"WL_COMMITTERS", A2}}) {
-                jdbc.sql("INSERT INTO wf.user_group_member (group_id, user_id) SELECT group_id, :u FROM wf.user_group WHERE group_code = :g")
+                jdbc.sql("INSERT INTO mdm.user_group_member (group_id, user_id) SELECT group_id, :u FROM mdm.user_group WHERE group_code = :g")
                         .param("u", ensureUser(m[1], "human")).param("g", m[0]).update();
             }
             jdbc.sql("INSERT INTO wf.workflow_task (task_code, label, allowed_actions) VALUES ('WL_SUBMIT', 'Submit', '{update_node}'), ('WL_APPROVE', 'Approve', '{}')").update();
@@ -75,7 +75,7 @@ class WorklistApiTest extends PostgresIntegrationTest {
                         """).param("m", model).param("seq", s + 1).param("type", types[s]).param("label", "WL stage " + (s + 1))
                         .query(UUID.class).single();
                 if (groups[s] != null) {
-                    jdbc.sql("INSERT INTO wf.stage_group (stage_id, group_id) SELECT :s, group_id FROM wf.user_group WHERE group_code = :g")
+                    jdbc.sql("INSERT INTO wf.stage_group (stage_id, group_id) SELECT :s, group_id FROM mdm.user_group WHERE group_code = :g")
                             .param("s", stage).param("g", groups[s]).update();
                 }
             }

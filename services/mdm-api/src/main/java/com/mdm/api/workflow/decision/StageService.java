@@ -70,6 +70,24 @@ public class StageService {
         }
     }
 
+    /**
+     * Workflow override (ADR-042 D4; Phase 5 LLD §19.5): an ADMIN decides an open stage in place of its groups, with a
+     * reason. The pre-check is the role; {@code wf.override_stage} decides the rest (N1031 with the reason for each case).
+     */
+    public String override(Actor actor, UUID stageId, String decision, String reason) {
+        if (!"approve".equals(decision) && !"reject".equals(decision)) {
+            throw ItemValidationException.field("decision", "must be approve or reject");
+        }
+        if (reason == null || reason.strip().length() < 10) {
+            throw ItemValidationException.field("reason", "is required: at least 10 characters saying why the stage is overridden");
+        }
+        visibleStage(actor, stageId);
+        if (!entitlements.hasAny(actor, Permission.OVERRIDE_WORKFLOW)) {
+            throw new ForbiddenException("entitlement.missing", "Only an ADMIN can override a workflow stage.");
+        }
+        return workflow.overrideStage(stageId, actor, decision, reason);
+    }
+
     public void claim(Actor actor, UUID stageId) {
         StageRef stage = visibleStage(actor, stageId);
         preCheck(actor, stage);

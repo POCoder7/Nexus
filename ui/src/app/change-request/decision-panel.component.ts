@@ -30,6 +30,8 @@ export class DecisionPanelComponent {
   readonly busy = input(false);
   readonly error = input<UiError | null>(null);
   readonly decide = output<DecisionIntent>();
+  /** ADR-042 D4: the ADMIN chose to override the open stage (offered only when the server says `youCanOverride`). */
+  readonly override = output<StageView>();
 
   protected readonly t = STRINGS.decision;
   protected readonly comment = signal('');

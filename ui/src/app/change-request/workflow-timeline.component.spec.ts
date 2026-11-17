@@ -21,4 +21,17 @@ describe('WorkflowTimelineComponent', () => {
     expect(el.querySelector('[data-testid=policy-evaluations]')!.textContent).toContain('SYN_SHADOW: would commit (shadow mode, no effect)');
     expect(el.querySelector('[aria-live=polite]')).not.toBeNull();
   });
+
+  it('marks an overridden decision with who did it and the reason (ADR-042 D4)', async () => {
+    const fixture = TestBed.createComponent(WorkflowTimelineComponent);
+    fixture.componentRef.setInput('names', { u1: 'Synthetic Admin' });
+    fixture.componentRef.setInput('stages', [
+      { seq: 2, label: 'Approve', status: 'completed', type: 'approve', decisions: [
+        { groupCode: 'SYN_APPROVERS', decidedBy: 'u1', decision: 'approve', comment: 'Approvers away this week', override: true }] },
+    ]);
+    await fixture.whenStable();
+    const row = (fixture.nativeElement as HTMLElement).querySelector('[data-override=true]')!;
+    expect(row.textContent!.replace(/\s+/g, ' ')).toContain('Overridden by Synthetic Admin (approve)');
+    expect(row.textContent).toContain('Approvers away this week');
+  });
 });

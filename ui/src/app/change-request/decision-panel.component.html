@@ -15,6 +15,12 @@
   } @else {
     <p data-testid="decision-reason"><span aria-hidden="true">ℹ </span>{{ reason() ?? t.unavailable }}</p>
   }
+  @if (stage()?.youCanOverride) {
+    <div class="override" data-testid="override-offer">
+      <p class="nx-muted">{{ t.overrideHint }}</p>
+      <ds-button [disabled]="busy()" (pressed)="override.emit(stage()!)" data-testid="override-open">{{ t.override }}</ds-button>
+    </div>
+  }
   @if (error(); as e) {
     <p class="nx-error-text" role="alert" data-testid="decision-error">{{ e.detail }}</p>
   }

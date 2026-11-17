@@ -54,8 +54,8 @@ public abstract class WorkflowEngineContract extends PostgresIntegrationTest {
     void seedAndSkipOldEvents() {
         JdbcClient jdbc = ownerJdbc();
         ensureUser("nexus_system", "system_feed");
-        grant(STEWARD, "STEWARD", null, null);
-        grant(ENRICHER, "STEWARD", null, null);
+        grant(STEWARD, "EDITOR", null, null);
+        grant(ENRICHER, "EDITOR", null, null);
         grant(APPROVER, "APPROVER", null, null);
         grant(COMMITTER, "APPROVER", null, null);
         if (jdbc.sql("SELECT count(*) FROM mdm.hierarchy WHERE hierarchy_code = 'CT_H'").query(Integer.class).single() == 0) {
@@ -70,11 +70,11 @@ public abstract class WorkflowEngineContract extends PostgresIntegrationTest {
                     """).param("t", TOP).param("l", LEAF).update();
             jdbc.sql("INSERT INTO mdm.property_definition (property_code, label, data_type, scope) VALUES ('CT.Note', 'Note', 'string', 'global')").update();
             jdbc.sql("""
-                    INSERT INTO wf.user_group (group_code, name)
+                    INSERT INTO mdm.user_group (group_code, name)
                     VALUES ('CT_APPROVERS', 'Approvers'), ('CT_COMMITTERS', 'Committers'), ('CT_ENRICHERS', 'Enrichers')
                     """).update();
             for (String[] m : new String[][] {{"CT_APPROVERS", APPROVER}, {"CT_COMMITTERS", COMMITTER}, {"CT_ENRICHERS", ENRICHER}}) {
-                jdbc.sql("INSERT INTO wf.user_group_member (group_id, user_id) SELECT group_id, :u FROM wf.user_group WHERE group_code = :g")
+                jdbc.sql("INSERT INTO mdm.user_group_member (group_id, user_id) SELECT group_id, :u FROM mdm.user_group WHERE group_code = :g")
                         .param("u", ensureUser(m[1], "human")).param("g", m[0]).update();
             }
             jdbc.sql("""
@@ -91,13 +91,13 @@ public abstract class WorkflowEngineContract extends PostgresIntegrationTest {
             // a shadow policy covers CT_ADD: evaluated on every request, never commits on its own
             UUID policy = jdbc.sql("""
                     INSERT INTO wf.commit_policy (policy_code, description, rationale, mode, allowed_actions, owner_group_id, proposed_by)
-                    SELECT 'CT_SHADOW', 'Adds', 'Contract test', 'shadow', '{add_node}', group_id, :s FROM wf.user_group WHERE group_code = 'CT_COMMITTERS'
+                    SELECT 'CT_SHADOW', 'Adds', 'Contract test', 'shadow', '{add_node}', group_id, :s FROM mdm.user_group WHERE group_code = 'CT_COMMITTERS'
                     RETURNING policy_id
                     """).param("s", ensureUser(STEWARD, "human")).query(UUID.class).single();
             jdbc.sql("INSERT INTO wf.policy_scope (policy_id, model_code) VALUES (:p, 'CT_ADD')").param("p", policy).update();
             jdbc.sql("SELECT wf.submit_commit_policy(:p, :s)").param("p", policy).param("s", ensureUser(STEWARD, "human")).query((rs, i) -> 0).single();
             UUID approver = ensureUser("ct_policy_approver", "human");
-            jdbc.sql("INSERT INTO wf.user_group_member (group_id, user_id) SELECT group_id, :u FROM wf.user_group WHERE group_code = 'POLICY_APPROVERS'")
+            jdbc.sql("INSERT INTO mdm.user_group_member (group_id, user_id) SELECT group_id, :u FROM mdm.user_group WHERE group_code = 'POLICY_APPROVERS'")
                     .param("u", approver).update();
             jdbc.sql("SELECT wf.approve_commit_policy(:p, :a, 'contract')").param("p", policy).param("a", approver).query((rs, i) -> 0).single();
         }
@@ -215,7 +215,7 @@ public abstract class WorkflowEngineContract extends PostgresIntegrationTest {
                 """).param("m", model).param("type", middleType).param("task", middleTask).update();
         jdbc.sql("""
                 INSERT INTO wf.stage_group (stage_id, group_id)
-                SELECT s.stage_id, g.group_id FROM wf.workflow_stage s, wf.user_group g
+                SELECT s.stage_id, g.group_id FROM wf.workflow_stage s, mdm.user_group g
                 WHERE s.model_id = :m AND ((s.seq = 2 AND g.group_code = :mg) OR (s.seq = 3 AND g.group_code = 'CT_COMMITTERS'))
                 """).param("m", model).param("mg", middleGroup).update();
         jdbc.sql("INSERT INTO wf.submit_task SELECT :m, task_id FROM wf.workflow_task WHERE task_code = 'CT_SUBMIT'").param("m", model).update();

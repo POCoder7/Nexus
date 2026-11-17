@@ -13,11 +13,11 @@ INSERT INTO mdm.version (version_id, version_name, business_as_of) VALUES ('0000
 INSERT INTO mdm.node (node_id, node_kind) VALUES ('00000000-0000-0000-0000-000000002021', 'legal_entity');
 INSERT INTO mdm.property_definition (property_id, property_code, label, data_type, scope)
 VALUES ('00000000-0000-0000-0000-000000002031', 'X.Note', 'Note', 'string', 'global');
-INSERT INTO wf.user_group (group_id, group_code, name) VALUES
+INSERT INTO mdm.user_group (group_id, group_code, name) VALUES
   ('00000000-0000-0000-0000-000000002041', 'X_APPROVERS', 'Approvers'), ('00000000-0000-0000-0000-000000002042', 'X_OWNERS', 'Owners');
-INSERT INTO wf.user_group_member (group_id, user_id) VALUES ('00000000-0000-0000-0000-000000002041', '00000000-0000-0000-0000-000000002002');
-INSERT INTO wf.user_group_member (group_id, user_id)
-SELECT group_id, '00000000-0000-0000-0000-000000002004' FROM wf.user_group WHERE group_code = 'POLICY_APPROVERS';
+INSERT INTO mdm.user_group_member (group_id, user_id) VALUES ('00000000-0000-0000-0000-000000002041', '00000000-0000-0000-0000-000000002002');
+INSERT INTO mdm.user_group_member (group_id, user_id)
+SELECT group_id, '00000000-0000-0000-0000-000000002004' FROM mdm.user_group WHERE group_code = 'POLICY_APPROVERS';
 INSERT INTO wf.workflow_task (task_id, task_code, label, allowed_actions) VALUES ('00000000-0000-0000-0000-000000002051', 'X_TASK', 'Task', '{set_property}');
 INSERT INTO wf.workflow_model (model_id, model_code, label) VALUES ('00000000-0000-0000-0000-000000002061', 'X_MODEL', 'Model');
 INSERT INTO wf.workflow_stage (stage_id, model_id, seq, stage_type, label, task_id) VALUES

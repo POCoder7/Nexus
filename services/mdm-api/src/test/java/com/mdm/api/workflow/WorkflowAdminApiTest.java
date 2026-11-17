@@ -35,20 +35,20 @@ class WorkflowAdminApiTest extends PostgresIntegrationTest {
 
     @BeforeEach
     void seed() {
-        grant(ADMIN1, "WORKFLOW_ADMIN", null, null);
-        grant(ADMIN2, "WORKFLOW_ADMIN", null, null);
-        grant(POLICY_ADMIN, "POLICY_ADMIN", null, null);
-        grant(STEWARD, "STEWARD", null, null);
+        grant(ADMIN1, "ADMIN", null, null);
+        grant(ADMIN2, "ADMIN", null, null);
+        grant(POLICY_ADMIN, "ADMIN", null, null);
+        grant(STEWARD, "EDITOR", null, null);
         UUID approver = ensureUser(APPROVER, "human");
         ownerJdbc().sql("""
-                INSERT INTO wf.user_group (group_code, name) VALUES ('T_APPROVERS', 'Approvers'), ('T_COMMITTERS', 'Committers'),
+                INSERT INTO mdm.user_group (group_code, name) VALUES ('T_APPROVERS', 'Approvers'), ('T_COMMITTERS', 'Committers'),
                                                                    ('WA_OWNERS', 'Policy owners')
                 ON CONFLICT (group_code) DO NOTHING
                 """).update();
         ownerJdbc().sql("""
-                INSERT INTO wf.user_group_member (group_id, user_id)
-                SELECT group_id, :u FROM wf.user_group g WHERE group_code = 'POLICY_APPROVERS'
-                  AND NOT EXISTS (SELECT 1 FROM wf.user_group_member m WHERE m.group_id = g.group_id AND m.user_id = :u)
+                INSERT INTO mdm.user_group_member (group_id, user_id)
+                SELECT group_id, :u FROM mdm.user_group g WHERE group_code = 'POLICY_APPROVERS'
+                  AND NOT EXISTS (SELECT 1 FROM mdm.user_group_member m WHERE m.group_id = g.group_id AND m.user_id = :u)
                 """).param("u", approver).update();
     }
 

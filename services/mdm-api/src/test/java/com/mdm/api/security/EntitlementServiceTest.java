@@ -61,7 +61,7 @@ class EntitlementServiceTest extends PostgresIntegrationTest {
             jdbc.sql(rel).param("p", OTHER).param("c", SHARED).param("primary", true).update();
             jdbc.sql(rel).param("p", S1).param("c", SHARED).param("primary", false).update();
         }
-        grant("s_scoped", "STEWARD", "SCOPE_H", SCOPE_TOP);
+        grant("s_scoped", "EDITOR", "SCOPE_H", SCOPE_TOP);
         grant("s_approver", "APPROVER", "SCOPE_H", null);
     }
 
@@ -108,7 +108,7 @@ class EntitlementServiceTest extends PostgresIntegrationTest {
         UUID user = ensureUser("s_expired", "human");
         ownerJdbc().sql("""
                 INSERT INTO mdm.user_role (user_id, role_code, hierarchy_id, granted_by, valid_period)
-                SELECT :u, 'STEWARD', hierarchy_id, :admin, daterange(current_date - 30, current_date - 5)
+                SELECT :u, 'EDITOR', hierarchy_id, :admin, daterange(current_date - 30, current_date - 5)
                 FROM mdm.hierarchy WHERE hierarchy_code = 'SCOPE_H'
                   AND NOT EXISTS (SELECT 1 FROM mdm.user_role WHERE user_id = :u)
                 """).param("u", user).param("admin", TEST_ADMIN).update();

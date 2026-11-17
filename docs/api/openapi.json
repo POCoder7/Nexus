@@ -320,6 +320,9 @@
           },
           "groupCode" : {
             "type" : "string"
+          },
+          "override" : {
+            "type" : "boolean"
           }
         },
         "type" : "object"
@@ -434,6 +437,9 @@
             "type" : "string"
           },
           "roleCode" : {
+            "type" : "string"
+          },
+          "sourceGroup" : {
             "type" : "string"
           },
           "topNodeId" : {
@@ -774,10 +780,16 @@
             },
             "type" : "array"
           },
+          "groups" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "permissions" : {
             "additionalProperties" : {
               "items" : {
-                "enum" : [ "READ", "PROPOSE", "DECIDE", "ADMIN_WORKFLOW", "ADMIN_POLICY", "ADMIN_SYSTEM", "ADMIN_VERSION" ],
+                "enum" : [ "READ", "PROPOSE", "DECIDE", "ADMIN_WORKFLOW", "ADMIN_POLICY", "ADMIN_SYSTEM", "ADMIN_VERSION", "OVERRIDE_WORKFLOW", "PUBLISH", "READ_PUBLISHED" ],
                 "type" : "string"
               },
               "type" : "array",
@@ -916,6 +928,17 @@
           "submitted" : {
             "format" : "int64",
             "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "OverrideBody" : {
+        "properties" : {
+          "decision" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -1873,6 +1896,9 @@
             "type" : "string"
           },
           "youCanAct" : {
+            "type" : "boolean"
+          },
+          "youCanOverride" : {
             "type" : "boolean"
           }
         },
@@ -4660,6 +4686,42 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ItemView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
+      }
+    },
+    "/api/v1/workflow/stages/{stageId}/override" : {
+      "post" : {
+        "operationId" : "overrideStage",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "stageId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OverrideBody"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DecisionResult"
                 }
               }
             },

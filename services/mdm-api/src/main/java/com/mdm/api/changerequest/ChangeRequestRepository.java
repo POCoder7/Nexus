@@ -236,6 +236,12 @@ public class ChangeRequestRepository {
     }
 
     /** Hierarchy ids the request's items touch (for read access by people other than the requester). */
+    /** True if the request holds governed access changes (ADR-042 D3): only an ADMIN sees, validates and decides it. */
+    public boolean hasAccessItems(UUID requestId) {
+        return jdbc.sql("SELECT EXISTS (SELECT 1 FROM mdm.change_item WHERE change_request_id = :cr AND mdm.is_access_action(action))")
+                .param("cr", requestId).query(Boolean.class).single();
+    }
+
     public List<UUID> itemHierarchies(UUID requestId) {
         return jdbc.sql("SELECT DISTINCT hierarchy_id FROM mdm.change_item WHERE change_request_id = :cr AND hierarchy_id IS NOT NULL")
                 .param("cr", requestId).query(UUID.class).list();

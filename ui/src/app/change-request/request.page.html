@@ -40,7 +40,7 @@
           <nx-workflow-timeline [stages]="i.stages ?? []" [evaluations]="i.policyEvaluations ?? []" [names]="names()" />
           @if (r.status === 'in_review' || openStage()) {
             <nx-decision-panel [stage]="openStage()" [reason]="openStage()?.whyNot ?? null" [busy]="deciding()"
-                               [error]="decisionError()" (decide)="decide($event)" />
+                               [error]="decisionError()" (decide)="decide($event)" (override)="openOverride($event)" />
           }
         } @else {
           <p class="nx-muted">{{ t.coreMode }}</p>

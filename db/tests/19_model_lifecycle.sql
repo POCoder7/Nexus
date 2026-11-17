@@ -12,11 +12,11 @@ INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
   ('00000000-0000-0000-0000-000000001906', 'l_system',    'System',    'system_feed'),
   ('00000000-0000-0000-0000-000000001907', 'l_granter',   'Granter',   'human');
 INSERT INTO mdm.user_role (user_id, role_code, granted_by, valid_period)
-SELECT u::uuid, 'WORKFLOW_ADMIN', '00000000-0000-0000-0000-000000001907', daterange(current_date - 1, NULL)
+SELECT u::uuid, 'ADMIN', '00000000-0000-0000-0000-000000001907', daterange(current_date - 1, NULL)
 FROM unnest(ARRAY['00000000-0000-0000-0000-000000001901', '00000000-0000-0000-0000-000000001902']) u;
-INSERT INTO wf.user_group (group_id, group_code, name) VALUES
+INSERT INTO mdm.user_group (group_id, group_code, name) VALUES
   ('00000000-0000-0000-0000-000000001911', 'L_APPROVERS', 'Approvers'), ('00000000-0000-0000-0000-000000001912', 'L_COMMITTERS', 'Committers');
-INSERT INTO wf.user_group_member (group_id, user_id) VALUES
+INSERT INTO mdm.user_group_member (group_id, user_id) VALUES
   ('00000000-0000-0000-0000-000000001911', '00000000-0000-0000-0000-000000001904'),
   ('00000000-0000-0000-0000-000000001912', '00000000-0000-0000-0000-000000001905');
 INSERT INTO mdm.property_definition (property_id, property_code, label, data_type, scope) VALUES

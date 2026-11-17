@@ -40,7 +40,7 @@ describe('ContextStore', () => {
         provide: NexusApi,
         useValue: { me: async () => ({ businessToday: '2031-05-17', grants: [
           { roleCode: 'VIEWER', hierarchyCode: null },
-          { roleCode: 'STEWARD', hierarchyCode: 'SYN_H', categoryCodes: ['Finance'] },
+          { roleCode: 'EDITOR', hierarchyCode: 'SYN_H', categoryCodes: ['Finance'] },
         ] }) },
       }],
     });

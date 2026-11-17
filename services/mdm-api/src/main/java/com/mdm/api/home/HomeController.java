@@ -5,6 +5,7 @@ import com.mdm.api.changerequest.ChangeRequestService;
 import com.mdm.api.common.BusinessClock;
 import com.mdm.api.security.Actor;
 import com.mdm.api.security.EntitlementService;
+import com.mdm.api.security.Permission;
 import com.mdm.api.security.PreferencesRepository;
 import com.mdm.api.workflow.worklist.WorklistQuery;
 import com.mdm.api.workflow.worklist.WorklistQuery.WorklistRow;
@@ -24,7 +25,7 @@ import java.util.UUID;
 /**
  * Home (NEW-10, OD-27; Phase 3 LLD §5.1): one bounded summary for the landing page. Each list is capped, so no paging is
  * needed; the full lists are the worklist, the change-request list and the hierarchy list. The governance panel
- * (shadow summary) is returned only to policy roles: {@code POLICY_ADMIN} grant or {@code POLICY_APPROVERS} member.
+ * (shadow summary) is returned only to policy roles: ADMIN (policy administration) or {@code POLICY_APPROVERS} member.
  */
 @RestController
 @RequestMapping("/api/v1/home")
@@ -112,9 +113,9 @@ public class HomeController {
     }
 
     private boolean isPolicyRole(Actor actor) {
-        boolean policyAdmin = entitlements.grants(actor).stream().anyMatch(g -> "POLICY_ADMIN".equals(g.roleCode()));
+        boolean policyAdmin = entitlements.hasAny(actor, Permission.ADMIN_POLICY);   // ADMIN since ADR-042 C-1
         return policyAdmin || jdbc.sql("""
-                SELECT wf.is_member((SELECT group_id FROM wf.user_group WHERE group_code = 'POLICY_APPROVERS'), :me, CAST(:on AS date))
+                SELECT wf.is_member((SELECT group_id FROM mdm.user_group WHERE group_code = 'POLICY_APPROVERS'), :me, CAST(:on AS date))
                 """).param("me", actor.userId()).param("on", clock.today()).query(Boolean.class).single();
     }
 

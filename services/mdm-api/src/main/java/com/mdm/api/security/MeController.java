@@ -47,10 +47,11 @@ public class MeController {
 
     /**
      * {@code workingVersion}: the version new change requests are raised in, for the context bar: the user's chosen
-     * working version while it is still working, otherwise the latest working version (ADR-037).
+     * working version while it is still working, otherwise the latest working version (ADR-037). {@code grants} are the
+     * effective grants, each naming its source group (null = direct); {@code groups} lists every group the user is in (ADR-042).
      */
     public record MeView(Actor actor, LocalDate businessToday, String businessTimeZone, String workingVersion, Preferences preferences,
-                         Map<String, Set<Permission>> permissions, List<Grant> grants) {
+                         Map<String, Set<Permission>> permissions, List<Grant> grants, List<String> groups) {
     }
 
     /** Partial update: a null field keeps the stored value. */
@@ -61,7 +62,7 @@ public class MeController {
     public MeView getMe(Actor actor) {
         List<Grant> grants = entitlements.grants(actor);
         return new MeView(actor, clock.today(), clock.zone().getId(), preferences.workingVersion(actor.userId()).orElse(null),
-                preferences.find(actor.userId()), permissions(grants), grants);
+                preferences.find(actor.userId()), permissions(grants), grants, entitlements.groups(actor));
     }
 
     @PutMapping("/preferences")

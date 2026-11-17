@@ -91,11 +91,11 @@ class SandboxApiTest extends PostgresIntegrationTest {
                     SELECT :a, property_id, '"EUR"', daterange('2020-01-01', NULL) FROM mdm.property_definition WHERE property_code = 'SB.Ccy'
                     """).param("a", A).update();
         }
-        grant(STEWARD, "STEWARD", H, null);
-        grant(OTHER, "STEWARD", H, null);
+        grant(STEWARD, "EDITOR", H, null);
+        grant(OTHER, "EDITOR", H, null);
         grant(APPROVER, "APPROVER", H, null);
         grant(VIEWER, "VIEWER", H, null);
-        grant(LIMITER, "STEWARD", H, null);
+        grant(LIMITER, "EDITOR", H, null);
         ensureUser(OUTSIDER, "human");
     }
 

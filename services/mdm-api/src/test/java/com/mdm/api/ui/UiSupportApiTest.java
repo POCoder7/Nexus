@@ -86,7 +86,7 @@ class UiSupportApiTest extends PostgresIntegrationTest {
                     SELECT property_id, v FROM mdm.property_definition, (VALUES ('EUR'), ('USD')) AS l(v) WHERE property_code = 'UI.Ccy'
                     """).update();
             UUID admin = ensureUser("ui_admin", "human");
-            jdbc.sql("INSERT INTO wf.user_group (group_code, name) VALUES ('UI_APPROVERS', 'Approvers')").update();
+            jdbc.sql("INSERT INTO mdm.user_group (group_code, name) VALUES ('UI_APPROVERS', 'Approvers')").update();
             jdbc.sql("INSERT INTO wf.workflow_task (task_code, label, allowed_actions) VALUES ('UI_SUBMIT', 'Submit', '{add_node,set_property}')").update();
             jdbc.sql("""
                     INSERT INTO wf.task_property (task_id, property_id, is_required, sort_seq)
@@ -103,15 +103,15 @@ class UiSupportApiTest extends PostgresIntegrationTest {
             jdbc.sql("INSERT INTO wf.submit_task SELECT :m, task_id FROM wf.workflow_task WHERE task_code = 'UI_SUBMIT'").param("m", MODEL).update();
             jdbc.sql("""
                     INSERT INTO wf.stage_group (stage_id, group_id)
-                    SELECT s.stage_id, g.group_id FROM wf.workflow_stage s, wf.user_group g
+                    SELECT s.stage_id, g.group_id FROM wf.workflow_stage s, mdm.user_group g
                     WHERE s.model_id = :m AND s.seq = 2 AND g.group_code = 'UI_APPROVERS'
                     """).param("m", MODEL).update();
             jdbc.sql("UPDATE wf.workflow_model SET status = 'active', activated_by = :a WHERE model_id = :m")
                     .param("a", admin).param("m", MODEL).update();
         }
-        grant(STEWARD, "STEWARD", "UI_H", null);
+        grant(STEWARD, "EDITOR", "UI_H", null);
         grant(VIEWER, "VIEWER", "UI_H", null);
-        grant(POLICY, "POLICY_ADMIN", null, null);
+        grant(POLICY, "ADMIN", null, null);
         ensureUser(STRANGER, "human");
     }
 
@@ -402,7 +402,7 @@ class UiSupportApiTest extends PostgresIntegrationTest {
                 """).update();
         jdbc.sql("""
                 INSERT INTO mdm.user_role (user_id, role_code, hierarchy_id, granted_by, valid_period, category_codes)
-                SELECT :u, 'STEWARD', hierarchy_id, :admin, daterange(current_date - 1, NULL), '{Finance}'
+                SELECT :u, 'EDITOR', hierarchy_id, :admin, daterange(current_date - 1, NULL), '{Finance}'
                 FROM mdm.hierarchy WHERE hierarchy_code = 'UI_H'
                   AND NOT EXISTS (SELECT 1 FROM mdm.user_role WHERE user_id = :u AND upper_inf(recorded_period))
                 """).param("u", user).param("admin", TEST_ADMIN).update();

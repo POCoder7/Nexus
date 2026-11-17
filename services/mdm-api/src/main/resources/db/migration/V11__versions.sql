@@ -10,9 +10,9 @@
 SET search_path = mdm, public;
 
 -- -----------------------------------------------------------------------------
--- Role (ADR-037 D4). What it may do is fixed in code: VERSION_ADMIN → READ, ADMIN_VERSION (RolePermissions).
+-- Who administers versions (ADR-037 D4): an ADMIN since ADR-042 (C-1 folded VERSION_ADMIN into ADMIN). What ADMIN may
+-- do is fixed in code (RolePermissions); a second, different ADMIN still finalizes (the guard below).
 -- -----------------------------------------------------------------------------
-INSERT INTO mdm.role VALUES ('VERSION_ADMIN', 'Create versions and move them through their lifecycle');
 
 -- -----------------------------------------------------------------------------
 -- Version columns. revision is the ETag source (ADR-015). The V1 CHECK (finalized means pinned) stays; this one ties
@@ -239,10 +239,7 @@ REVOKE EXECUTE ON FUNCTION mdm.trg_cr_version_working() FROM PUBLIC;
 -- -----------------------------------------------------------------------------
 CREATE FUNCTION mdm.is_version_admin(p_user uuid)
 RETURNS boolean LANGUAGE sql STABLE SET search_path = mdm, public AS $$
-  SELECT EXISTS (SELECT 1 FROM mdm.user_role ur JOIN mdm.app_user u ON u.user_id = ur.user_id
-                 WHERE ur.user_id = p_user AND ur.role_code = 'VERSION_ADMIN' AND ur.hierarchy_id IS NULL
-                   AND ur.valid_period @> mdm.business_today() AND upper_inf(ur.recorded_period)
-                   AND u.kind = 'human' AND u.is_active)
+  SELECT mdm.holds_role(p_user, 'ADMIN', mdm.business_today())
 $$;
 
 CREATE FUNCTION mdm.version_require_admin(p_actor uuid)

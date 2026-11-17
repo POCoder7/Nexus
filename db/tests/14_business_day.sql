@@ -17,9 +17,9 @@ SELECT is(mdm.business_today(), (now() AT TIME ZONE 'America/New_York')::date, '
 INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
   ('00000000-0000-0000-0000-000000000ea1', 'b_maker',   'Maker',   'human'),
   ('00000000-0000-0000-0000-000000000ea2', 'b_checker', 'Checker', 'human');
-INSERT INTO wf.user_group (group_id, group_code, name) VALUES ('00000000-0000-0000-0000-000000000ee1', 'B_OWNERS', 'Owners');
-INSERT INTO wf.user_group_member (group_id, user_id)
-SELECT group_id, '00000000-0000-0000-0000-000000000ea2' FROM wf.user_group WHERE group_code = 'POLICY_APPROVERS';
+INSERT INTO mdm.user_group (group_id, group_code, name) VALUES ('00000000-0000-0000-0000-000000000ee1', 'B_OWNERS', 'Owners');
+INSERT INTO mdm.user_group_member (group_id, user_id)
+SELECT group_id, '00000000-0000-0000-0000-000000000ea2' FROM mdm.user_group WHERE group_code = 'POLICY_APPROVERS';
 INSERT INTO wf.commit_policy (policy_id, policy_code, description, rationale, mode, allowed_actions, owner_group_id, proposed_by)
 VALUES ('00000000-0000-0000-0000-000000000eb1', 'B_ACTIVE', 'Active', 'Test', 'active', '{add_node}',
         '00000000-0000-0000-0000-000000000ee1', '00000000-0000-0000-0000-000000000ea1'),

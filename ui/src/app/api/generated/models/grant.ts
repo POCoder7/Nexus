@@ -6,6 +6,7 @@ export interface Grant {
   hierarchyCode?: string;
   hierarchyId?: string;
   roleCode?: string;
+  sourceGroup?: string;
   topNodeId?: string;
   validFrom?: string;
   validTo?: string;

@@ -44,7 +44,7 @@ SELECT ('00000000-0000-0000-0000-00000000119' || h)::uuid, ('00000000-0000-0000-
 -- Model: Submit → Approve (A) → Approve (B) → Approve (A in H1 or C in H2) → Approve (no scope) → Commit
 INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES ('00000000-0000-0000-0000-0000000011a1', 'sc_steward', 'Steward', 'human');
 INSERT INTO mdm.version (version_id, version_name, business_as_of) VALUES ('00000000-0000-0000-0000-0000000011b1', 'SC_V', current_date);
-INSERT INTO wf.user_group (group_id, group_code, name) VALUES ('00000000-0000-0000-0000-0000000011c1', 'SC_G', 'Group');
+INSERT INTO mdm.user_group (group_id, group_code, name) VALUES ('00000000-0000-0000-0000-0000000011c1', 'SC_G', 'Group');
 INSERT INTO wf.workflow_task (task_id, task_code, label) VALUES ('00000000-0000-0000-0000-0000000011d1', 'SC_TASK', 'Task');
 INSERT INTO wf.workflow_model (model_id, model_code, label) VALUES ('00000000-0000-0000-0000-0000000011e1', 'SC_MODEL', 'Model');
 INSERT INTO wf.workflow_stage (stage_id, model_id, seq, stage_type, label, task_id)

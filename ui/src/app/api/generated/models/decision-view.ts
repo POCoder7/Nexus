@@ -7,4 +7,5 @@ export interface DecisionView {
   decidedBy?: string;
   decision?: string;
   groupCode?: string;
+  override?: boolean;
 }

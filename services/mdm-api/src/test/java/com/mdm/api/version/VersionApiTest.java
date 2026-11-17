@@ -80,9 +80,9 @@ class VersionApiTest extends PostgresIntegrationTest {
                     SELECT :e, property_id, '"EUR"', daterange('2020-01-01', NULL) FROM mdm.property_definition WHERE property_code = 'VA.Ccy'
                     """).param("e", ENTITY).update();
         }
-        grant(ADMIN, "VERSION_ADMIN", null, null);
-        grant(ADMIN2, "VERSION_ADMIN", null, null);
-        grant(STEWARD, "STEWARD", "VA_H", null);
+        grant(ADMIN, "ADMIN", null, null);
+        grant(ADMIN2, "ADMIN", null, null);
+        grant(STEWARD, "EDITOR", "VA_H", null);
         grant(APPROVER, "APPROVER", "VA_H", null);
         grant(VIEWER, "VIEWER", "VA_H", null);
         ensureUser(NOBODY, "human");

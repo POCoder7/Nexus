@@ -14,7 +14,7 @@ INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
   (pg_temp.id('a0a1'), 'qf_admin', 'Query version admin', 'human'),
   (pg_temp.id('a0a2'), 'qf_granter', 'Granter', 'human');
 INSERT INTO mdm.user_role (user_id, role_code, granted_by, valid_period)
-VALUES (pg_temp.id('a0a1'), 'VERSION_ADMIN', pg_temp.id('a0a2'), daterange('2000-01-01', NULL));
+VALUES (pg_temp.id('a0a1'), 'ADMIN', pg_temp.id('a0a2'), daterange('2000-01-01', NULL));
 
 -- A generated hierarchy QF_H: a top node, 3 regions, 9 groups and 27 leaves (ids c000 to c027 and d000 to d026 below),
 -- plus one shared placement. Every row is recorded two days ago, so a past recorded time sees the same tree.

@@ -54,8 +54,8 @@ class CommitPolicyConcurrencyTest extends PostgresIntegrationTest {
             jdbc.sql("INSERT INTO mdm.node (node_id, node_kind) VALUES (:n, 'legal_entity')").param("n", NODE).update();
             jdbc.sql("INSERT INTO mdm.property_definition (property_id, property_code, label, data_type, scope) VALUES (:p, 'CC.Note', 'Note', 'string', 'global')")
                     .param("p", PROPERTY).update();
-            jdbc.sql("INSERT INTO wf.user_group (group_id, group_code, name) VALUES (:g, 'CC_COMMITTERS', 'Committers')").param("g", GROUP).update();
-            jdbc.sql("INSERT INTO wf.user_group_member (group_id, user_id) SELECT group_id, :a FROM wf.user_group WHERE group_code = 'POLICY_APPROVERS'")
+            jdbc.sql("INSERT INTO mdm.user_group (group_id, group_code, name) VALUES (:g, 'CC_COMMITTERS', 'Committers')").param("g", GROUP).update();
+            jdbc.sql("INSERT INTO mdm.user_group_member (group_id, user_id) SELECT group_id, :a FROM mdm.user_group WHERE group_code = 'POLICY_APPROVERS'")
                     .param("a", APPROVER).update();
             jdbc.sql("INSERT INTO wf.workflow_task (task_id, task_code, label) VALUES (:t, 'CC_TASK', 'Task')").param("t", TASK).update();
             jdbc.sql("INSERT INTO wf.workflow_model (model_id, model_code, label) VALUES (:m, 'CC_MODEL', 'Submit and commit')")

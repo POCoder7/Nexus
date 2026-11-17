@@ -13,8 +13,8 @@ INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
 INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
   ('00000000-0000-0000-0000-0000000022a4', 'ver_agent', 'Agent', 'ai_agent');
 INSERT INTO mdm.user_role (user_id, role_code, granted_by, valid_period) VALUES
-  ('00000000-0000-0000-0000-0000000022a1', 'VERSION_ADMIN', '00000000-0000-0000-0000-0000000022a5', daterange('2000-01-01', NULL)),
-  ('00000000-0000-0000-0000-0000000022a2', 'VERSION_ADMIN', '00000000-0000-0000-0000-0000000022a5', daterange('2000-01-01', NULL));
+  ('00000000-0000-0000-0000-0000000022a1', 'ADMIN', '00000000-0000-0000-0000-0000000022a5', daterange('2000-01-01', NULL)),
+  ('00000000-0000-0000-0000-0000000022a2', 'ADMIN', '00000000-0000-0000-0000-0000000022a5', daterange('2000-01-01', NULL));
 -- The AI agent holds no role: only people can (V1 roles.human_only). Its tests below show the version guards refuse it anyway.
 
 -- Helpers (owner, setup only)
@@ -41,9 +41,9 @@ CREATE TEMP TABLE pins (version_name text PRIMARY KEY, pinned timestamptz);
 SELECT has_table('mdm', 'version_transition', 'Version transitions are logged');
 SELECT has_column('mdm', 'version', 'revision', 'A version has a revision (the ETag)');
 SELECT has_column('mdm', 'user_preference', 'working_version_id', 'A user can choose a working version');
-SELECT is((SELECT description FROM mdm.role WHERE role_code = 'VERSION_ADMIN'),
-  'Create versions and move them through their lifecycle', 'VERSION_ADMIN is a role');
-SELECT ok(mdm.is_version_admin('00000000-0000-0000-0000-0000000022a1'), 'A person with VERSION_ADMIN is a version administrator');
+SELECT ok(NOT EXISTS (SELECT 1 FROM mdm.role WHERE role_code = 'VERSION_ADMIN'),
+  'VERSION_ADMIN is folded into ADMIN (ADR-042 C-1)');
+SELECT ok(mdm.is_version_admin('00000000-0000-0000-0000-0000000022a1'), 'A person with ADMIN on every hierarchy is a version administrator');
 SELECT ok(NOT mdm.is_version_admin('00000000-0000-0000-0000-0000000022a3'), 'A steward is not');
 SELECT ok(NOT mdm.is_version_admin('00000000-0000-0000-0000-0000000022a4'), 'An AI agent is not a version administrator');
 

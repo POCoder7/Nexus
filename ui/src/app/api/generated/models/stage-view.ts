@@ -16,4 +16,5 @@ export interface StageView {
   type?: string;
   whyNot?: string;
   youCanAct?: boolean;
+  youCanOverride?: boolean;
 }

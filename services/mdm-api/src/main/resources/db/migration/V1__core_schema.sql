@@ -29,7 +29,7 @@ CREATE TYPE property_data_type AS ENUM ('string', 'memo', 'integer', 'decimal', 
 CREATE TYPE property_scope     AS ENUM ('global', 'local');           -- local = hierarchy-specific (DRM local property)
 CREATE TYPE property_origin    AS ENUM ('stored', 'derived', 'system');
 CREATE TYPE inheritance_mode   AS ENUM ('none', 'inherit_from_ancestor');
-CREATE TYPE requester_kind     AS ENUM ('human', 'ai_agent', 'system_feed');
+CREATE TYPE requester_kind     AS ENUM ('human', 'ai_agent', 'system_feed', 'service');   -- service: CONSUMER only (ADR-042)
 CREATE TYPE cr_status          AS ENUM ('draft', 'submitted', 'in_review', 'approved',
                                         'rejected', 'applied', 'withdrawn',
                                         'apply_failed');  -- approved but could not be applied (stale base, rule); terminal
@@ -42,7 +42,10 @@ CREATE TYPE change_action      AS ENUM (
   'add_ownership_edge', 'update_ownership_edge', 'end_ownership_edge',
   'delete_node',      -- end a node in the version: all relationships and its attributes (HIE-02)
   'add_hierarchy',    -- create a hierarchy and its top node (HIE-01, ADR-026)
-  'set_property_derivation'   -- set a CEL formula on a derived property (PRP-06, Phase 5 LLD §17.3.5; applied from 5-11)
+  'set_property_derivation',  -- set a CEL formula on a derived property (PRP-06, Phase 5 LLD §17.3.5; applied from 5-11)
+  -- governed access changes (ADR-042 D3, Phase 5 LLD §19.4; applied from 5-4b, V14)
+  'create_group', 'update_group', 'add_group_scope', 'end_group_scope',
+  'add_group_member', 'remove_group_member', 'grant_role', 'revoke_role'
 );
 CREATE TYPE validation_level   AS ENUM ('node', 'hierarchy', 'version', 'ownership');
 CREATE TYPE validation_severity AS ENUM ('error', 'warning', 'info');
@@ -225,6 +228,10 @@ BEGIN
   IF v_kind IS DISTINCT FROM NEW.requester_kind THEN
     RAISE EXCEPTION 'requester_kind % does not match the requester''s user record (%)', NEW.requester_kind, v_kind
       USING ERRCODE = 'N1005', HINT = 'requester_kind_mismatch';
+  END IF;
+  -- A service account (ADR-042 D5) only reads published output: it never raises a change.
+  IF v_kind = 'service' THEN
+    RAISE EXCEPTION 'A service account cannot raise a change request' USING ERRCODE = 'N1005', HINT = 'requester.service';
   END IF;
   RETURN NEW;
 END $$;
@@ -774,6 +781,51 @@ BEGIN
                     FOR EACH ROW EXECUTE FUNCTION mdm.trg_audit_row()', t || '_audit', t);
   END LOOP;
 END $$;
+
+-- -----------------------------------------------------------------------------
+-- Groups (ADR-042 D2): one group concept for access and for workflow. A group with a role gives its members that role
+-- over the group's scopes (V8: mdm.user_group_scope, mdm.effective_grants); workflow stages and commit policies name
+-- groups (V4, V6), with or without a role. Groups live here because entitlements need them and mdm never references
+-- wf; the workflow layer reads them. Moved from wf.user_group (V4) in Phase 5 increment 5-4a.
+-- -----------------------------------------------------------------------------
+CREATE TABLE user_group (
+  group_id    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_code  text NOT NULL UNIQUE,
+  name        text NOT NULL,
+  description text,
+  role_code   text,                                -- NULL = a workflow-only group; FK to mdm.role added in V8
+  is_active   boolean NOT NULL DEFAULT true
+);
+
+-- Membership decides who may do what and who approves, so its history must be reconstructable (D-33): bitemporal by
+-- business date (ADR-018). Rows are never updated or deleted; a membership ends by closing its recorded_period and
+-- re-stating the period it was true. Changes go through change requests (ADR-042 D3); only the database owner writes
+-- directly (bootstrap, tests).
+CREATE TABLE user_group_member (
+  group_id          uuid NOT NULL REFERENCES user_group,
+  user_id           uuid NOT NULL REFERENCES app_user,
+  valid_period      daterange NOT NULL DEFAULT daterange(business_today(), NULL),
+  recorded_period   tstzrange NOT NULL DEFAULT tstzrange(now(), NULL),
+  granted_by        uuid REFERENCES app_user,             -- NULL for bootstrap rows
+  change_request_id uuid REFERENCES change_request,       -- the request that wrote the row; NULL for bootstrap rows
+  CHECK (granted_by IS DISTINCT FROM user_id),            -- nobody adds themselves to a group
+  EXCLUDE USING gist (group_id WITH =, user_id WITH =, valid_period WITH &&) WHERE (upper_inf(recorded_period))
+);
+CREATE INDEX ON user_group_member (user_id) WHERE upper_inf(recorded_period);
+CREATE TRIGGER user_group_member_guard BEFORE UPDATE OR DELETE ON user_group_member
+  FOR EACH ROW EXECUTE FUNCTION trg_bitemporal_guard();
+CREATE TRIGGER user_group_audit AFTER INSERT OR UPDATE OR DELETE ON user_group
+  FOR EACH ROW EXECUTE FUNCTION trg_audit_row();
+CREATE TRIGGER user_group_member_audit AFTER INSERT OR UPDATE OR DELETE ON user_group_member
+  FOR EACH ROW EXECUTE FUNCTION trg_audit_row();
+
+-- The one membership test (D-15): every check of who belongs to a group uses it, on the business day it concerns.
+CREATE FUNCTION is_member(p_group uuid, p_user uuid, p_on date)
+RETURNS boolean LANGUAGE sql STABLE SET search_path = mdm, public AS $$
+  SELECT EXISTS (SELECT 1 FROM mdm.user_group_member m
+                 WHERE m.group_id = p_group AND m.user_id = p_user
+                   AND m.valid_period @> p_on AND upper_inf(m.recorded_period))
+$$;
 
 -- -----------------------------------------------------------------------------
 -- As-of helper used by exports and the UI

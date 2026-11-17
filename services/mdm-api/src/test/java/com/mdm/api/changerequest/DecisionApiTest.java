@@ -73,9 +73,9 @@ class DecisionApiTest extends PostgresIntegrationTest {
                     VALUES ('DE.Ccy', 'Currency', 'string', 'global'), ('DE.Two', 'Contested', 'string', 'global')
                     """).update();
         }
-        grant(STEWARD, "STEWARD", "DE_H", null);
+        grant(STEWARD, "EDITOR", "DE_H", null);
         grant(APPROVER, "APPROVER", "DE_H", null);
-        grant(BOTH, "STEWARD", "DE_H", null);
+        grant(BOTH, "EDITOR", "DE_H", null);
         grant(BOTH, "APPROVER", "DE_H", null);
         grant(VIEWER, "VIEWER", "DE_H", null);
     }

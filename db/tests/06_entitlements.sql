@@ -1,10 +1,12 @@
--- pgTAP: role grants (ADR-022) and the single business-time-zone setting (ADR-018, CR-01).
+-- pgTAP: role grants (ADR-022; roles as in ADR-042) and the single business-time-zone setting (ADR-018, CR-01).
 BEGIN;
 SELECT plan(11);
 
 SELECT has_table('mdm', 'role', 'Roles are data');
 SELECT has_table('mdm', 'user_role', 'Grants are data');
-SELECT is((SELECT count(*)::int FROM mdm.role), 7, 'Six Phase 1 roles and VERSION_ADMIN (V11, ADR-037) are seeded');
+SELECT results_eq($$SELECT role_code, holder_kind FROM mdm.role ORDER BY role_code$$,
+  $$VALUES ('ADMIN', 'human'), ('APPROVER', 'human'), ('CONSUMER', 'service'), ('EDITOR', 'human'), ('VIEWER', 'human')$$,
+  'The five roles of ADR-042 D1 are seeded; only CONSUMER is for service accounts');
 SELECT is((SELECT setting_value FROM mdm.system_setting WHERE setting_key = 'business_time_zone'),
           'America/New_York', 'The business time zone is recorded once, in the database (CR-01)');
 
@@ -19,13 +21,13 @@ VALUES ('00000000-0000-0000-0000-0000000006d1', 'G_H1', 'Grant hierarchy', '0000
 
 SELECT lives_ok(
   $$INSERT INTO mdm.user_role (user_id, role_code, hierarchy_id, granted_by, valid_period)
-    VALUES ('00000000-0000-0000-0000-0000000006a2', 'STEWARD', '00000000-0000-0000-0000-0000000006d1',
+    VALUES ('00000000-0000-0000-0000-0000000006a2', 'EDITOR', '00000000-0000-0000-0000-0000000006d1',
             '00000000-0000-0000-0000-0000000006a1', daterange(current_date, NULL))$$,
   'An admin can grant a scoped role to a steward');
 
 SELECT throws_ok(
   $$INSERT INTO mdm.user_role (user_id, role_code, granted_by, valid_period)
-    VALUES ('00000000-0000-0000-0000-0000000006a1', 'SYSTEM_ADMIN', '00000000-0000-0000-0000-0000000006a1', daterange(current_date, NULL))$$,
+    VALUES ('00000000-0000-0000-0000-0000000006a1', 'ADMIN', '00000000-0000-0000-0000-0000000006a1', daterange(current_date, NULL))$$,
   '23514', NULL, 'Nobody can grant a role to themselves');
 
 SELECT throws_ok(
@@ -41,7 +43,7 @@ SELECT throws_ok(
 
 SELECT throws_ok(
   $$INSERT INTO mdm.user_role (user_id, role_code, hierarchy_id, granted_by, valid_period)
-    VALUES ('00000000-0000-0000-0000-0000000006a2', 'STEWARD', '00000000-0000-0000-0000-0000000006d1',
+    VALUES ('00000000-0000-0000-0000-0000000006a2', 'EDITOR', '00000000-0000-0000-0000-0000000006d1',
             '00000000-0000-0000-0000-0000000006a1', daterange(current_date, NULL))$$,
   '23P01', NULL, 'The same grant cannot overlap itself');
 
@@ -52,7 +54,7 @@ SELECT throws_ok(
 SET LOCAL ROLE nexus_api;
 SELECT throws_ok(
   $$INSERT INTO mdm.user_role (user_id, role_code, granted_by, valid_period)
-    VALUES ('00000000-0000-0000-0000-0000000006a2', 'SYSTEM_ADMIN', '00000000-0000-0000-0000-0000000006a1', daterange(current_date, NULL))$$,
+    VALUES ('00000000-0000-0000-0000-0000000006a2', 'ADMIN', '00000000-0000-0000-0000-0000000006a1', daterange(current_date, NULL))$$,
   '42501', NULL, 'The API login cannot grant roles (Phase 1: migration or SQL by an administrator only)');
 RESET ROLE;
 

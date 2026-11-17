@@ -33,6 +33,7 @@ class WorkflowStageApiTest extends PostgresIntegrationTest {
     static final String APPROVER2 = "wf_approver2";
     static final String ENRICHER = "wf_enricher";
     static final String VIEWER = "wf_viewer";
+    static final String ADMIN = "wf_admin";   // in none of the stage groups
 
     @Autowired
     MockMvc mvc;
@@ -42,12 +43,13 @@ class WorkflowStageApiTest extends PostgresIntegrationTest {
     @BeforeEach
     void seed() {
         JdbcClient jdbc = ownerJdbc();
-        grant(STEWARD, "STEWARD", null, null);
+        grant(STEWARD, "EDITOR", null, null);
         grant(STEWARD, "APPROVER", null, null);   // so the refusal comes from the workflow rules, not the role
         grant(APPROVER1, "APPROVER", null, null);
         grant(APPROVER2, "APPROVER", null, null);
-        grant(ENRICHER, "STEWARD", null, null);
+        grant(ENRICHER, "EDITOR", null, null);
         grant(VIEWER, "VIEWER", null, null);
+        grant(ADMIN, "ADMIN", null, null);
         if (jdbc.sql("SELECT count(*) FROM mdm.hierarchy WHERE hierarchy_code = 'WF_H'").query(Integer.class).single() > 0) {
             return;
         }
@@ -62,12 +64,12 @@ class WorkflowStageApiTest extends PostgresIntegrationTest {
                 """).param("t", TOP).param("l", LEAF).update();
         jdbc.sql("INSERT INTO mdm.property_definition (property_code, label, data_type, scope) VALUES ('WF.Note', 'Note', 'string', 'global')").update();
         jdbc.sql("""
-                INSERT INTO wf.user_group (group_code, name) VALUES ('WF_APPROVERS', 'Approvers'), ('WF_COMMITTERS', 'Committers'),
+                INSERT INTO mdm.user_group (group_code, name) VALUES ('WF_APPROVERS', 'Approvers'), ('WF_COMMITTERS', 'Committers'),
                                                                    ('WF_ENRICHERS', 'Enrichers')
                 """).update();
         for (String[] m : new String[][] {{"WF_APPROVERS", STEWARD}, {"WF_APPROVERS", APPROVER1}, {"WF_APPROVERS", APPROVER2},
                                           {"WF_COMMITTERS", APPROVER2}, {"WF_ENRICHERS", ENRICHER}}) {
-            jdbc.sql("INSERT INTO wf.user_group_member (group_id, user_id) SELECT group_id, :u FROM wf.user_group WHERE group_code = :g")
+            jdbc.sql("INSERT INTO mdm.user_group_member (group_id, user_id) SELECT group_id, :u FROM mdm.user_group WHERE group_code = :g")
                     .param("u", ensureUser(m[1], "human")).param("g", m[0]).update();
         }
         jdbc.sql("""
@@ -156,6 +158,34 @@ class WorkflowStageApiTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void anAdminOverridesAStageWithAReason() throws Exception {
+        UUID instance = submitted("WF_TWO");
+        advance(instance);
+        String stage2 = stageId(instance, 2);
+        mvc.perform(get("/api/v1/workflow/instances/" + instance).with(asUser(ADMIN)))
+                .andExpect(jsonPath("$.stages[1].youCanAct").value(false))
+                .andExpect(jsonPath("$.stages[1].youCanOverride").value(true));
+        mvc.perform(get("/api/v1/workflow/instances/" + instance).with(asUser(APPROVER1)))
+                .andExpect(jsonPath("$.stages[1].youCanOverride").value(false));
+
+        override(APPROVER1, stage2, "approve", "Approvers are all away today").andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("entitlement.missing"));
+        override(ADMIN, stage2, "approve", "short").andExpect(status().isBadRequest());
+        override(ADMIN, stage2, "approve", "Approvers are all away today")
+                .andExpect(status().isOk()).andExpect(jsonPath("$.stageOutcome").value("approved"));
+        override(ADMIN, stage2, "approve", "Approvers are all away today").andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("wf.override_refused.stage_closed"));
+        mvc.perform(get("/api/v1/workflow/instances/" + instance).with(asUser(VIEWER)))
+                .andExpect(jsonPath("$.stages[1].decisions[0].override").value(true))
+                .andExpect(jsonPath("$.stages[1].decisions[0].comment").value("Approvers are all away today"));
+
+        complete(stage2);
+        advance(instance);
+        override(ADMIN, stageId(instance, 3), "approve", "Same admin on the next stage").andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("wf.override_refused.separation_of_duties"));
+    }
+
+    @Test
     void anUnknownStageIsNotFound() throws Exception {
         decide(APPROVER1, UUID.randomUUID().toString(), "approve").andExpect(status().isNotFound());
     }
@@ -173,7 +203,7 @@ class WorkflowStageApiTest extends PostgresIntegrationTest {
                     """).param("m", model).param("seq", s + 1).param("type", types[s]).param("label", code + " " + (s + 1))
                     .param("task", task).param("sod", "approve".equals(types[s])).query(UUID.class).single();
             if (groups[s] != null) {
-                jdbc.sql("INSERT INTO wf.stage_group (stage_id, group_id) SELECT :s, group_id FROM wf.user_group WHERE group_code = :g")
+                jdbc.sql("INSERT INTO wf.stage_group (stage_id, group_id) SELECT :s, group_id FROM mdm.user_group WHERE group_code = :g")
                         .param("s", stage).param("g", groups[s]).update();
             }
         }
@@ -214,6 +244,11 @@ class WorkflowStageApiTest extends PostgresIntegrationTest {
     private ResultActions decide(String login, String stage, String decision) throws Exception {
         return mvc.perform(post("/api/v1/workflow/stages/" + stage + "/decision").with(asUser(login))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"" + decision + "\"}"));
+    }
+
+    private ResultActions override(String login, String stage, String decision, String reason) throws Exception {
+        return mvc.perform(post("/api/v1/workflow/stages/" + stage + "/override").with(asUser(login))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"" + decision + "\",\"reason\":\"" + reason + "\"}"));
     }
 
     private ResultActions enrich(String login, String stage, String body) throws Exception {

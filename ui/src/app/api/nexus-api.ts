@@ -133,6 +133,11 @@ export class NexusApi {
     return this.api.invoke(fn.decideStage, { stageId, body: { decision, comment } }, idem(key));
   }
 
+  /** ADR-042 D4: an ADMIN decides a stage in place of its groups; the reason is required and logged. */
+  overrideStage(stageId: string, decision: 'approve' | 'reject', reason: string, key: string): Promise<DecisionResult> {
+    return this.api.invoke(fn.overrideStage, { stageId, body: { decision, reason } }, idem(key));
+  }
+
   claim(stageId: string): Promise<void> {
     return this.api.invoke(fn.claimStage, { stageId, body: {} });
   }

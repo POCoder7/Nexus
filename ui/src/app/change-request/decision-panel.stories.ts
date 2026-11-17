@@ -16,3 +16,7 @@ export const Unavailable: Story = {
 };
 export const NothingOpen: Story = { args: { stage: null } };
 export const Busy: Story = { args: { busy: true } };
+/** ADR-042 D4: an ADMIN who is not in the stage's group is offered the override. */
+export const AdminCanOverride: Story = {
+  args: { stage: { instanceStageId: 's1', type: 'approve', youCanAct: false, youCanOverride: true }, reason: 'You are not in a group that still has to decide this stage.' },
+};

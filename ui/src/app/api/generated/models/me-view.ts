@@ -9,8 +9,9 @@ export interface MeView {
   businessTimeZone?: string;
   businessToday?: string;
   grants?: Array<Grant>;
+  groups?: Array<string>;
   permissions?: {
-[key: string]: Array<'READ' | 'PROPOSE' | 'DECIDE' | 'ADMIN_WORKFLOW' | 'ADMIN_POLICY' | 'ADMIN_SYSTEM' | 'ADMIN_VERSION'>;
+[key: string]: Array<'READ' | 'PROPOSE' | 'DECIDE' | 'ADMIN_WORKFLOW' | 'ADMIN_POLICY' | 'ADMIN_SYSTEM' | 'ADMIN_VERSION' | 'OVERRIDE_WORKFLOW' | 'PUBLISH' | 'READ_PUBLISHED'>;
 };
   preferences?: Preferences;
   workingVersion?: string;

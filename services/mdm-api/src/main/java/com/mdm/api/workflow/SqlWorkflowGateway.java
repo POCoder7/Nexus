@@ -25,6 +25,13 @@ public class SqlWorkflowGateway implements WorkflowGateway {
     }
 
     @Override
+    public String overrideStage(UUID instanceStageId, Actor actor, String decision, String reason) {
+        return jdbc.sql("SELECT wf.override_stage(:stage, :actor, :decision, :reason)")
+                .param("stage", instanceStageId).param("actor", actor.userId()).param("decision", decision).param("reason", reason)
+                .query(String.class).single();
+    }
+
+    @Override
     public String recordDecision(UUID instanceStageId, Actor actor, String decision, String comment) {
         return jdbc.sql("SELECT wf.record_stage_decision(:stage, :actor, :decision, :comment)")
                 .param("stage", instanceStageId).param("actor", actor.userId()).param("decision", decision).param("comment", comment)

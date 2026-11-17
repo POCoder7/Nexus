@@ -32,12 +32,12 @@ class ModelDefinitionLoaderTest extends PostgresIntegrationTest {
     void seed() {
         UUID a1 = ensureUser("ml_admin1", "human");
         UUID a2 = ensureUser("ml_admin2", "human");
-        grant("ml_admin1", "WORKFLOW_ADMIN", null, null);
-        grant("ml_admin2", "WORKFLOW_ADMIN", null, null);
+        grant("ml_admin1", "ADMIN", null, null);
+        grant("ml_admin2", "ADMIN", null, null);
         admin1 = new Actor(a1, "ml_admin1", "ml_admin1", "human");
         admin2 = new Actor(a2, "ml_admin2", "ml_admin2", "human");
         ownerJdbc().sql("""
-                INSERT INTO wf.user_group (group_code, name) VALUES ('T_APPROVERS', 'Approvers'), ('T_COMMITTERS', 'Committers')
+                INSERT INTO mdm.user_group (group_code, name) VALUES ('T_APPROVERS', 'Approvers'), ('T_COMMITTERS', 'Committers')
                 ON CONFLICT (group_code) DO NOTHING
                 """).update();
     }

@@ -45,7 +45,7 @@ cd services\mdm-api
 
 **After pulling changes, recreate the databases that are not built from scratch** (`nexus`, and `nexus_demo` if you
 kept it) whenever the pull edited a migration that was already applied. Until the first shared environment exists,
-applied migrations may still be edited (CLAUDE.md rule 6; Phase 5 edited V1, V3, V6, V9 and V11, for example). You can
+applied migrations may still be edited (CLAUDE.md rule 6; Phase 5 edited V1, V3, V4, V6, V8, V9, V10 and V11, for example: the users, roles and groups change of ADR-042 moved groups into `mdm` and renamed the roles, so every local `nexus` database from before it must be recreated). You can
 tell it happened: the API refuses to start with a Flyway `Validate failed: Migrations have failed validation` /
 `checksum mismatch` error. Recreate `nexus` with `docker compose down -v` (it removes the database volume, so every
 local database starts again; the test databases are rebuilt anyway), or run `scripts/demo` again for the demo.
@@ -75,7 +75,7 @@ The API refuses to start without an identity adapter; `local` reads the user fro
 ```sql
 INSERT INTO mdm.app_user (login, display_name, kind) VALUES ('dev_admin', 'Dev admin', 'human'), ('dev_steward', 'Dev steward', 'human');
 INSERT INTO mdm.user_role (user_id, role_code, granted_by, valid_period)
-SELECT s.user_id, 'STEWARD', a.user_id, daterange(current_date - 1, NULL)
+SELECT s.user_id, 'EDITOR', a.user_id, daterange(current_date - 1, NULL)
 FROM mdm.app_user s, mdm.app_user a WHERE s.login = 'dev_steward' AND a.login = 'dev_admin';
 ```
 Or load the synthetic seed the demo and the end-to-end tests use (users, hierarchies, properties, workflow models),

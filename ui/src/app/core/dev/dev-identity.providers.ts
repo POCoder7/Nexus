@@ -13,7 +13,9 @@ const KEY = 'nexus.dev.user';
 
 /** Synthetic logins offered by the picker (the end-to-end seed creates them); any other login can be typed. */
 export const DEV_LOGINS = ['e2e_steward', 'e2e_approver', 'e2e_committer', 'e2e_viewer', 'e2e_policy', 'e2e_architect',
-  'e2e_vadmin', 'e2e_vadmin2'];
+  'e2e_vadmin', 'e2e_vadmin2', 'e2e_admin', 'e2e_admin2',
+  // ADR-042 demo: roles through groups on ORGTL, ORGTP and AMBUS
+  'u_admin', 'u_editor1', 'u_editor2', 'u_approver1', 'u_approver2', 'u_viewer', 'svc_dw_consumer'];
 
 @Injectable({ providedIn: 'root' })
 export class DevIdentity {

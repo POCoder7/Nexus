@@ -27,6 +27,18 @@ describe('DecisionPanelComponent', () => {
     expect(sent).toEqual([{ stageId: 's1', decision: 'approve', comment: undefined }]);
   });
 
+  it('offers the override only when the server says it would be accepted (ADR-042 D4)', async () => {
+    const { el: hidden } = await render({ instanceStageId: 's1', type: 'approve', youCanAct: false, youCanOverride: false }, 'Not your group.');
+    expect(hidden.querySelector('[data-testid=override-offer]')).toBeNull();
+
+    const { fixture, el } = await render({ instanceStageId: 's2', type: 'approve', youCanAct: false, youCanOverride: true }, 'Not your group.');
+    const chosen: unknown[] = [];
+    fixture.componentInstance.override.subscribe((s) => chosen.push(s));
+    expect(el.querySelector('[data-testid=decision-reason]')!.textContent).toContain('Not your group.');
+    (el.querySelector('[data-testid=override-open] button') as HTMLButtonElement).click();
+    expect(chosen).toEqual([expect.objectContaining({ instanceStageId: 's2' })]);
+  });
+
   it('refuses to reject without a comment', async () => {
     const { fixture, el, sent } = await render({ instanceStageId: 's1', type: 'approve', youCanAct: true });
     [...el.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Reject')!.click();

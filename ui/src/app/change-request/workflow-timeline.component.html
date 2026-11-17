@@ -7,8 +7,12 @@
           <ds-badge [tone]="tone(s.status)">{{ status(s.status) }}</ds-badge>
         </div>
         @for (d of s.decisions ?? []; track $index) {
-          <p class="decision">
-            {{ d.decision }} — {{ t.decidedBy }} {{ who(d.decidedBy) }}, {{ d.decidedAt | nxInstant }}
+          <p class="decision" [attr.data-override]="d.override ? 'true' : null">
+            @if (d.override) {
+              <span aria-hidden="true">⚠ </span>{{ t.overriddenBy(who(d.decidedBy), d.decision ?? '') }}, {{ d.decidedAt | nxInstant }}
+            } @else {
+              {{ d.decision }} — {{ t.decidedBy }} {{ who(d.decidedBy) }}, {{ d.decidedAt | nxInstant }}
+            }
             @if (d.comment) {
               <q>{{ d.comment }}</q>
             }

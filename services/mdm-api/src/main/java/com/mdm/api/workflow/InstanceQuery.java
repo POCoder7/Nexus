@@ -27,10 +27,13 @@ public class InstanceQuery {
     public record StageView(UUID instanceStageId, int seq, int iteration, String label, String type, String status,
                             Boolean included, Instant dueAt, UUID claimedBy, Instant claimExpiresAt, boolean youCanAct,
                             /* the server's reason when an open stage is not yours to decide (wf.why_cannot_act), Phase 3 */ String whyNot,
+                            /* the override would be accepted (ADR-042 D4: ADMIN, not your request, SoD); a hint, the server decides */
+                            boolean youCanOverride,
                             List<DecisionView> decisions) {
     }
 
-    public record DecisionView(String groupCode, UUID decidedBy, String decision, String comment, Instant decidedAt) {
+    /** {@code override}: an ADMIN decided for the group (ADR-042 D4); {@code comment} is then the reason. */
+    public record DecisionView(String groupCode, UUID decidedBy, String decision, String comment, Instant decidedAt, boolean override) {
     }
 
     public record PolicyEvaluationView(String policyCode, String mode, boolean eligible, String outcome,
@@ -53,14 +56,21 @@ public class InstanceQuery {
                 SELECT ist.instance_stage_id, ist.seq, ist.iteration, ws.label, ws.stage_type::text AS type, ist.status::text AS status,
                        ist.included, ist.due_at, ist.claimed_by, ist.claim_expires_at, wf.can_act(ist.instance_stage_id, :viewer) AS can_act,
                        CASE WHEN ist.status IN ('active', 'claimed')
-                            THEN (SELECT w.message FROM wf.why_cannot_act(ist.instance_stage_id, :viewer) w LIMIT 1) END AS why_not
+                            THEN (SELECT w.message FROM wf.why_cannot_act(ist.instance_stage_id, :viewer) w LIMIT 1) END AS why_not,
+                       (ist.status IN ('active', 'claimed') AND ws.stage_type IN ('approve', 'commit') AND wi.status = 'in_flight'
+                        AND CAST(:viewer AS uuid) NOT IN (cr.requester_id, coalesce(wi.submitted_by, cr.requester_id))
+                        AND wf.admin_covers_request(:viewer, cr.change_request_id)
+                        AND NOT wf.sod_violation(ist.instance_stage_id, :viewer)) AS can_override
                 FROM wf.instance_stage ist JOIN wf.workflow_stage ws ON ws.stage_id = ist.stage_id
+                JOIN wf.workflow_instance wi ON wi.instance_id = ist.instance_id
+                JOIN mdm.change_request cr ON cr.change_request_id = wi.change_request_id
                 WHERE ist.instance_id = :i ORDER BY ist.seq, ist.iteration
                 """).param("i", instanceId).param("viewer", viewer.userId())
                 .query((rs, n) -> new StageView(rs.getObject("instance_stage_id", UUID.class), rs.getInt("seq"), rs.getInt("iteration"),
                         rs.getString("label"), rs.getString("type"), rs.getString("status"), (Boolean) rs.getObject("included"),
                         instant(rs.getTimestamp("due_at")), rs.getObject("claimed_by", UUID.class),
                         instant(rs.getTimestamp("claim_expires_at")), rs.getBoolean("can_act"), rs.getString("why_not"),
+                        rs.getBoolean("can_override"),
                         decisions(rs.getObject("instance_stage_id", UUID.class))))
                 .list();
         List<PolicyEvaluationView> evaluations = jdbc.sql("""
@@ -87,12 +97,12 @@ public class InstanceQuery {
 
     private List<DecisionView> decisions(UUID stageId) {
         return jdbc.sql("""
-                SELECT g.group_code, d.decided_by, d.decision, d.comment, d.decided_at
-                FROM wf.stage_group_decision d JOIN wf.user_group g ON g.group_id = d.group_id
+                SELECT g.group_code, d.decided_by, d.decision, d.comment, d.decided_at, d.override
+                FROM wf.stage_group_decision d JOIN mdm.user_group g ON g.group_id = d.group_id
                 WHERE d.instance_stage_id = :s ORDER BY d.decided_at
                 """).param("s", stageId)
                 .query((rs, n) -> new DecisionView(rs.getString(1), rs.getObject(2, UUID.class), rs.getString(3), rs.getString(4),
-                        instant(rs.getTimestamp(5))))
+                        instant(rs.getTimestamp(5)), rs.getBoolean(6)))
                 .list();
     }
 

@@ -55,11 +55,13 @@ public class ItemFactory {
     private final JdbcClient jdbc;
     private final ObjectMapper mapper;
     private final ChangeRequestRepository requests;
+    private final AccessItems access;
 
-    public ItemFactory(JdbcClient jdbc, ObjectMapper mapper, ChangeRequestRepository requests) {
+    public ItemFactory(JdbcClient jdbc, ObjectMapper mapper, ChangeRequestRepository requests, AccessItems access) {
         this.jdbc = jdbc;
         this.mapper = mapper;
         this.requests = requests;
+        this.access = access;
     }
 
     /** The item to insert, plus the (hierarchy, node) pairs the requester must have PROPOSE on. */
@@ -78,6 +80,12 @@ public class ItemFactory {
         String action = cmd.action();
         if (action == null || action.isBlank()) {
             throw ItemValidationException.field("action", "is required");
+        }
+        if (AccessItems.isAccess(action)) {   // ADR-042 D3: governed access changes (5-4b)
+            return access.build(action, payloadOf(cmd, action), cr.effectiveFrom(), earlier);
+        }
+        if (earlier.stream().anyMatch(e -> AccessItems.isAccess(e.action()))) {
+            throw new RuleException("access.mixed_request", "Access changes and other changes can't share a change request. Start a new request.");
         }
         if (!PHASE_1_ACTIONS.contains(action)) {
             throw new RuleException("change_item.action_not_available",
@@ -355,7 +363,7 @@ public class ItemFactory {
         ObjectNode payload = p == null ? JsonNodeFactory.instance.objectNode() : ((ObjectNode) p).deepCopy();
         List<Map<String, String>> unknown = new ArrayList<>();
         payload.fieldNames().forEachRemaining(f -> {
-            if (!ALLOWED_PAYLOAD.get(action).contains(f)) {
+            if (!ALLOWED_PAYLOAD.getOrDefault(action, AccessItems.ALLOWED_PAYLOAD.get(action)).contains(f)) {
                 unknown.add(Map.of("field", "payload." + f, "message", "is not allowed for " + action));
             }
         });

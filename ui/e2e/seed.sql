@@ -76,29 +76,37 @@ INSERT INTO mdm.property_value (node_id, property_id, value, valid_period)
 SELECT '00000000-0000-0000-0000-00000000a000', property_id, '"EUR"', daterange('2020-01-01', NULL)
 FROM mdm.property_definition WHERE property_code = 'E2E.Currency';
 
--- Roles (ADR-022) ---------------------------------------------------------------------------------------------------
-INSERT INTO mdm.user_role (user_id, role_code, hierarchy_id, granted_by, valid_period)
-SELECT u.user_id, r.role, CASE WHEN r.scoped THEN h.hierarchy_id END,
-       -- nobody grants their own role (maker-checker on grants)
-       CASE WHEN r.login = 'e2e_admin' THEN '00000000-0000-0000-0000-00000000e002'::uuid
+-- Roles through groups (ADR-042 D2): a group has a role and scopes, members get the role in each scope -----------------
+-- E2E_APPROVERS and E2E_COMMITTERS are also the workflow's approve and commit groups. APPROVER on every hierarchy:
+-- deciding a request that creates a hierarchy needs the decide right everywhere (a new hierarchy is in none yet).
+INSERT INTO mdm.user_group (group_code, name, role_code) VALUES
+  ('ADMIN_ALL',      'Administrators',        'ADMIN'),
+  ('E2E_EDITORS',    'E2E editors',           'EDITOR'),
+  ('E2E_VIEWERS',    'E2E viewers',           'VIEWER'),
+  ('E2E_APPROVERS',  'E2E approvers',         'APPROVER'),
+  ('E2E_COMMITTERS', 'E2E committers',        'APPROVER');
+INSERT INTO mdm.user_group_scope (group_id, hierarchy_id, valid_period)
+SELECT g.group_id, h.hierarchy_id, daterange(current_date - 1, NULL)
+FROM mdm.user_group g LEFT JOIN mdm.hierarchy h ON h.hierarchy_code = 'E2E_H' AND g.group_code IN ('E2E_EDITORS', 'E2E_VIEWERS')
+WHERE g.group_code IN ('ADMIN_ALL', 'E2E_EDITORS', 'E2E_VIEWERS', 'E2E_APPROVERS', 'E2E_COMMITTERS');
+INSERT INTO mdm.user_group_member (group_id, user_id, granted_by, valid_period)
+SELECT g.group_id, u.user_id,
+       -- nobody adds themselves (maker-checker on memberships)
+       CASE WHEN m.login = 'e2e_admin' THEN '00000000-0000-0000-0000-00000000e002'::uuid
             ELSE '00000000-0000-0000-0000-00000000e001'::uuid END,
        daterange(current_date - 1, NULL)
-FROM (VALUES ('e2e_steward', 'STEWARD', true), ('e2e_approver', 'APPROVER', true), ('e2e_committer', 'APPROVER', true),
-             ('e2e_viewer', 'VIEWER', true), ('e2e_policy', 'POLICY_ADMIN', false), ('e2e_admin', 'WORKFLOW_ADMIN', false),
-             ('e2e_admin2', 'WORKFLOW_ADMIN', false)) AS r(login, role, scoped)
-JOIN mdm.app_user u ON u.login = r.login
-CROSS JOIN (SELECT hierarchy_id FROM mdm.hierarchy WHERE hierarchy_code = 'E2E_H') h;
--- the management view is readable by the steward too (Home lists two hierarchies)
+FROM (VALUES ('ADMIN_ALL', 'e2e_admin'), ('ADMIN_ALL', 'e2e_admin2'), ('ADMIN_ALL', 'e2e_policy'),
+             ('E2E_EDITORS', 'e2e_steward'), ('E2E_VIEWERS', 'e2e_viewer'),
+             ('E2E_APPROVERS', 'e2e_approver'), ('E2E_COMMITTERS', 'e2e_committer'),
+             ('POLICY_APPROVERS', 'e2e_policy_approver')) AS m(group_code, login)
+JOIN mdm.user_group g ON g.group_code = m.group_code
+JOIN mdm.app_user u ON u.login = m.login;
+-- A direct grant, for an exception (ADR-042 C-2): the management view is readable by the steward too (Home lists two)
 INSERT INTO mdm.user_role (user_id, role_code, hierarchy_id, granted_by, valid_period)
 SELECT '00000000-0000-0000-0000-00000000e003', 'VIEWER', hierarchy_id, '00000000-0000-0000-0000-00000000e001', daterange(current_date - 1, NULL)
 FROM mdm.hierarchy WHERE hierarchy_code = 'E2E_MGMT';
 
 -- Workflow: Submit → Approve (separation of duties) → Commit ---------------------------------------------------------
-INSERT INTO wf.user_group (group_code, name) VALUES ('E2E_APPROVERS', 'E2E approvers'), ('E2E_COMMITTERS', 'E2E committers');
-INSERT INTO wf.user_group_member (group_id, user_id)
-SELECT g.group_id, u.user_id FROM wf.user_group g JOIN mdm.app_user u
-  ON (g.group_code, u.login) IN (('E2E_APPROVERS', 'e2e_approver'), ('E2E_COMMITTERS', 'e2e_committer'),
-                                 ('POLICY_APPROVERS', 'e2e_policy_approver'));
 
 INSERT INTO wf.workflow_task (task_code, label, allowed_actions) VALUES
   ('E2E_SUBMIT', 'Describe the new leaf', '{add_node,set_property}'),
@@ -116,7 +124,7 @@ INSERT INTO wf.workflow_stage (model_id, seq, stage_type, label, task_id, separa
   ('00000000-0000-0000-0000-00000000f001', 3, 'commit',  'Commit',  NULL, true);
 INSERT INTO wf.submit_task SELECT '00000000-0000-0000-0000-00000000f001', task_id FROM wf.workflow_task WHERE task_code = 'E2E_SUBMIT';
 INSERT INTO wf.stage_group (stage_id, group_id)
-SELECT s.stage_id, g.group_id FROM wf.workflow_stage s JOIN wf.user_group g
+SELECT s.stage_id, g.group_id FROM wf.workflow_stage s JOIN mdm.user_group g
   ON (s.seq = 2 AND g.group_code = 'E2E_APPROVERS') OR (s.seq = 3 AND g.group_code = 'E2E_COMMITTERS')
 WHERE s.model_id = '00000000-0000-0000-0000-00000000f001';
 -- activated by a second administrator (GOV-01)
@@ -139,7 +147,7 @@ INSERT INTO wf.workflow_stage (model_id, seq, stage_type, label, task_id, separa
   ('00000000-0000-0000-0000-00000000f002', 3, 'commit',  'Commit',  NULL, true);
 INSERT INTO wf.submit_task SELECT '00000000-0000-0000-0000-00000000f002', task_id FROM wf.workflow_task WHERE task_code = 'E2E_MAINTAIN';
 INSERT INTO wf.stage_group (stage_id, group_id)
-SELECT s.stage_id, g.group_id FROM wf.workflow_stage s JOIN wf.user_group g
+SELECT s.stage_id, g.group_id FROM wf.workflow_stage s JOIN mdm.user_group g
   ON (s.seq = 2 AND g.group_code = 'E2E_APPROVERS') OR (s.seq = 3 AND g.group_code = 'E2E_COMMITTERS')
 WHERE s.model_id = '00000000-0000-0000-0000-00000000f002';
 UPDATE wf.workflow_model SET status = 'active', activated_by = '00000000-0000-0000-0000-00000000e002', activated_at = now()
@@ -149,12 +157,7 @@ WHERE model_id = '00000000-0000-0000-0000-00000000f002';
 INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
   ('00000000-0000-0000-0000-00000000e009', 'e2e_architect', 'E2E Architect', 'human');
 INSERT INTO mdm.user_role (user_id, role_code, hierarchy_id, granted_by, valid_period)
-VALUES ('00000000-0000-0000-0000-00000000e009', 'STEWARD', NULL, '00000000-0000-0000-0000-00000000e001', daterange(current_date - 1, NULL));
-
--- Deciding a request that creates a hierarchy needs the decide right on every hierarchy (a new hierarchy is in none yet)
-INSERT INTO mdm.user_role (user_id, role_code, hierarchy_id, granted_by, valid_period)
-SELECT user_id, 'APPROVER', NULL, '00000000-0000-0000-0000-00000000e001', daterange(current_date - 1, NULL)
-FROM mdm.app_user WHERE login IN ('e2e_approver', 'e2e_committer');
+VALUES ('00000000-0000-0000-0000-00000000e009', 'EDITOR', NULL, '00000000-0000-0000-0000-00000000e001', daterange(current_date - 1, NULL));
 
 -- A property outside the Finance category, and a steward whose grant covers Finance properties only (ADR-036)
 INSERT INTO mdm.property_definition (property_code, label, category_code, data_type, scope)
@@ -165,7 +168,7 @@ WHERE t.task_code = 'E2E_MAINTAIN' AND p.property_code = 'E2E.LegalForm';
 INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
   ('00000000-0000-0000-0000-00000000e010', 'e2e_finance', 'E2E Finance Steward', 'human');
 INSERT INTO mdm.user_role (user_id, role_code, hierarchy_id, granted_by, valid_period, category_codes)
-SELECT '00000000-0000-0000-0000-00000000e010', 'STEWARD', hierarchy_id, '00000000-0000-0000-0000-00000000e001',
+SELECT '00000000-0000-0000-0000-00000000e010', 'EDITOR', hierarchy_id, '00000000-0000-0000-0000-00000000e001',
        daterange(current_date - 1, NULL), '{Finance}'
 FROM mdm.hierarchy WHERE hierarchy_code = 'E2E_H';
 
@@ -179,7 +182,7 @@ INSERT INTO mdm.ownership_edge (owner_node_id, owned_node_id, relation, economic
 INSERT INTO wf.commit_policy (policy_id, policy_code, description, rationale, mode, allowed_actions, owner_group_id, proposed_by)
 SELECT '00000000-0000-0000-0000-00000000f101', 'E2E_SHADOW', 'Low-risk leaf additions', 'Synthetic shadow policy', 'shadow',
        '{add_node,set_property}', group_id, '00000000-0000-0000-0000-00000000e006'
-FROM wf.user_group WHERE group_code = 'E2E_COMMITTERS';
+FROM mdm.user_group WHERE group_code = 'E2E_COMMITTERS';
 INSERT INTO wf.policy_scope (policy_id, model_code) VALUES ('00000000-0000-0000-0000-00000000f101', 'ADD_LEAF');
 SELECT wf.submit_commit_policy('00000000-0000-0000-0000-00000000f101', '00000000-0000-0000-0000-00000000e006');
 SELECT wf.approve_commit_policy('00000000-0000-0000-0000-00000000f101', '00000000-0000-0000-0000-00000000e007', 'E2E seed');
@@ -188,8 +191,67 @@ SELECT wf.approve_commit_policy('00000000-0000-0000-0000-00000000f101', '0000000
 INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
   ('00000000-0000-0000-0000-00000000e011', 'e2e_vadmin', 'E2E Version Admin One', 'human'),
   ('00000000-0000-0000-0000-00000000e012', 'e2e_vadmin2', 'E2E Version Admin Two', 'human');
-INSERT INTO mdm.user_role (user_id, role_code, hierarchy_id, granted_by, valid_period)
-SELECT user_id, 'VERSION_ADMIN', NULL, '00000000-0000-0000-0000-00000000e001', daterange(current_date - 1, NULL)
-FROM mdm.app_user WHERE login IN ('e2e_vadmin', 'e2e_vadmin2');
+INSERT INTO mdm.user_group_member (group_id, user_id, granted_by, valid_period)
+SELECT g.group_id, u.user_id, '00000000-0000-0000-0000-00000000e001', daterange(current_date - 1, NULL)
+FROM mdm.user_group g, mdm.app_user u WHERE g.group_code = 'ADMIN_ALL' AND u.login IN ('e2e_vadmin', 'e2e_vadmin2');
+
+-- Users, roles and groups demo (ADR-042; Phase 5 LLD §19.8) ---------------------------------------------------------
+-- Invented names only. Three small synthetic hierarchies; each role reaches its users through a group.
+-- The three hierarchies do not require a workflow, so a request is decided by any APPROVER of its hierarchy:
+-- u_approver1 decides ORGTL and ORGTP requests, u_approver2 AMBUS ones, and neither the other's.
+INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
+  ('00000000-0000-0000-0000-00000000e101', 'u_admin',         'Demo Admin',             'human'),
+  ('00000000-0000-0000-0000-00000000e102', 'u_editor1',       'Demo Editor One',        'human'),
+  ('00000000-0000-0000-0000-00000000e103', 'u_editor2',       'Demo Editor Two',        'human'),
+  ('00000000-0000-0000-0000-00000000e104', 'u_approver1',     'Demo Approver One',      'human'),
+  ('00000000-0000-0000-0000-00000000e105', 'u_approver2',     'Demo Approver Two',      'human'),
+  ('00000000-0000-0000-0000-00000000e106', 'u_viewer',        'Demo Viewer',            'human'),
+  ('00000000-0000-0000-0000-00000000e107', 'svc_dw_consumer', 'Demo warehouse feed',    'service');
+
+CREATE TEMP TABLE demo_node (id uuid PRIMARY KEY, hcode text, name text, kind mdm.node_kind, limb boolean, parent uuid, sort numeric);
+INSERT INTO demo_node VALUES
+  ('00000000-0000-0000-0000-00000000d100', 'ORGTL', 'Demo Org Legal Top',     'structural',   true,  NULL, 1),
+  ('00000000-0000-0000-0000-00000000d101', 'ORGTL', 'Demo Legal Region A',    'structural',   true,  '00000000-0000-0000-0000-00000000d100', 1),
+  ('00000000-0000-0000-0000-00000000d102', 'ORGTL', 'Demo Legal Entity A1',   'legal_entity', false, '00000000-0000-0000-0000-00000000d101', 1),
+  ('00000000-0000-0000-0000-00000000d103', 'ORGTL', 'Demo Legal Entity A2',   'legal_entity', false, '00000000-0000-0000-0000-00000000d101', 2),
+  ('00000000-0000-0000-0000-00000000d200', 'ORGTP', 'Demo Org Profit Top',    'structural',   true,  NULL, 1),
+  ('00000000-0000-0000-0000-00000000d201', 'ORGTP', 'Demo Profit Centre P1',  'structural',   true,  '00000000-0000-0000-0000-00000000d200', 1),
+  ('00000000-0000-0000-0000-00000000d202', 'ORGTP', 'Demo Profit Centre P2',  'structural',   true,  '00000000-0000-0000-0000-00000000d200', 2),
+  ('00000000-0000-0000-0000-00000000d300', 'AMBUS', 'Demo Business Top',      'structural',   true,  NULL, 1),
+  ('00000000-0000-0000-0000-00000000d301', 'AMBUS', 'Demo Business Line B1',  'structural',   true,  '00000000-0000-0000-0000-00000000d300', 1),
+  ('00000000-0000-0000-0000-00000000d302', 'AMBUS', 'Demo Business Line B2',  'structural',   true,  '00000000-0000-0000-0000-00000000d300', 2);
+INSERT INTO mdm.node (node_id, node_kind) SELECT id, kind FROM demo_node;
+INSERT INTO mdm.node_attr (node_id, node_name, description, allows_children, valid_period)
+SELECT id, name, 'Synthetic demo node', limb, daterange('2020-01-01', NULL) FROM demo_node;
+INSERT INTO mdm.hierarchy (hierarchy_code, hierarchy_name, purpose, top_node_id, allow_shared_nodes, requires_workflow, sort_seq) VALUES
+  ('ORGTL', 'Demo Org Legal',    'legal_consolidation', '00000000-0000-0000-0000-00000000d100', false, false, 11),
+  ('ORGTP', 'Demo Org Profit',   'management',          '00000000-0000-0000-0000-00000000d200', false, false, 12),
+  ('AMBUS', 'Demo AM Business',  'management',          '00000000-0000-0000-0000-00000000d300', false, false, 13);
+INSERT INTO mdm.hierarchy_relationship (hierarchy_id, parent_node_id, child_node_id, is_primary, sort_order, valid_period)
+SELECT h.hierarchy_id, n.parent, n.id, true, n.sort, daterange('2020-01-01', NULL)
+FROM demo_node n JOIN mdm.hierarchy h ON h.hierarchy_code = n.hcode WHERE n.parent IS NOT NULL;
+
+INSERT INTO mdm.user_group (group_code, name, role_code) VALUES
+  ('ORG_EDITORS',   'Org editors',    'EDITOR'),
+  ('ORG_APPROVERS', 'Org approvers',  'APPROVER'),
+  ('AM_EDITORS',    'AM editors',     'EDITOR'),
+  ('AM_APPROVERS',  'AM approvers',   'APPROVER'),
+  ('ALL_VIEWERS',   'All viewers',    'VIEWER'),
+  ('DOWNSTREAM',    'Downstream feeds', 'CONSUMER');
+INSERT INTO mdm.user_group_scope (group_id, hierarchy_id, valid_period)
+SELECT g.group_id, h.hierarchy_id, daterange(current_date - 1, NULL)
+FROM (VALUES ('ORG_EDITORS', 'ORGTL'), ('ORG_EDITORS', 'ORGTP'), ('ORG_APPROVERS', 'ORGTL'), ('ORG_APPROVERS', 'ORGTP'),
+             ('AM_EDITORS', 'AMBUS'), ('AM_APPROVERS', 'AMBUS'),
+             ('ALL_VIEWERS', 'ORGTL'), ('ALL_VIEWERS', 'ORGTP'), ('ALL_VIEWERS', 'AMBUS'),
+             ('DOWNSTREAM', 'ORGTL'), ('DOWNSTREAM', 'ORGTP'), ('DOWNSTREAM', 'AMBUS')) AS s(group_code, hcode)
+JOIN mdm.user_group g ON g.group_code = s.group_code
+JOIN mdm.hierarchy h ON h.hierarchy_code = s.hcode;
+INSERT INTO mdm.user_group_member (group_id, user_id, granted_by, valid_period)
+SELECT g.group_id, u.user_id, '00000000-0000-0000-0000-00000000e001', daterange(current_date - 1, NULL)
+FROM (VALUES ('ADMIN_ALL', 'u_admin'), ('ORG_EDITORS', 'u_editor1'), ('AM_EDITORS', 'u_editor2'),
+             ('ORG_APPROVERS', 'u_approver1'), ('AM_APPROVERS', 'u_approver2'), ('ALL_VIEWERS', 'u_viewer'),
+             ('DOWNSTREAM', 'svc_dw_consumer')) AS m(group_code, login)
+JOIN mdm.user_group g ON g.group_code = m.group_code
+JOIN mdm.app_user u ON u.login = m.login;
 
 COMMIT;

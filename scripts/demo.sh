@@ -97,6 +97,8 @@ cat <<EOF
 Demo running: http://localhost:$UI_PORT   (API http://localhost:$API_PORT, database $DB)
 Sign in with the "Development user" picker. Synthetic users from ui/e2e/seed.sql:
   e2e_architect (every change)  e2e_steward (propose)  e2e_approver (approve)  e2e_committer (commit)
-  e2e_viewer (read only)        e2e_vadmin / e2e_vadmin2 (versions)
+  e2e_viewer (read only)        e2e_vadmin / e2e_vadmin2 / e2e_admin / e2e_admin2 (ADMIN)
+  Roles through groups (ORGTL, ORGTP, AMBUS): u_admin (ADMIN)  u_editor1 / u_approver1 (ORGTL, ORGTP)
+  u_editor2 / u_approver2 (AMBUS)  u_viewer (all three)  svc_dw_consumer (service account: published output only)
 Logs: .demo/api.log, .demo/ui.log    Stop: scripts/demo-stop.sh
 EOF

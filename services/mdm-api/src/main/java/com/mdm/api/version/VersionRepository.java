@@ -100,7 +100,7 @@ public class VersionRepository {
         return out;
     }
 
-    /** Same rule as the functions' N1028 check: a current VERSION_ADMIN grant on all hierarchies, held by an active person. */
+    /** Same rule as the functions' N1028 check: ADMIN on all hierarchies, directly or through a group, held by an active person (ADR-042). */
     public boolean isAdmin(UUID userId) {
         return jdbc.sql("SELECT mdm.is_version_admin(:u)").param("u", userId).query(Boolean.class).single();
     }

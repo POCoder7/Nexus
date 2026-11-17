@@ -52,6 +52,16 @@ public class WorkflowController {
         return new DecisionResult(stages.decide(actor, stageId, body == null ? null : body.decision(), body == null ? null : body.comment()));
     }
 
+    /** {@code reason}: required, at least 10 characters; shown on the request's timeline. */
+    public record OverrideBody(String decision, String reason) {
+    }
+
+    /** Workflow override by an ADMIN (ADR-042 D4): passes over the stage's groups, claims and order; logged with the reason. */
+    @PostMapping("/stages/{stageId}/override")
+    public DecisionResult overrideStage(Actor actor, @PathVariable UUID stageId, @RequestBody(required = false) OverrideBody body) {
+        return new DecisionResult(stages.override(actor, stageId, body == null ? null : body.decision(), body == null ? null : body.reason()));
+    }
+
     @PostMapping("/stages/{stageId}/claim")
     public ResponseEntity<Void> claimStage(Actor actor, @PathVariable UUID stageId,
                                       @RequestBody(required = false) Map<String, Object> ignored) {

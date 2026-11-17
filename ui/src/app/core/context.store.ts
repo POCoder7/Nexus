@@ -7,7 +7,8 @@ import { WORKING_VERSIONS_LIMIT } from './config';
 import { STRINGS } from './strings';
 import { UiError } from './ui-error';
 
-export type PermissionName = 'READ' | 'PROPOSE' | 'DECIDE' | 'ADMIN_WORKFLOW' | 'ADMIN_POLICY' | 'ADMIN_SYSTEM' | 'ADMIN_VERSION';
+export type PermissionName = 'READ' | 'PROPOSE' | 'DECIDE' | 'ADMIN_WORKFLOW' | 'ADMIN_POLICY' | 'ADMIN_SYSTEM' | 'ADMIN_VERSION'
+  | 'OVERRIDE_WORKFLOW' | 'PUBLISH' | 'READ_PUBLISHED';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
@@ -175,12 +176,13 @@ export class ContextStore {
   }
 
   /**
-   * May the user propose edits to properties of this category here (ADR-036)? A hint for showing "Edit": a PROPOSE grant on
-   * the hierarchy (or every hierarchy) whose categories are unlimited or include it. The server decides.
+   * May the user propose edits to properties of this category here (ADR-036)? A hint for showing "Edit": a PROPOSE grant
+   * (EDITOR or ADMIN, ADR-042) on the hierarchy (or every hierarchy) whose categories are unlimited or include it.
+   * The server decides.
    */
   canEditCategory(hierarchyCode: string | null, category: string | null | undefined): boolean {
     return (this.me()?.grants ?? []).some((g) =>
-      (g.roleCode === 'STEWARD') && (!g.hierarchyCode || g.hierarchyCode === hierarchyCode)
+      (g.roleCode === 'EDITOR' || g.roleCode === 'ADMIN') && (!g.hierarchyCode || g.hierarchyCode === hierarchyCode)
       && (!g.categoryCodes || (!!category && g.categoryCodes.includes(category))));
   }
 

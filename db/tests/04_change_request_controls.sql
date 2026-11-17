@@ -18,7 +18,7 @@ INSERT INTO mdm.change_request (change_request_id, version_id, title, requester_
 UPDATE mdm.change_request SET status = 'submitted', submitted_at = now()
 WHERE change_request_id = '00000000-0000-0000-0000-0000000004f2';
 
-INSERT INTO wf.user_group (group_id, group_code, name)
+INSERT INTO mdm.user_group (group_id, group_code, name)
 VALUES ('00000000-0000-0000-0000-0000000004e1', 'C_OWNERS', 'Test owners');
 
 -- ---------------------------------------------------------------- requester kind (D-05)

@@ -1197,7 +1197,12 @@ UI (UI_STANDARD):
   - `DOWNSTREAM`: CONSUMER on the three;
 - `ADMIN_ALL`: a second ADMIN group, so two ADMINs (`u_admin` and the existing `e2e_admin`) can satisfy the two-person
   rules;
-- workflow models for the new hierarchies whose approve stages name `ORG_APPROVERS` and `AM_APPROVERS`.
+- ~~workflow models for the new hierarchies whose approve stages name `ORG_APPROVERS` and `AM_APPROVERS`~~.
+  *Built in 5-4a as:* the three hierarchies do not require a workflow, so a request is decided by an APPROVER of its
+  hierarchy (`u_approver1` for ORGTL and ORGTP, `u_approver2` for AMBUS). Per-hierarchy models would not be reached:
+  the UI raises requests under the fixed model codes `ADD_LEAF` and `MAINTAIN` (`model_scope` does not choose a
+  model), and adding both groups to one approve stage would need a decision from each. Choosing a model by hierarchy
+  (DRM/DRG model filters) is a separate gap; it is not part of ADR-042. Seed data only: no rule changes.
 
 The existing `e2e_*` users keep their grants and become members of equivalent groups (for example `e2e_steward` →
 `E2E_EDITORS`), so the existing journeys run unchanged.
@@ -1222,6 +1227,27 @@ The existing `e2e_*` users keep their grants and become members of equivalent gr
 
 Then 5-5 (read filtering), which reads effective grants and so covers group scopes.
 
+*Built (2026-11-17):*
+- **5-4a** as designed. Two details: a group **without** a role grants nothing, so holder kinds are checked only for
+  groups with a role (an AI agent may be listed in a pure workflow group; the workflow's own guards refuse its
+  decisions, N1010 and N1002); `user_role.category_codes` moved from V10 to V8, because `effective_grants` reads it.
+  The demo hierarchies' approvals: see §19.8.
+- **5-4b** in a new `V14__access_changes.sql` (the enum values in V1 and the hard limit in V6, as a new enum value
+  cannot be used in the migration that adds it). Additions to §19.4: access items are never mixed with other actions
+  and never in a sandbox (`N2237`); payloads name groups, users, roles and hierarchies by code, so one request can
+  create a group and fill it; the proposer and the approver may not be given access by the request (`N1034`); a
+  group's role changes only while it has no current scopes or members (`N2105`). New codes `N1033`, `N1034`, `N2237`;
+  `N2231`–`N2233` reused. API: `AccessItems` checks the payloads early; ADMIN is required to add access items and to
+  see, validate and decide an access request (an APPROVER for every hierarchy does not).
+- **5-4c** in a new `V15__workflow_override.sql`. The override decides **approve or reject**: push-back is not built
+  for any stage decision yet (GOV-09). Only open approve and commit stages can be overridden. The instance view gives
+  `youCanOverride` per stage (a hint) and `override` per decision; the request page offers **Override…** with a
+  dialog that requires the reason, and the timeline shows "Overridden by {name}". Tests: pgTAP 29, JUnit
+  `WorkflowStageApiTest`, Playwright `13-override`.
+- **5-4d not built:** the owner decided not to build the Administration → Access screens and `13-access`
+  (2026-11-17). Access changes are made through the API (`POST /change-requests/{id}/items` with the eight actions)
+  until a later decision; `GET /admin/users` and `GET /admin/groups` are not built either.
+
 | Choice | Recommendation |
 |---|---|
 | **C-1** | Fold `WORKFLOW_ADMIN`, `POLICY_ADMIN`, `SYSTEM_ADMIN` and `VERSION_ADMIN` into ADMIN (the owner's five roles) |
@@ -1235,3 +1261,25 @@ New codes:
 - `N1032` `roles.holder_kind`.
 
 A new open decision, OD-49a: Audit-Risk confirms the override before it merges to `main`.
+
+## 20. All hierarchies in one tree (HIE-12, VER-01; owner request 2026-11-17)
+The repository owner asked to see every hierarchy as one tree, with the version as its root ("yes.. show it as a tree
+(with version name as root"). It is a new screen beside the one-hierarchy workspace; nothing in the workspace changes.
+UI only: it reads the existing endpoints (`GET /hierarchies`, `GET /hierarchies/{code}`, children, path, node), so there
+is no API, schema or decision change and no ADR.
+
+- **Route and navigation:** `/browse`, "All hierarchies" in the main navigation, after "Hierarchies".
+- **Root:** one version: the version picture in the URL (`?version=`, `?asOf=`, `?recordedAsOf=`, Phase 3 LLD V.6) or,
+  without one, the user's working version read at today. The root row names it, its status and its business date. A
+  version is a slice of the data, not a copy (ADR-037), so the root shows the same data the workspace shows for that
+  slice. One root at a time: comparing versions is VER-04 (compares, §17).
+- **Level 1:** the hierarchies the user may read (the server filters the list), sorted as the server returns them. A
+  hierarchy row is its top node, labelled with the hierarchy's name and code.
+- **Below:** each hierarchy's tree, loaded only when its row is first expanded, in pages of `CHILDREN_PAGE`, with the
+  workspace's tree state per hierarchy (`HierarchyStore`: paging, shared-node markers, errors with retry, cached per
+  slice). Row ids are `{hierarchy code}|{node id}`, so a node placed in several hierarchies is a separate row in each.
+- **Detail:** selecting a node shows the node panel for that node in its hierarchy, read-only, with "Open in {hierarchy}"
+  to edit it in the workspace (`/hierarchies/{code}?node=`), which keeps one place for changes.
+- **Accessibility:** the same `nx-hierarchy-tree` (WAI-ARIA tree, keyboard, virtual scrolling); the root and the
+  hierarchy rows are tree items like any other.
+- **Tests:** Vitest for the store (root, lazy open, ids, collapse, errors); Playwright `14-all-hierarchies` with axe.

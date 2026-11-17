@@ -37,6 +37,7 @@ export type { NodeDetail } from './models/node-detail';
 export type { NodePath } from './models/node-path';
 export type { NodeRef } from './models/node-ref';
 export type { OpenRequests } from './models/open-requests';
+export type { OverrideBody } from './models/override-body';
 export type { OwnershipEdge } from './models/ownership-edge';
 export type { PageChangeRequestView } from './models/page-change-request-view';
 export type { PageChildNode } from './models/page-child-node';

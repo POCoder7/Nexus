@@ -38,7 +38,7 @@ SELECT has_index('mdm', 'node_attr', 'node_attr_description_trgm', 'Trigram inde
 -- Property edit rights by category (ADR-036) -----------------------------------------------------------------------
 SELECT has_column('mdm', 'user_role', 'category_codes', 'Grants can be limited to property categories');
 SELECT throws_ok($$INSERT INTO mdm.user_role (user_id, role_code, granted_by, valid_period, category_codes)
-  VALUES ('00000000-0000-0000-0000-000000003a01', 'STEWARD', '00000000-0000-0000-0000-000000003a02', daterange(current_date, NULL), '{}')$$,
+  VALUES ('00000000-0000-0000-0000-000000003a01', 'EDITOR', '00000000-0000-0000-0000-000000003a02', daterange(current_date, NULL), '{}')$$,
   '23514', NULL, 'An empty category list is refused (NULL means all categories)');
 
 SELECT * FROM finish();

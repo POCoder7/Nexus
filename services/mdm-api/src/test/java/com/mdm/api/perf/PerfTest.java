@@ -65,7 +65,7 @@ class PerfTest extends PostgresIntegrationTest {
         }
         ownerJdbc().sql("INSERT INTO mdm.version (version_name, business_as_of) VALUES ('PERF working', current_date) "
                 + "ON CONFLICT (version_name) DO NOTHING").update();
-        grant(STEWARD, "STEWARD", SyntheticHierarchy.CODE, null);
+        grant(STEWARD, "EDITOR", SyntheticHierarchy.CODE, null);
         grant(APPROVER, "APPROVER", SyntheticHierarchy.CODE, null);
     }
 

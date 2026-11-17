@@ -81,9 +81,9 @@ class ChangeRequestApiTest extends PostgresIntegrationTest {
                     FROM mdm.hierarchy WHERE hierarchy_code = 'CR_H'
                     """).update();
         }
-        grant(STEWARD, "STEWARD", "CR_H", null);
+        grant(STEWARD, "EDITOR", "CR_H", null);
         grant(APPROVER, "APPROVER", "CR_H", null);
-        grant(SCOPED, "STEWARD", "CR_H", AMERICAS);
+        grant(SCOPED, "EDITOR", "CR_H", AMERICAS);
         grant(VIEWER, "VIEWER", "CR_H", null);
         grant(OTHER, "VIEWER", "CR_H", null);
     }
@@ -152,7 +152,7 @@ class ChangeRequestApiTest extends PostgresIntegrationTest {
     @Test
     void mineListsOwnRequestsNewestFirstWithCursor() throws Exception {
         String login = "cr_lister";
-        grant(login, "STEWARD", "CR_H", null);
+        grant(login, "EDITOR", "CR_H", null);
         String first = create(login, "First");
         String second = create(login, "Second");
         MvcResult page1 = mvc.perform(get("/api/v1/change-requests").param("limit", "1").with(asUser(login)))
@@ -264,7 +264,7 @@ class ChangeRequestApiTest extends PostgresIntegrationTest {
     @Test
     void addHierarchyNeedsAnAllHierarchiesGrantAndAValidPurpose() throws Exception {
         String admin = "cr_all_steward";
-        grant(admin, "STEWARD", null, null);
+        grant(admin, "EDITOR", null, null);
         String body = "{\"action\":\"add_hierarchy\",\"payload\":{\"code\":\"CR_NEW\",\"name\":\"CR new\",\"purpose\":\"%s\","
                 + "\"topNode\":{\"nodeKind\":\"structural\",\"name\":\"CR new top\"}}}";
         String scoped = create(STEWARD, "Hierarchy, scoped steward");
