@@ -1032,3 +1032,206 @@ The `dev.cel` version is `dev.cel:cel` 0.15.0. `protobuf-java` 4.36.2 and `guava
 | `P95_SEARCH_MS` | 800 |
 | `P95_COMPARE_STRUCTURE_S` | 30 |
 | `P95_BATCH_ADD_S` | 10 |
+
+## 19. Users, roles and groups (ADR-042; for review)
+
+**Status: designed 2026-11-17 and approved by the repository owner the same day, with every recommended choice C-1 to C-5 (§19.10).** It
+replaces increment 5-4 (§16) and comes before 5-5. Capabilities: SEC-01, SEC-02, SEC-03, GOV-01, GOV-06.
+
+### 19.1 The model
+```mermaid
+flowchart LR
+  U[User<br/>person or service] -- member of, bitemporal --> G[Group]
+  G -- has at most one --> R[Role]
+  G -- scopes, bitemporal --> S[Scope<br/>all hierarchies, a hierarchy or a sub-tree,<br/>optionally property categories]
+  U -- direct grant, for exceptions --> DG[Role and scope]
+  G -- named by --> ST[Workflow stages,<br/>commit policies]
+```
+A user's **effective grants** on a business date are their direct grants, plus one grant per (group they belong to ×
+that group's scope) for every group with a role. Every entitlement check reads effective grants.
+
+### 19.2 Roles and permissions (fixed in code, ADR-022)
+| Role | Permissions | Who may hold it |
+|---|---|---|
+| `VIEWER` | `READ`: browse hierarchies, properties, versions and audit | People |
+| `EDITOR` (was `STEWARD`) | `READ`, `PROPOSE`: draft changes, sandboxes, imports, submit | People |
+| `APPROVER` | `READ`, `DECIDE`: decide requests, never their own (database guard) | People |
+| `ADMIN` | Every permission: `READ`, `PROPOSE`, `DECIDE`, `ADMIN_SYSTEM`, `ADMIN_WORKFLOW`, `ADMIN_POLICY`, `ADMIN_VERSION`, `OVERRIDE_WORKFLOW` (new), `PUBLISH` (new, used from Phase 8) | People |
+| `CONSUMER` | `READ_PUBLISHED` (new): the Phase 8 export files and change-event feed; nothing else | Service accounts only |
+
+`WORKFLOW_ADMIN`, `POLICY_ADMIN`, `SYSTEM_ADMIN` and `VERSION_ADMIN` are removed (C-1). The checks that named them
+use ADMIN:
+- SQL: `wf.has_role`, `wf.is_workflow_admin` (V9), `mdm.is_version_admin` (V11), the grant checks of §19.4;
+- Java: `RolePermissions`;
+- UI: `ContextStore.canEditCategory`, which names `STEWARD` today.
+
+The rules that need **two different people** stay as they are, and two ADMINs satisfy them: model activation (N1014),
+policy approval by `POLICY_APPROVERS`, version finalize (ADR-037 D4), and every governed access change (§19.4).
+
+### 19.3 Data design
+```sql
+-- edit V1: who may sign in
+ALTER TYPE requester_kind ADD VALUE 'service';            -- app_user.kind; a service never raises a request (§19.6)
+
+-- edit V8: roles and groups (groups moved from wf, V4)
+-- mdm.role rows: VIEWER, EDITOR, APPROVER, ADMIN, CONSUMER, plus column holder_kind ('human' or 'service')
+CREATE TABLE mdm.user_group (
+  group_id uuid PRIMARY KEY, group_code text UNIQUE NOT NULL, name text NOT NULL, description text,
+  role_code text REFERENCES mdm.role,                    -- NULL = a pure workflow group (e.g. POLICY_APPROVERS)
+  is_active boolean NOT NULL DEFAULT true);
+CREATE TABLE mdm.user_group_scope (                      -- what the group's role covers; bitemporal like user_role
+  group_id uuid NOT NULL REFERENCES mdm.user_group,
+  hierarchy_id uuid REFERENCES mdm.hierarchy,            -- NULL = every hierarchy
+  top_node_id uuid REFERENCES mdm.node,                  -- NULL = the whole hierarchy
+  category_codes text[],                                 -- NULL = every property category (ADR-036)
+  valid_period daterange NOT NULL, recorded_period tstzrange NOT NULL DEFAULT tstzrange(now(), NULL),
+  change_request_id uuid REFERENCES mdm.change_request);
+  -- plus an exclusion constraint: no overlapping current rows for the same (group, hierarchy, sub-tree top)
+CREATE TABLE mdm.user_group_member (...);                -- moved from wf.user_group_member, same history rules (D-33),
+                                                         -- change_request_id instead of the V9 change id
+-- mdm.user_role: unchanged, plus change_request_id      -- direct grants (C-2)
+
+CREATE FUNCTION mdm.effective_grants(p_user uuid, p_on date, p_rec timestamptz DEFAULT now())
+  RETURNS TABLE (role_code text, hierarchy_id uuid, top_node_id uuid, category_codes text[], source_group_id uuid);
+CREATE FUNCTION mdm.is_member(p_group uuid, p_user uuid, p_on date) RETURNS boolean;     -- replaces wf.is_member
+CREATE FUNCTION mdm.holds_role(p_user uuid, p_role text, p_on date) RETURNS boolean;     -- an all-hierarchy grant
+
+-- edit V4, V6, V9: wf references mdm.user_group
+--   wf.stage_group.group_id, wf.stage_group_decision.group_id, wf.commit_policy.owner_group_id -> mdm.user_group
+--   wf.is_member stays as a thin wrapper over mdm.is_member, so the Phase 2 functions and tests keep their calls
+--   wf.user_group, wf.user_group_member, wf.membership_change and its two functions are removed (§19.4 replaces them)
+```
+- **Guards:**
+  - Membership and scope rows are never updated or deleted, only closed (`trg_bitemporal_guard`), and are audited.
+  - A role's `holder_kind` must match the member's kind (N1032): people hold every role except CONSUMER, and service
+    accounts hold only CONSUMER.
+  - Nobody grants a membership or a role to themselves (CHECK on `granted_by`, as today).
+  - AI agents and the system actor hold no role (N1009, as today).
+- **Volumes:** at most tens of groups, hundreds of members, a few scopes per group. `effective_grants` is one query of
+  three small joins, called on each request as `grants()` is today.
+
+### 19.4 Governed changes (replaces ADR-029's actions and `wf.membership_change`)
+| Action | Payload | Apply writes |
+|---|---|---|
+| `create_group` | code, name, description, role (or none) | `user_group` |
+| `update_group` | name, description, active; the role cannot change while the group has scopes or members | `user_group` |
+| `add_group_scope` / `end_group_scope` | group, hierarchy (or all), sub-tree top (or whole), categories (or all) | `user_group_scope` |
+| `add_group_member` / `remove_group_member` | group, user | `user_group_member` |
+| `grant_role` / `revoke_role` | user, role, scope, categories | `user_role` |
+
+- **Who proposes and decides:** an ADMIN proposes and a different ADMIN decides, through the core decision path. A
+  change to `POLICY_APPROVERS` membership also needs a decider who is in it (the V9 rule, kept).
+- **Never straight-through:** all eight actions join the V6 hard-limit CHECK.
+- **Requests and items:**
+  - The items carry `hierarchy_id` NULL, so a request with them is decided in core mode; the Phase 2 "requires
+    workflow" rule does not apply.
+  - The request's version is irrelevant to them. They take effect at the request's effective date, like every other
+    fact.
+- **Applying:**
+  - The apply handlers are `apply_create_group`, `apply_add_group_member` and the rest, following the `apply_fact`
+    pattern.
+  - They write as `nexus_apply`, which gains INSERT and UPDATE (`recorded_period`) on the three tables.
+  - The API login keeps SELECT only.
+- **Bootstrap:** the first ADMINs are created by the database owner in the seed, as today. There is no other path.
+
+### 19.5 Workflow override (D4)
+`wf.override_stage(p_instance_stage_id, p_actor, p_decision, p_reason)`, owned by `nexus_wf` like
+`wf.record_stage_decision`:
+- **Refused when** (all `N1031`, `wf.override_refused`, with a hint for each case):
+  - the actor does not hold `OVERRIDE_WORKFLOW` on the request's hierarchies (via ADMIN);
+  - the reason is shorter than 10 characters;
+  - the stage is not open;
+  - the actor is the requester (also the maker-checker trigger, N1001);
+  - the actor is not a person;
+  - the actor already decided another stage of the same request lineage (`wf.sod_violation`).
+- **Writes:** one `stage_group_decision` row for each group that has not decided, with `decided_by` = the actor and
+  `override = true` (new column), and one `instance_action` `override` with the reason.
+- **Then:** the stage completes as for any decision. If it is the commit stage, the bridge records the decision as
+  today, with `decision_basis` `human_review`.
+- **What it passes over:** group membership, claims and group order, and nothing else. `trg_decision_guard` skips its
+  membership and `can_act` checks only for an override row, and only when the row was written by `wf.override_stage`
+  (a session setting the function sets, the same pattern as `mdm.sandbox_capture`).
+- **Shown:** on the request timeline as "Overridden by {name}: {reason}". The worklist's Participated view lists it.
+
+### 19.6 Service accounts and CONSUMER
+- `app_user.kind = 'service'`. A service account:
+  - may hold only CONSUMER (N1032);
+  - can never be a requester (the `trg_cr_requester_kind` path refuses kind `service` with N1005);
+  - never decides (the maker-checker trigger already requires `human`) and never applies.
+- `READ_PUBLISHED` guards no endpoint until Phase 8. Until then a service account gets 403 from every endpoint except
+  `GET /me`. This is the rule in `EntitlementService`: every READ check fails for a holder of CONSUMER only.
+- **Sign-in:**
+  - Locally a service account signs in through the development identity header, like the e2e users.
+  - Phase 9 adds client-credentials sign-in (ADR-033). Its subject maps to the service account, as a person's maps to
+    theirs.
+
+### 19.7 API and UI
+| Endpoint | Purpose | Auth |
+|---|---|---|
+| `GET /api/v1/admin/users?cursor` | Users with their groups and effective roles | ADMIN |
+| `GET /api/v1/admin/groups?cursor`, `GET /api/v1/admin/groups/{code}` | Groups, their role, scopes and members (current, and at `asOf`) | ADMIN; READ sees group names and roles only |
+| `POST /api/v1/change-requests/{id}/items` with the eight actions | Propose access changes | ADMIN proposes; another ADMIN decides |
+| `POST /api/v1/workflow/stages/{stageId}/override` `{decision, reason}` | Override (§19.5) | ADMIN |
+| `GET /api/v1/me` | Adds the user's groups, and where each grant comes from (direct or a group) | Everyone |
+
+UI (UI_STANDARD):
+- **Administration → Access**, three tabs:
+  - **Users:** search, then a user's groups and effective grants, with their source.
+  - **Groups:** role, scopes and members, with "Propose change", which adds items to the tray.
+  - **History:** who was in which group on a date.
+- **Request page:** an **Override** action for ADMIN, opening a dialog with a required reason and the warning that it
+  passes over the stage's approvers and is logged.
+- **Navigation:** Administration appears for ADMIN only. The server decides in every case.
+
+### 19.8 Seed and demo data (synthetic, owner decision 5)
+`ui/e2e/seed.sql` gains:
+- three invented hierarchies, `ORGTL`, `ORGTP` and `AMBUS`, each a small synthetic tree;
+- the seven users of the owner's table: `u_admin`, `u_editor1`, `u_editor2`, `u_approver1`, `u_approver2`,
+  `u_viewer`, and `svc_dw_consumer` (kind `service`);
+- six groups:
+  - `ORG_EDITORS`: EDITOR on ORGTL and ORGTP;
+  - `ORG_APPROVERS`: APPROVER on ORGTL and ORGTP;
+  - `AM_EDITORS`: EDITOR on AMBUS;
+  - `AM_APPROVERS`: APPROVER on AMBUS;
+  - `ALL_VIEWERS`: VIEWER on the three;
+  - `DOWNSTREAM`: CONSUMER on the three;
+- `ADMIN_ALL`: a second ADMIN group, so two ADMINs (`u_admin` and the existing `e2e_admin`) can satisfy the two-person
+  rules;
+- workflow models for the new hierarchies whose approve stages name `ORG_APPROVERS` and `AM_APPROVERS`.
+
+The existing `e2e_*` users keep their grants and become members of equivalent groups (for example `e2e_steward` →
+`E2E_EDITORS`), so the existing journeys run unchanged.
+
+### 19.9 Tests
+| Area | Cases | Type |
+|---|---|---|
+| Effective grants | P: a group's scopes reach its members; a direct grant still works. B: membership ending yesterday is gone today and present at a past date. C: equals the hand-computed answer on the seed | pgTAP, JUnit |
+| Holder kinds | N: a person given CONSUMER, a service given EDITOR (N1032). N: a service raising a request (N1005). N: an AI agent in a group with a role (N1009) | pgTAP |
+| Governed access changes | P: each action proposed by one ADMIN, decided by another, applied, history and audit rows. N: self-decision; self-grant; a commit policy listing an action (CHECK); `POLICY_APPROVERS` change decided by a non-member. N: the API login writing a group table | pgTAP, JUnit |
+| Override | P: approve, reject and push back; timeline and action. N: not ADMIN; no reason; own request; SoD; a closed stage. C: membership, claims and order are passed over only by the override path | pgTAP, JUnit, Playwright |
+| Workflow groups | The Phase 2 suites (16, 18, 19, 20 and the engine contract) pass with groups in `mdm` | pgTAP, JUnit |
+| UI | Access pages with axe; propose a membership as one ADMIN, decide as another; override with a reason | Vitest, stories, Playwright `13-access` |
+
+### 19.10 Increments and choices for review
+| # | Increment | Size |
+|---|---|---|
+| 5-4a | Roles and groups in `mdm`: V1, V4, V6, V7, V8, V9, V11 edits, `effective_grants`, `holds_role`, holder kinds; `RolePermissions` and `EntitlementService` read effective grants; renames in tests; seed | L |
+| 5-4b | Governed access changes: the eight actions, apply handlers, decision rules, hard limits; `wf.membership_change` removed | M |
+| 5-4c | Workflow override: `wf.override_stage`, the guard change, endpoint, request-page action | M |
+| 5-4d | Administration → Access UI and `13-access` | M |
+
+Then 5-5 (read filtering), which reads effective grants and so covers group scopes.
+
+| Choice | Recommendation |
+|---|---|
+| **C-1** | Fold `WORKFLOW_ADMIN`, `POLICY_ADMIN`, `SYSTEM_ADMIN` and `VERSION_ADMIN` into ADMIN (the owner's five roles) |
+| **C-2** | Keep direct grants for exceptions, beside groups |
+| **C-3** | The override passes over membership, claims and group order only. It keeps maker-checker on one's own request, people only, and separation of duties |
+| **C-4** | One governed path for every access change (§19.4), decided by a second ADMIN, replacing ADR-029's actions and `wf.membership_change` |
+| **C-5** | The demo and e2e seed get the owner's seven users and six groups on three invented hierarchies, and the existing `e2e_*` users move into equivalent groups |
+
+New codes:
+- `N1031` `wf.override_refused`;
+- `N1032` `roles.holder_kind`.
+
+A new open decision, OD-49a: Audit-Risk confirms the override before it merges to `main`.

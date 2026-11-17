@@ -43,5 +43,6 @@
 | ADR-039 | Decisions for the remaining undecided capabilities (Phases 1, 2 and 5) | Accepted (OD-47) |
 | ADR-040 | Database-independent persistence (PostgreSQL and Oracle); business logic and controls in Java | Proposed, deferred 2026-11-14 (OD-48); approved database designs stay in force |
 | ADR-041 | Build property queries before governed grants and sub-tree read filtering | Accepted (repository owner, 2026-11-15) |
+| ADR-042 | Users, roles and groups: five roles, generic groups in `mdm`, governed access changes, workflow override, service accounts | Accepted (repository owner, 2026-11-17, with C-1 to C-5); override needs Audit-Risk (OD-49a) |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.
