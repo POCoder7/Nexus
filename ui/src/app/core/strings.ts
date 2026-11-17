@@ -226,7 +226,7 @@ export const STRINGS = {
     hierarchyRow: (name: string, code: string) => `${name} (${code})`,
     pickNode: 'Select a node to see its details.',
     openIn: (hierarchy: string) => `Open in ${hierarchy}`,
-    readOnlyNote: 'Read-only here. Open the node in its hierarchy to change it.',
+    dropRefused: "A node can be moved only within its own hierarchy, and a hierarchy's top node cannot be moved.",
   },
   hierarchy: {
     treeLabel: (name: string) => `Nodes of ${name}`,

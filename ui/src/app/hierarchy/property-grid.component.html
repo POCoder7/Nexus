@@ -16,8 +16,8 @@
         @let m = marker(p);
         <tr role="row" [attr.data-property]="p.code">
           <td role="gridcell" tabindex="-1">
-            <span class="label">{{ p.label }}</span>
-            <span class="code nx-identifier">{{ p.code }}</span>
+            <!-- the name only (owner, 2026-11-17); the code stays reachable as a tooltip and in data-property -->
+            <span class="label" [attr.title]="p.code">{{ p.label || p.code }}</span>
           </td>
           <td role="gridcell" tabindex="-1" class="value" [class.value--none]="p.provenance === 'none'">
             {{ display(p) }}

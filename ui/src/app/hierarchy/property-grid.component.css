@@ -27,11 +27,6 @@ thead th {
   display: block;
 }
 
-.code {
-  font-size: var(--nx-font-size-label);
-  color: var(--nx-color-text-secondary);
-}
-
 .value--none {
   color: var(--nx-color-text-secondary);
 }

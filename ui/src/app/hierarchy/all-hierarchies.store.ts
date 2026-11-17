@@ -40,6 +40,8 @@ export class AllHierarchiesStore {
   readonly rootLabel = signal('');
   private readonly stores = signal(new Map<string, HierarchyStore>());
   private slice: Slice = {};
+  /** The sandbox in view (NEW-08): each hierarchy is then read with its overlay, as in the workspace. */
+  private sandboxId: string | null = null;
   private generation = 0;
 
   readonly visibleRows = computed<FlatTreeRow[]>(() => {
@@ -103,10 +105,14 @@ export class AllHierarchiesStore {
     return id ? parseRowId(id) : null;
   });
 
-  /** Loads the readable hierarchies for a slice (every page; there are tens, not thousands) and forgets opened trees. */
-  async load(slice: Slice): Promise<void> {
+  /**
+   * Loads the readable hierarchies for a slice (every page; there are tens, not thousands) and forgets opened trees.
+   * With a sandbox, the hierarchies opened later show its overlay.
+   */
+  async load(slice: Slice, sandboxId: string | null = null): Promise<void> {
     const generation = ++this.generation;
     this.slice = slice;
+    this.sandboxId = sandboxId;
     this.stores.set(new Map());
     this.open.set(new Set());
     this.selectedId.set(null);
@@ -176,7 +182,7 @@ export class AllHierarchiesStore {
   /** "Show next" or a retry: the root's list, a hierarchy that failed to open, or a parent's next page. */
   async loadMore(parentId: string): Promise<void> {
     if (parentId === ROOT_ID) {
-      await this.load(this.slice);
+      await this.load(this.slice, this.sandboxId);
       return;
     }
     const ref = parseRowId(parentId);
@@ -206,6 +212,34 @@ export class AllHierarchiesStore {
     return ref && store ? store.siblingsOf(ref.nodeId).map((n) => rowId(ref.code, n)) : [];
   }
 
+  /** Opens the hierarchy if needed, reveals the node in it (the workspace's reveal) and selects it. */
+  async reveal(code: string, nodeId: string): Promise<boolean> {
+    this.rootExpanded.set(true);
+    this.open.update((s) => new Set(s).add(code));
+    if (!this.stores().has(code)) {
+      await this.openHierarchy(code);
+    }
+    const ok = (await this.stores().get(code)?.reveal(nodeId)) ?? false;
+    if (ok) {
+      this.select(rowId(code, nodeId));
+    }
+    return ok;
+  }
+
+  /**
+   * Reads every opened hierarchy again (after a change in the sandbox in view, NEW-08), keeping which ones are open and
+   * revealing the selection again; the others are read when first opened, as before.
+   */
+  async refresh(): Promise<void> {
+    const selection = this.selection();
+    for (const [code, store] of this.stores()) {
+      await store.open(code, this.slice, this.sandboxId);
+      if (selection?.code === code) {
+        await store.reveal(selection.nodeId);
+      }
+    }
+  }
+
   /** The hierarchy's top node, if the selection is one (the node panel says so). */
   isTop(code: string, nodeId: string): boolean {
     return this.hierarchies().some((h) => h.code === code && h.topNodeId === nodeId);
@@ -214,6 +248,6 @@ export class AllHierarchiesStore {
   private async openHierarchy(code: string): Promise<void> {
     const store = Injector.create({ providers: [HierarchyStore], parent: this.injector }).get(HierarchyStore);
     this.stores.update((m) => new Map(m).set(code, store));
-    await store.open(code, this.slice);
+    await store.open(code, this.slice, this.sandboxId);
   }
 }

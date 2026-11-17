@@ -8,7 +8,8 @@ describe('AllHierarchiesStore', () => {
   function setup(fail: string | null = null) {
     const trees: Record<string, FakeTree> = {
       SYN_A: new FakeTree({ topA: [{ nodeId: 'shared', name: 'Shared node', hasChildren: false, primary: true }] }),
-      SYN_B: new FakeTree({ topB: [{ nodeId: 'shared', name: 'Shared node', hasChildren: false, primary: true }, ...leaves('Leaf', 3)] }),
+      SYN_B: new FakeTree({ topB: [{ nodeId: 'shared', name: 'Shared node', hasChildren: false, primary: true }, ...leaves('Leaf', 3)] },
+        { shared: [{ nodeId: 'topB', name: 'Top B' }, { nodeId: 'shared', name: 'Shared node' }] }),
     };
     const opened: string[] = [];
     const api = {
@@ -25,6 +26,7 @@ describe('AllHierarchiesStore', () => {
       },
       children: async (code: string, parentId: string, _s: unknown, cursor: string | undefined, limit: number) =>
         trees[code].page(parentId, cursor, limit),
+      path: async (code: string, nodeId: string) => ({ path: trees[code].path(nodeId) }),
     };
     TestBed.configureTestingModule({ providers: [AllHierarchiesStore, { provide: NexusApi, useValue: api }] });
     const store = TestBed.inject(AllHierarchiesStore);
@@ -79,6 +81,15 @@ describe('AllHierarchiesStore', () => {
     expect(error?.parentId).toBe('SYN_A|topA');
     await store.loadMore('SYN_A|topA');
     expect(opened).toEqual(['SYN_A', 'SYN_A']);
+  });
+
+  it('reveals a node in a hierarchy not opened yet, and selects it', async () => {
+    const { store } = setup();
+    await store.load({});
+    const ok = await store.reveal('SYN_B', 'shared');
+    expect(ok).toBe(true);
+    expect(store.selection()).toEqual({ code: 'SYN_B', nodeId: 'shared' });
+    expect(store.visibleRows().some((r) => r.kind === 'node' && r.id === 'SYN_B|shared')).toBe(true);
   });
 
   it('parses row ids, including node ids that contain no separator', () => {

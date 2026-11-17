@@ -1278,8 +1278,14 @@ is no API, schema or decision change and no ADR.
 - **Below:** each hierarchy's tree, loaded only when its row is first expanded, in pages of `CHILDREN_PAGE`, with the
   workspace's tree state per hierarchy (`HierarchyStore`: paging, shared-node markers, errors with retry, cached per
   slice). Row ids are `{hierarchy code}|{node id}`, so a node placed in several hierarchies is a separate row in each.
-- **Detail:** selecting a node shows the node panel for that node in its hierarchy, read-only, with "Open in {hierarchy}"
-  to edit it in the workspace (`/hierarchies/{code}?node=`), which keeps one place for changes.
+- **Detail and editing** (editable at the owner's request, 2026-11-17, after a first read-only build): selecting a node
+  shows the node panel for that node in its own hierarchy, with the workspace's actions as the user's rights in that
+  hierarchy allow (add child, edit details, place, move, remove, delete, properties by category), the same dialogs and
+  the same tray; read-only for a historical view. Drag and drop moves a node only within its hierarchy and never a top
+  node (refused in words). In a sandbox the opened hierarchies show its overlay and are read again after each change.
+  "Open in {hierarchy}" opens the node in the workspace (`/hierarchies/{code}?node=`), for in-tree search.
+- **Property list** (owner, 2026-11-17): the node panel's property grid shows each property's name only; its code is a
+  tooltip on the name, and stays in `data-property` for tests.
 - **Accessibility:** the same `nx-hierarchy-tree` (WAI-ARIA tree, keyboard, virtual scrolling); the root and the
   hierarchy rows are tree items like any other.
 - **Tests:** Vitest for the store (root, lazy open, ids, collapse, errors); Playwright `14-all-hierarchies` with axe.
