@@ -131,6 +131,11 @@ Known issues:
 - **The API jar is locked while the demo runs.** On Windows, `mvnw verify` fails at its last step (`repackage`: "Unable to
   rename … mdm-api-…jar") while the demo API runs from that jar. The tests have already run by then. Stop the demo
   (`scripts/demo-stop`) to build the jar.
+- **Serving the UI from a server over plain HTTP** (for example `http://<server address>:4200`). Browsers treat such a
+  page as insecure and leave out some features there: `crypto.randomUUID()` (the UI now falls back to
+  `crypto.getRandomValues()`, `core/random-id.ts`) and the clipboard (the "copy id" buttons then do nothing). The data
+  and the development sign-in header also travel unencrypted. Use HTTPS for any shared server; `localhost` counts as
+  secure, so a single laptop is fine.
 
 ## 4. Claude Code (if approved by your organisation)
 Install the Claude Code extension, open this folder, and start with:

@@ -1,5 +1,6 @@
 import { HttpContext, HttpContextToken } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
+import { randomId } from '../core/random-id';
 import { Api } from './generated/api';
 import * as fn from './generated/functions';
 import type {
@@ -301,5 +302,5 @@ export function etagOfRevision(revision: number | undefined): string {
 
 /** A fresh key per user action. */
 export function newIdempotencyKey(): string {
-  return crypto.randomUUID();
+  return randomId();   // works over plain HTTP too (core/random-id.ts)
 }

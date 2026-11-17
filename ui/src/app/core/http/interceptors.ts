@@ -3,11 +3,17 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { IDEMPOTENCY_KEY, NexusApi, SKIP_ERROR_REPORT } from '../../api/nexus-api';
+import { tryRandomId } from '../random-id';
 import { UiError } from '../ui-error';
 
-/** A correlation id per request (overview §14), shown in error states so support can find the server log. */
-export const correlationIdInterceptor: HttpInterceptorFn = (req, next) =>
-  next(req.headers.has('X-Correlation-Id') ? req : req.clone({ setHeaders: { 'X-Correlation-Id': crypto.randomUUID() } }));
+/**
+ * A correlation id per request (overview §14), shown in error states so support can find the server log. It is only a
+ * convenience: if none can be made the request goes without one, and the server makes its own (CorrelationIdFilter).
+ */
+export const correlationIdInterceptor: HttpInterceptorFn = (req, next) => {
+  const id = req.headers.has('X-Correlation-Id') ? null : tryRandomId();
+  return next(id ? req.clone({ setHeaders: { 'X-Correlation-Id': id } }) : req);
+};
 
 /** Idempotency-Key from the request context (one per user action, ADR-015). */
 export const idempotencyInterceptor: HttpInterceptorFn = (req, next) => {
