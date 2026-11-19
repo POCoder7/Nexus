@@ -62,7 +62,7 @@ test('dragging a node onto another opens "Move to…" with that target chosen', 
 test('a request can be compared side by side or inline', async ({ page }) => {
   await signInAs(page, 'e2e_steward');
   await page.goto('/home');
-  await page.getByTestId('home-requests').getByRole('link').first().click();
+  await page.getByTestId('home-activity').getByRole('link', { name: /E2E New Leaf/ }).first().click();
   const items = page.getByTestId('item-list');
   await expect(items).toBeVisible();
   await page.getByRole('button', { name: 'Inline' }).click();

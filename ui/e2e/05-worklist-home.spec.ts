@@ -41,7 +41,7 @@ test.describe('Worklist and Home', () => {
     await signInAs(page, STEWARD);
     await page.goto('/home');
     await expect(page.getByTestId('home-governance')).toHaveCount(0);
-    await expect(page.getByTestId('home-requests')).toContainText('E2E New Leaf');
+    await expect(page.getByTestId('home-activity')).toContainText('E2E New Leaf');   // applied, so in Recent activity (Phase 5 LLD §21)
     await page.getByLabel('Find a node or request').fill('Leaf Two');
     await page.getByRole('button', { name: 'Search' }).click();
     await page.getByTestId('home-search-results').getByRole('link', { name: 'E2E North Leaf Two' }).click();

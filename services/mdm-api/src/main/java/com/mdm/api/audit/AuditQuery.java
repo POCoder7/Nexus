@@ -78,9 +78,56 @@ public class AuditQuery {
         this.mapper = mapper;
     }
 
+    /** Counts over the same rows the search would list (Home's "Recent changes", Phase 5 LLD §21). */
+    public record Summary(long nodesChanged, long requestsApplied) {
+    }
+
     /** Up to {@code limit + 1} rows, newest first, so the caller knows whether there is a next page. */
     public List<Row> search(Criteria c) {
-        Set<String> mdmTables = c.categories().stream().flatMap(k -> CATEGORIES.get(k).stream()).collect(Collectors.toCollection(TreeSet::new));
+        StringBuilder sql = picked(c);
+        sql.append("""
+                  ORDER BY s.occurred_at DESC, s.src DESC, s.audit_id DESC
+                  LIMIT :limit
+                )
+                SELECT p.src, p.audit_id, p.occurred_at, p.table_name, p.action, p.old_row::text AS old_row, p.new_row::text AS new_row,
+                       p.before_row::text AS before_row, p.node_id, p.change_request_id,
+                       lower((coalesce(p.new_row, p.old_row) ->> 'valid_period')::daterange) AS valid_from,
+                       upper((coalesce(p.new_row, p.old_row) ->> 'valid_period')::daterange) AS valid_to,
+                       (SELECT na.node_name FROM mdm.node_attr na WHERE na.node_id = p.node_id AND upper_inf(na.recorded_period)
+                        ORDER BY upper_inf(na.valid_period) DESC, lower(na.valid_period) DESC LIMIT 1) AS node_name,
+                       (SELECT na.node_name FROM mdm.node_attr na WHERE na.node_id = (p.new_row ->> 'parent_node_id')::uuid
+                          AND upper_inf(na.recorded_period) ORDER BY upper_inf(na.valid_period) DESC LIMIT 1) AS parent_after,
+                       (SELECT na.node_name FROM mdm.node_attr na
+                        WHERE na.node_id = (coalesce(p.before_row, p.old_row) ->> 'parent_node_id')::uuid
+                          AND upper_inf(na.recorded_period) ORDER BY upper_inf(na.valid_period) DESC LIMIT 1) AS parent_before,
+                       h.hierarchy_code, pd.property_code, pd.label AS property_label,
+                       cr.title AS request_title, cr.decision_basis::text AS decision_basis,
+                       coalesce(ru.display_name, ru.login) AS requested_by, coalesce(du.display_name, du.login) AS decided_by,
+                       coalesce(au.display_name, au.login) AS actor
+                FROM picked p
+                LEFT JOIN mdm.hierarchy h ON h.hierarchy_id = p.hierarchy_id
+                LEFT JOIN mdm.property_definition pd ON pd.property_id = p.property_id
+                LEFT JOIN mdm.change_request cr ON cr.change_request_id = p.change_request_id
+                LEFT JOIN mdm.app_user ru ON ru.user_id = cr.requester_id
+                LEFT JOIN mdm.app_user du ON du.user_id = cr.decided_by
+                LEFT JOIN mdm.app_user au ON au.user_id = p.actor_id
+                ORDER BY p.occurred_at DESC, p.src DESC, p.audit_id DESC
+                """);
+        return bind(sql.toString(), c).param("limit", c.limit() + 1).query((rs, i) -> row(rs)).list();
+    }
+
+    /** Distinct nodes changed and requests that wrote the rows the search would list (no paging, no cursor). */
+    public Summary summary(Criteria c) {
+        StringBuilder sql = picked(c);
+        sql.append("""
+                )
+                SELECT count(DISTINCT p.node_id) AS nodes, count(DISTINCT p.change_request_id) AS requests FROM picked p
+                """);
+        return bind(sql.toString(), c).query((rs, i) -> new Summary(rs.getLong("nodes"), rs.getLong("requests"))).single();
+    }
+
+    /** The filtered rows (CTEs src and picked, without order or limit): the search and the summary read the same rows. */
+    private StringBuilder picked(Criteria c) {
         boolean config = c.categories().contains("configuration");
         StringBuilder sql = new StringBuilder("""
                 WITH src AS (
@@ -160,41 +207,17 @@ public class AuditQuery {
         if (c.cursorAt() != null) {
             sql.append(" AND (s.occurred_at, s.src, s.audit_id) < (CAST(:cursorAt AS timestamptz), CAST(:cursorSource AS text), CAST(:cursorId AS bigint))");
         }
-        sql.append("""
-                  ORDER BY s.occurred_at DESC, s.src DESC, s.audit_id DESC
-                  LIMIT :limit
-                )
-                SELECT p.src, p.audit_id, p.occurred_at, p.table_name, p.action, p.old_row::text AS old_row, p.new_row::text AS new_row,
-                       p.before_row::text AS before_row, p.node_id, p.change_request_id,
-                       lower((coalesce(p.new_row, p.old_row) ->> 'valid_period')::daterange) AS valid_from,
-                       upper((coalesce(p.new_row, p.old_row) ->> 'valid_period')::daterange) AS valid_to,
-                       (SELECT na.node_name FROM mdm.node_attr na WHERE na.node_id = p.node_id AND upper_inf(na.recorded_period)
-                        ORDER BY upper_inf(na.valid_period) DESC, lower(na.valid_period) DESC LIMIT 1) AS node_name,
-                       (SELECT na.node_name FROM mdm.node_attr na WHERE na.node_id = (p.new_row ->> 'parent_node_id')::uuid
-                          AND upper_inf(na.recorded_period) ORDER BY upper_inf(na.valid_period) DESC LIMIT 1) AS parent_after,
-                       (SELECT na.node_name FROM mdm.node_attr na
-                        WHERE na.node_id = (coalesce(p.before_row, p.old_row) ->> 'parent_node_id')::uuid
-                          AND upper_inf(na.recorded_period) ORDER BY upper_inf(na.valid_period) DESC LIMIT 1) AS parent_before,
-                       h.hierarchy_code, pd.property_code, pd.label AS property_label,
-                       cr.title AS request_title, cr.decision_basis::text AS decision_basis,
-                       coalesce(ru.display_name, ru.login) AS requested_by, coalesce(du.display_name, du.login) AS decided_by,
-                       coalesce(au.display_name, au.login) AS actor
-                FROM picked p
-                LEFT JOIN mdm.hierarchy h ON h.hierarchy_id = p.hierarchy_id
-                LEFT JOIN mdm.property_definition pd ON pd.property_id = p.property_id
-                LEFT JOIN mdm.change_request cr ON cr.change_request_id = p.change_request_id
-                LEFT JOIN mdm.app_user ru ON ru.user_id = cr.requester_id
-                LEFT JOIN mdm.app_user du ON du.user_id = cr.decided_by
-                LEFT JOIN mdm.app_user au ON au.user_id = p.actor_id
-                ORDER BY p.occurred_at DESC, p.src DESC, p.audit_id DESC
-                """);
+        return sql;
+    }
 
-        JdbcClient.StatementSpec spec = jdbc.sql(sql.toString())
+    /** Binds every parameter {@link #picked} may use (the caller adds {@code limit} for the search). */
+    private JdbcClient.StatementSpec bind(String sql, Criteria c) {
+        Set<String> mdmTables = c.categories().stream().flatMap(k -> CATEGORIES.get(k).stream()).collect(Collectors.toCollection(TreeSet::new));
+        JdbcClient.StatementSpec spec = jdbc.sql(sql)
                 .param("tables", String.join(",", mdmTables.isEmpty() ? Set.of("-") : mdmTables))
                 .param("bitemporal", String.join(",", BITEMPORAL))
                 .param("technical", String.join(",", TECHNICAL))
-                .param("from", Timestamp.from(c.from())).param("to", Timestamp.from(c.to()))
-                .param("limit", c.limit() + 1);
+                .param("from", Timestamp.from(c.from())).param("to", Timestamp.from(c.to()));
         if (c.request() != null) spec = spec.param("request", c.request());
         if (c.version() != null) spec = spec.param("version", c.version());
         if (c.node() != null) spec = spec.param("node", c.node());
@@ -208,7 +231,7 @@ public class AuditQuery {
         if (c.cursorAt() != null) {
             spec = spec.param("cursorAt", Timestamp.from(c.cursorAt())).param("cursorSource", c.cursorSource()).param("cursorId", c.cursorId());
         }
-        return spec.query((rs, i) -> row(rs)).list();
+        return spec;
     }
 
     private Row row(ResultSet rs) throws SQLException {

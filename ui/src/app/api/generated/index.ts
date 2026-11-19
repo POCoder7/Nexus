@@ -7,6 +7,7 @@ export { RequestBuilder } from './request-builder';
 export type { StrictHttpResponse } from './strict-http-response';
 export { Api } from './api';
 
+export type { ActivityItem } from './models/activity-item';
 export type { Actor } from './models/actor';
 export type { ApprovePolicy } from './models/approve-policy';
 export type { AuditEntry } from './models/audit-entry';
@@ -81,6 +82,7 @@ export type { QueryCell } from './models/query-cell';
 export type { QueryDefinition } from './models/query-definition';
 export type { QueryPage } from './models/query-page';
 export type { QueryRow } from './models/query-row';
+export type { RecentChanges } from './models/recent-changes';
 export type { RefreshResult } from './models/refresh-result';
 export type { RequestEvent } from './models/request-event';
 export type { ResolvedSide } from './models/resolved-side';

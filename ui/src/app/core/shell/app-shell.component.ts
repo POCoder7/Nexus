@@ -15,16 +15,17 @@ import { DEV_TOOLS } from '../dev/dev-identity.providers';
 import { PreferencesStore } from '../preferences.store';
 import { STRINGS } from '../strings';
 import { UiError } from '../ui-error';
+import { NavMenuComponent, NavMenuItem } from './nav-menu.component';
 
 /**
- * Application shell (LLD §12.2, UI_STANDARD §4): header, left navigation, global context bar with the "Viewing as of"
+ * Application shell (LLD §12.2, UI_STANDARD §4; layout Phase 5 LLD §21): header, top navigation, global context bar with the "Viewing as of"
  * date, the working-version picker (Phase 3 LLD V.6), the historical or picture banner, the tray and the routed page. In a
  * historical view every write control is removed from the DOM and the tray is hidden (LLD §6.3).
  */
 @Component({
   selector: 'nx-app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgComponentOutlet, DsHeaderComponent, DsDateInputComponent,
-    DsButtonComponent, DsToastHostComponent, ChangeRequestTrayComponent, VersionPickerComponent],
+    DsButtonComponent, DsToastHostComponent, ChangeRequestTrayComponent, VersionPickerComponent, NavMenuComponent],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,6 +57,17 @@ export class AppShellComponent {
   });
   /** Count badge on Worklist (LLD §12.2): the Assigned view's count, refreshed on navigation. */
   protected readonly worklistCount = signal<number | null>(null);
+  /** The navigation menus (Phase 5 LLD §21). */
+  protected readonly hierarchyItems: NavMenuItem[] = [
+    { label: STRINGS.nav.openHierarchy, link: '/hierarchies' },
+    { label: STRINGS.nav.browse, link: '/browse', testId: 'nav-browse' },
+  ];
+  protected readonly adminItems: NavMenuItem[] = [
+    { label: STRINGS.nav.versions, link: '/versions' },
+    { label: STRINGS.nav.sandboxes, link: '/sandboxes' },
+    { label: STRINGS.nav.audit, link: '/audit', testId: 'nav-audit' },
+  ];
+  protected readonly userItems: NavMenuItem[] = [{ label: STRINGS.nav.settings, link: '/settings' }];
   private readonly api = inject(NexusApi);
 
   constructor() {

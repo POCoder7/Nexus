@@ -71,7 +71,7 @@ test('S1-R4: the steward adds the leaf to a draft and submits it after validatio
   // the requester cannot approve their own request: the reason is the server's sentence
   await page.reload();
   await expect(page.getByTestId('decision-reason')).toContainText('You requested or submitted this change');
-  await expect(page.getByRole('button', { name: 'Approve' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Approve', exact: true })).toHaveCount(0);
 });
 
 test('S1-R5: the request is in the approver\'s Assigned view and the approver approves', async ({ page }) => {
@@ -83,7 +83,7 @@ test('S1-R5: the request is in the approver\'s Assigned view and the approver ap
   await expectAccessible(page);
   await row.getByRole('link').click();
   await expect(page).toHaveURL(new RegExp(`/requests/${requestId}$`));
-  await page.getByRole('button', { name: 'Approve' }).click();
+  await page.getByRole('button', { name: 'Approve', exact: true }).click();
   await expect(page.getByTestId('workflow-timeline').locator('[data-stage-type=commit]')).toContainText('In progress', { timeout: 20_000 });
   // S1-R6: the shadow policy was evaluated before Commit and says it had no effect
   await expect(page.getByTestId('policy-evaluations')).toContainText(/E2E_SHADOW: would (commit|route to a person) \(shadow mode, no effect\)/);
@@ -95,14 +95,14 @@ test('S1-R5: the steward without commit rights sees why they cannot commit', asy
   await signInAs(page, STEWARD);
   await page.goto(`/requests/${requestId}`);
   await expect(page.getByTestId('decision-reason')).toContainText('You requested or submitted this change, so you cannot approve or commit it.');
-  await expect(page.getByRole('button', { name: 'Commit' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Commit', exact: true })).toHaveCount(0);
 });
 
 test('S1-R5: the committer commits from the worklist and the change is applied', async ({ page }) => {
   await signInAs(page, COMMITTER);
   await page.goto('/worklist');
   await page.locator(`[data-request-id="${requestId}"]`).getByRole('link').click();
-  await page.getByRole('button', { name: 'Commit' }).click();
+  await page.getByRole('button', { name: 'Commit', exact: true }).click();
   await expect(page.getByTestId('request-status')).toContainText('Applied', { timeout: 25_000 });
   await expectAccessible(page);
 });

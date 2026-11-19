@@ -116,12 +116,12 @@ test('a new hierarchy joins the draft from Home, and the request is submitted', 
 test('the request is approved and committed, and every change is in the data', async ({ page }) => {
   await signInAs(page, APPROVER);
   await page.goto(`/requests/${requestId}`);
-  await page.getByRole('button', { name: 'Approve' }).click();
+  await page.getByRole('button', { name: 'Approve', exact: true }).click();
   await expect(page.getByTestId('workflow-timeline').locator('[data-stage-type=commit]')).toContainText('In progress', { timeout: 20_000 });
 
   await signInAs(page, COMMITTER);
   await page.goto(`/requests/${requestId}`);
-  await page.getByRole('button', { name: 'Commit' }).click();
+  await page.getByRole('button', { name: 'Commit', exact: true }).click();
   await expect(page.getByTestId('request-status')).toContainText('Applied', { timeout: 25_000 });
 
   await signInAs(page, ARCHITECT);

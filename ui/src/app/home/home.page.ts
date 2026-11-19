@@ -9,18 +9,19 @@ import { STRINGS } from '../core/strings';
 import { UiError } from '../core/ui-error';
 import { DsBadgeComponent, DsButtonComponent, DsDialog, DsTableDirective, DsTone } from '../shared/ds';
 import { NodeChangeData, NodeChangeDialogComponent } from '../hierarchy/node-change-dialog.component';
-import { NxDatePipe } from '../shared/format/nx-date.pipe';
+import { NxDatePipe, NxInstantPipe } from '../shared/format/nx-date.pipe';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Home (OD-27, LLD §12.2; NEW-10): search, the next five worklist items, the user's requests, their hierarchies and, for
- * policy roles only, the shadow-mode summary. One bounded call (`GET /home`); each card has its own empty and error
+ * Home (OD-27, LLD §12.2; NEW-10; layout Phase 5 LLD §21): the attention banner, search, the snapshot cards, quick actions,
+ * hierarchy details, recent activity and, for
+ * policy roles only, the shadow-mode summary. One bounded call (`GET /home`); each section has its own empty and error
  * state. In a historical view the quick actions are hidden.
  */
 @Component({
   selector: 'nx-home-page',
-  imports: [RouterLink, DsButtonComponent, DsBadgeComponent, DsTableDirective, NxDatePipe],
+  imports: [RouterLink, DsButtonComponent, DsBadgeComponent, DsTableDirective, NxDatePipe, NxInstantPipe],
   templateUrl: './home.page.html',
   styleUrl: './home.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -49,6 +50,12 @@ export class HomePage {
     this.prefs.lastHierarchy() ?? this.home()?.hierarchies?.[0]?.code ?? null);
   protected readonly assignedCount = computed(() => this.home()?.worklist?.counts?.['assigned'] ?? 0);
   protected readonly statusCounts = computed(() => Object.entries(this.home()?.requests?.countsByStatus ?? {}));
+  /** Not yet closed: draft, submitted, in review or approved (waiting to be applied). */
+  protected readonly openRequests = computed(() =>
+    ['draft', 'submitted', 'in_review', 'approved'].reduce((n, s) => n + this.statusCount(s), 0));
+  /** Hierarchy details rows that are open. */
+  protected readonly expanded = signal(new Set<string>());
+  protected readonly timeZone = () => this.context.me()?.businessTimeZone ?? undefined;
 
   constructor() {
     void this.load();
@@ -62,6 +69,32 @@ export class HomePage {
     } catch (e) {
       this.error.set(UiError.from(e));
     }
+  }
+
+  /** A worklist view's count (assigned, claimed, overdue…). */
+  protected count(view: string): number {
+    return this.home()?.worklist?.counts?.[view] ?? 0;
+  }
+
+  /** The user's requests in one status. */
+  protected statusCount(status: string): number {
+    return this.home()?.requests?.countsByStatus?.[status] ?? 0;
+  }
+
+  protected toggle(code: string): void {
+    this.expanded.update((s) => {
+      const next = new Set(s);
+      if (next.has(code)) {
+        next.delete(code);
+      } else {
+        next.add(code);
+      }
+      return next;
+    });
+  }
+
+  protected expandAll(open: boolean): void {
+    this.expanded.set(open ? new Set((this.home()?.hierarchies ?? []).map((h) => h.code ?? '')) : new Set());
   }
 
   protected tone(status: string | undefined): DsTone {

@@ -60,34 +60,6 @@
   min-height: 0;
 }
 
-.nav {
-  flex: 0 0 var(--nx-size-nav);
-  border-right: var(--nx-border-width) solid var(--nx-color-border-default);
-  background: var(--nx-color-surface-panel);
-}
-
-.nav ul {
-  margin: 0;
-  padding: var(--nx-space-4) 0;
-  list-style: none;
-}
-
-.nav a {
-  display: block;
-  padding: var(--nx-space-3) var(--nx-space-5);
-  color: var(--nx-color-text-primary);
-  text-decoration: none;
-}
-
-.nav a:hover {
-  background: var(--nx-color-surface-hover);
-}
-
-.nav a.active {
-  background: var(--nx-color-surface-selected);
-  font-weight: var(--nx-font-weight-strong);
-}
-
 .count {
   margin-left: var(--nx-space-3);
   padding: 0 var(--nx-space-3);
@@ -106,11 +78,6 @@
   outline: none;
 }
 
-@media (max-width: 64rem) {
-  .nav {
-    flex-basis: auto;
-  }
-}
 
 .context-bar__link {
   font-size: var(--nx-font-size-label);
@@ -136,4 +103,55 @@
   background: var(--nx-color-surface-panel);
   color: var(--nx-color-text-primary);
   font-size: var(--nx-font-size-body);
+}
+/* Top navigation (Phase 5 LLD §21): links and menus in one bar under the header; the current page is underlined. */
+.topnav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--nx-space-1);
+  padding: 0 var(--nx-space-4);
+  border-bottom: var(--nx-border-width) solid var(--nx-color-border-default);
+  background: var(--nx-color-surface-raised);
+}
+
+.topnav > a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nx-space-2);
+  padding: var(--nx-space-3) var(--nx-space-4);
+  border-bottom: calc(var(--nx-border-width) * 2) solid transparent;
+  color: var(--nx-color-text-primary);
+  text-decoration: none;
+}
+
+.topnav > a:hover {
+  background: var(--nx-color-surface-hover);
+}
+
+.topnav > a.active {
+  border-bottom-color: var(--nx-color-action-primary);
+  font-weight: var(--nx-font-weight-strong);
+}
+
+/* The bell: requests that need attention (Phase 5 LLD §21). */
+.bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: var(--nx-space-2);
+  color: var(--nx-color-text-primary);
+}
+
+.bell__count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 1.2em;
+  padding: 0 var(--nx-space-1);
+  border-radius: var(--nx-radius-2);
+  background: var(--nx-color-status-error);
+  color: var(--nx-color-text-inverse);
+  font-size: var(--nx-font-size-label);
+  text-align: center;
 }

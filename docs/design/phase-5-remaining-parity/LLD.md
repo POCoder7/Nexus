@@ -1469,3 +1469,35 @@ is no API, schema or decision change and no ADR.
 - **Accessibility:** the same `nx-hierarchy-tree` (WAI-ARIA tree, keyboard, virtual scrolling); the root and the
   hierarchy rows are tree items like any other.
 - **Tests:** Vitest for the store (root, lazy open, ids, collapse, errors); Playwright `14-all-hierarchies` with axe.
+
+## 21. Home and header redesign (NEW-10; owner request 2026-11-19)
+The repository owner supplied a mock-up of the landing page and asked for Home in that format, with four decisions: the
+name is "Nexus — Master Data Central" (no organisation name); the bell shows the requests that need the user's attention
+(no notification service exists, GOV-08 is a recorded gap); no "Learn" section; no "Give feedback" button. It replaces
+the Phase 3 Home layout (Phase 3 LLD §13) and the side navigation; no decision or rule changes, so no ADR.
+
+- **Header:** "Nexus" and "Master Data Central"; the environment badge; "Welcome {display name}" (the signed-in user, never
+  a fixed name); the bell with the count of requests assigned to the user (`GET /worklist` counts), opening the worklist;
+  a user menu (Settings; the development user picker in local and test builds). No help icon until help content exists.
+- **Navigation:** a horizontal bar: Home · Hierarchies ▾ (Open a hierarchy, All hierarchies) · Requests (the worklist,
+  with its count) · Queries · Compare · Admin ▾ (Versions, Sandboxes, Audit). Menus are disclosure buttons
+  (`aria-expanded`, Escape closes, focus returns to the button); every page stays one or two steps away.
+- **Context bar:** unchanged in content (version, viewing as of, work in, manage versions, sandboxes).
+- **Home**, top to bottom:
+  - title "Nexus — Master Data Central", and "{n} requests need your attention" with a link to the worklist (shown when
+    n > 0);
+  - "Find a node or request" (the existing search);
+  - **Master data snapshot**, four cards: Needs your attention (assigned, claimed, overdue; Open worklist), Your requests
+    (open, in review, drafts; View your requests), Your hierarchies (count and the first names; Browse hierarchies),
+    Recent changes (last 7 days: nodes changed and requests applied, from the audit log in the user's scope; View all
+    activity);
+  - **Quick actions:** Browse hierarchies, Compare versions, Create sandbox, Open worklist (a request is raised from a
+    node, so there is no stand-alone "Raise request");
+  - **Hierarchy details:** one expandable row per readable hierarchy (name, code, open requests, status), Expand all and
+    Collapse all; an expanded row shows its purpose and links (Open, Compare, Audit). No Export until EXP (Phase 8);
+  - **Recent activity:** the last requests applied or rejected that the user can see, with who and when;
+  - the governance panel for policy roles, as before.
+- **API:** `GET /home` gains `hierarchyCount`, `recentChanges {days, nodesChanged, requestsApplied}` (the audit search's
+  scope, §18.5) and `recentActivity` (requests the user can see, `ChangeRequestService.canSee`'s rule in SQL).
+- **Tests:** Vitest for the header menus; stories with axe for the snapshot cards and header; the Playwright journeys that
+  use Home (01, 05, 06, 07) follow the new layout.

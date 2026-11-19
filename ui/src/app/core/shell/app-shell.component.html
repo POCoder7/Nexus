@@ -1,12 +1,36 @@
 <a class="skip" href="#main">{{ t.skipToContent }}</a>
-<ds-header [appName]="t.appName" [environment]="envName">
+<ds-header [appName]="t.appName" [tagline]="t.tagline" [environment]="envName">
+  <!-- the bell: requests that need the user's attention (no notification service yet, GOV-08), opening the worklist -->
+  <a routerLink="/worklist" class="bell" data-testid="attention-bell"
+     [attr.aria-label]="t.nav.attention(worklistCount() ?? 0)">
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="1.4em" height="1.4em">
+      <path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z" />
+    </svg>
+    @if (worklistCount()) {
+      <span class="bell__count" aria-hidden="true">{{ worklistCount() }}</span>
+    }
+  </a>
   @if (context.displayName(); as name) {
-    <span class="user" data-testid="signed-in-user">{{ t.user.signedInAs }} {{ name }}</span>
+    <nx-nav-menu [label]="t.user.welcome(name)" [items]="userItems" testId="signed-in-user" />
   }
   @if (devPicker) {
     <ng-container *ngComponentOutlet="devPicker" />
   }
 </ds-header>
+
+<nav class="topnav" [attr.aria-label]="t.nav.label">
+  <a routerLink="/home" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.home }}</a>
+  <nx-nav-menu [label]="t.nav.hierarchies" [items]="hierarchyItems" testId="nav-hierarchies" />
+  <a routerLink="/worklist" routerLinkActive="active" ariaCurrentWhenActive="page" data-testid="nav-requests">
+    {{ t.nav.requests }}
+    @if (worklistCount() !== null) {
+      <span class="count" data-testid="nav-worklist-count">{{ worklistCount() }}</span>
+    }
+  </a>
+  <a routerLink="/queries" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.queries }}</a>
+  <a routerLink="/compare" routerLinkActive="active" ariaCurrentWhenActive="page" data-testid="nav-compare">{{ t.nav.compare }}</a>
+  <nx-nav-menu [label]="t.nav.admin" [items]="adminItems" testId="nav-admin" />
+</nav>
 
 <div class="context-bar" role="region" [attr.aria-label]="t.context.label">
   <span class="context-bar__item">
@@ -66,27 +90,6 @@
 }
 
 <div class="body">
-  <nav class="nav" [attr.aria-label]="t.nav.label">
-    <ul>
-      <li><a routerLink="/home" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.home }}</a></li>
-      <li><a routerLink="/hierarchies" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.hierarchies }}</a></li>
-      <li><a routerLink="/browse" routerLinkActive="active" ariaCurrentWhenActive="page" data-testid="nav-browse">{{ t.nav.browse }}</a></li>
-      <li>
-        <a routerLink="/worklist" routerLinkActive="active" ariaCurrentWhenActive="page">
-          {{ t.nav.worklist }}
-          @if (worklistCount() !== null) {
-            <span class="count" data-testid="nav-worklist-count">{{ worklistCount() }}</span>
-          }
-        </a>
-      </li>
-      <li><a routerLink="/queries" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.queries }}</a></li>
-      <li><a routerLink="/sandboxes" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.sandboxes }}</a></li>
-      <li><a routerLink="/versions" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.versions }}</a></li>
-      <li><a routerLink="/compare" routerLinkActive="active" ariaCurrentWhenActive="page" data-testid="nav-compare">{{ t.nav.compare }}</a></li>
-      <li><a routerLink="/audit" routerLinkActive="active" ariaCurrentWhenActive="page" data-testid="nav-audit">{{ t.nav.audit }}</a></li>
-      <li><a routerLink="/settings" routerLinkActive="active" ariaCurrentWhenActive="page">{{ t.nav.settings }}</a></li>
-    </ul>
-  </nav>
   <main id="main" #main tabindex="-1" class="main">
     <router-outlet />
   </main>

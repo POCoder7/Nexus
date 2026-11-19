@@ -67,11 +67,11 @@ async function raiseLeaf(page: Page, leaf: string, version: string, costCentre: 
 async function approveAndCommit(page: Page, id: string): Promise<void> {
   await signInAs(page, APPROVER);
   await page.goto(`/requests/${id}`);
-  await page.getByRole('button', { name: 'Approve' }).click();
+  await page.getByRole('button', { name: 'Approve', exact: true }).click();
   await expect(page.getByTestId('workflow-timeline').locator('[data-stage-type=commit]')).toContainText('In progress', { timeout: 20_000 });
   await signInAs(page, COMMITTER);
   await page.goto(`/requests/${id}`);
-  await page.getByRole('button', { name: 'Commit' }).click();
+  await page.getByRole('button', { name: 'Commit', exact: true }).click();
   await expect(page.getByTestId('request-status')).toContainText('Applied', { timeout: 25_000 });
 }
 

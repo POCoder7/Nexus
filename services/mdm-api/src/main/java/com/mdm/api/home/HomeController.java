@@ -1,5 +1,6 @@
 package com.mdm.api.home;
 
+import com.mdm.api.audit.AuditQuery;
 import com.mdm.api.changerequest.ChangeRequestDtos.ChangeRequestView;
 import com.mdm.api.changerequest.ChangeRequestService;
 import com.mdm.api.common.BusinessClock;
@@ -15,6 +16,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +38,8 @@ public class HomeController {
     static final int WORKLIST_TOP = 5;
     static final int MY_REQUESTS_LATEST = 5;
     static final int HIERARCHIES_MAX = 10;
+    static final int RECENT_DAYS = 7;
+    static final int RECENT_ACTIVITY = 5;
 
     public record WorklistSummary(List<WorklistRow> top, Map<String, Long> counts) {
     }
@@ -48,9 +54,22 @@ public class HomeController {
                                    long tooLoose, long possiblyTooStrict, BigDecimal tooLoosePct) {
     }
 
-    /** {@code policySummary} is null when the caller has no policy role (the panel is not shown). */
+    /** Changes in the last {@code days} days the user can see (the audit search's scope, Phase 5 LLD §18.5, §21). */
+    public record RecentChanges(int days, long nodesChanged, long requestsApplied) {
+    }
+
+    /** A request applied or rejected recently that the user can see (Phase 5 LLD §21). */
+    public record ActivityItem(UUID changeRequestId, String title, String status, Instant at, String requestedBy, String decidedBy,
+                               String decisionBasis) {
+    }
+
+    /**
+     * {@code policySummary} is null when the caller has no policy role (the panel is not shown). {@code hierarchyCount} is
+     * every readable hierarchy ({@code hierarchies} lists the first {@value #HIERARCHIES_MAX}).
+     */
     public record HomeView(WorklistSummary worklist, MyRequests requests, List<HierarchyCard> hierarchies,
-                           List<ShadowSummaryRow> policySummary) {
+                           List<ShadowSummaryRow> policySummary, long hierarchyCount, RecentChanges recentChanges,
+                           List<ActivityItem> recentActivity) {
     }
 
     private final JdbcClient jdbc;
@@ -59,22 +78,24 @@ public class HomeController {
     private final EntitlementService entitlements;
     private final PreferencesRepository preferences;
     private final BusinessClock clock;
+    private final AuditQuery audit;
 
     public HomeController(JdbcClient jdbc, WorklistQuery worklist, ChangeRequestService changeRequests,
-                          EntitlementService entitlements, PreferencesRepository preferences, BusinessClock clock) {
+                          EntitlementService entitlements, PreferencesRepository preferences, BusinessClock clock, AuditQuery audit) {
         this.jdbc = jdbc;
         this.worklist = worklist;
         this.changeRequests = changeRequests;
         this.entitlements = entitlements;
         this.preferences = preferences;
         this.clock = clock;
+        this.audit = audit;
     }
 
     @GetMapping
     public HomeView getHome(Actor actor) {
         WorklistQuery.WorklistPage assigned = worklist.page(actor, "assigned", null, null, WORKLIST_TOP, null);
         return new HomeView(new WorklistSummary(assigned.items(), assigned.counts()), myRequests(actor), hierarchies(actor),
-                isPolicyRole(actor) ? shadowSummary() : null);
+                isPolicyRole(actor) ? shadowSummary() : null, hierarchyCount(actor), recentChanges(actor), recentActivity(actor));
     }
 
     private MyRequests myRequests(Actor actor) {
@@ -110,6 +131,66 @@ public class HomeController {
                 .query((rs, i) -> new HierarchyCard(rs.getString("hierarchy_code"), rs.getString("hierarchy_name"),
                         rs.getString("purpose"), rs.getBoolean("last_used"), rs.getLong("open_requests")))
                 .list();
+    }
+
+    private long hierarchyCount(Actor actor) {
+        Optional<Set<UUID>> readable = entitlements.readableHierarchies(actor);
+        if (readable.isPresent()) {
+            return readable.get().size();
+        }
+        return jdbc.sql("SELECT count(*) FROM mdm.hierarchy WHERE is_active").query(Long.class).single();
+    }
+
+    /** Data changes in the last {@value #RECENT_DAYS} days, counted over exactly what the Audit page would list. */
+    private RecentChanges recentChanges(Actor actor) {
+        boolean admin = entitlements.hasAny(actor, Permission.ADMIN_SYSTEM);
+        Optional<Set<UUID>> readable = entitlements.readableHierarchies(actor);
+        if (!admin && readable.map(Set::isEmpty).orElse(false)) {
+            return new RecentChanges(RECENT_DAYS, 0, 0);
+        }
+        LocalDate today = clock.today();
+        Instant from = today.minusDays(RECENT_DAYS - 1L).atStartOfDay(clock.zone()).toInstant();
+        Instant to = today.plusDays(1).atStartOfDay(clock.zone()).toInstant();
+        AuditQuery.Summary s = audit.summary(new AuditQuery.Criteria(from, to, null, null, null, null, null, null, Set.of("data"),
+                false, admin, admin ? null : readable.orElse(null), null, null, null, 0));
+        return new RecentChanges(RECENT_DAYS, s.nodesChanged(), s.requestsApplied());
+    }
+
+    /**
+     * The last requests applied or rejected that the user can see: their own, or (as ChangeRequestService.canSee) requests
+     * whose every item is in a hierarchy they can read; access requests to ADMINs only (ADR-042).
+     */
+    private List<ActivityItem> recentActivity(Actor actor) {
+        boolean admin = entitlements.hasAny(actor, Permission.ADMIN_SYSTEM);
+        Optional<Set<UUID>> readable = entitlements.readableHierarchies(actor);
+        String ids = readable.map(set -> set.isEmpty() ? "00000000-0000-0000-0000-000000000000"
+                : String.join(",", set.stream().map(UUID::toString).toList())).orElse(null);
+        return jdbc.sql("""
+                SELECT cr.change_request_id, cr.title, cr.status::text AS status, coalesce(cr.applied_at, cr.decided_at) AS at,
+                       coalesce(ru.display_name, ru.login) AS requested_by, coalesce(du.display_name, du.login) AS decided_by,
+                       cr.decision_basis::text AS decision_basis
+                FROM mdm.change_request cr
+                LEFT JOIN mdm.app_user ru ON ru.user_id = cr.requester_id
+                LEFT JOIN mdm.app_user du ON du.user_id = cr.decided_by
+                WHERE cr.kind = 'request' AND cr.status IN ('applied', 'rejected')
+                  AND (:admin OR cr.requester_id = :me
+                       OR (EXISTS (SELECT 1 FROM mdm.change_item ci WHERE ci.change_request_id = cr.change_request_id)
+                           AND NOT EXISTS (SELECT 1 FROM mdm.change_item ci WHERE ci.change_request_id = cr.change_request_id
+                                           AND (mdm.is_access_action(ci.action)
+                                                OR (CAST(:ids AS text) IS NOT NULL
+                                                    AND (ci.hierarchy_id IS NULL
+                                                         OR ci.hierarchy_id <> ALL(string_to_array(CAST(:ids AS text), ',')::uuid[])))))))
+                ORDER BY coalesce(cr.applied_at, cr.decided_at) DESC NULLS LAST
+                LIMIT :max
+                """).param("admin", admin).param("me", actor.userId()).param("ids", ids).param("max", RECENT_ACTIVITY)
+                .query((rs, i) -> new ActivityItem(rs.getObject("change_request_id", UUID.class), rs.getString("title"),
+                        rs.getString("status"), instant(rs.getTimestamp("at")), rs.getString("requested_by"), rs.getString("decided_by"),
+                        rs.getString("decision_basis")))
+                .list();
+    }
+
+    private static Instant instant(Timestamp t) {
+        return t == null ? null : t.toInstant();
     }
 
     private boolean isPolicyRole(Actor actor) {

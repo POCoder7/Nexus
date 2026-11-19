@@ -253,7 +253,12 @@ class UiSupportApiTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.requests.latest.length()").value(lessThanOrEqualTo(5)))
                 .andExpect(jsonPath("$.hierarchies[0].code").value("UI_H"))
                 .andExpect(jsonPath("$.hierarchies.length()").value(1))   // UI_OTHER is not readable
-                .andExpect(jsonPath("$.policySummary").value(nullValue()));
+                .andExpect(jsonPath("$.policySummary").value(nullValue()))
+                // Phase 5 LLD §21: the redesigned Home's snapshot
+                .andExpect(jsonPath("$.hierarchyCount").value(1))
+                .andExpect(jsonPath("$.recentChanges.days").value(7))
+                .andExpect(jsonPath("$.recentChanges.nodesChanged").isNumber())
+                .andExpect(jsonPath("$.recentActivity.length()").value(lessThanOrEqualTo(5)));
         mvc.perform(get("/api/v1/home").with(asUser(POLICY)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.policySummary").isArray())

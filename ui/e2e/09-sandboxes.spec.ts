@@ -107,12 +107,12 @@ test('the sandbox page lists the changes, and Submit as request sends it for rev
 test('the request is approved and committed, and the live data shows every change', async ({ page }) => {
   await signInAs(page, APPROVER);
   await page.goto(`/requests/${requestId}`);
-  await page.getByRole('button', { name: 'Approve' }).click();
+  await page.getByRole('button', { name: 'Approve', exact: true }).click();
   await expect(page.getByTestId('workflow-timeline').locator('[data-stage-type=commit]')).toContainText('In progress', { timeout: 20_000 });
 
   await signInAs(page, COMMITTER);
   await page.goto(`/requests/${requestId}`);
-  await page.getByRole('button', { name: 'Commit' }).click();
+  await page.getByRole('button', { name: 'Commit', exact: true }).click();
   await expect(page.getByTestId('request-status')).toContainText('Applied', { timeout: 25_000 });
 
   await signInAs(page, ARCHITECT);

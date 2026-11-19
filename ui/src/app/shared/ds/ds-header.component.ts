@@ -9,6 +9,9 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   template: `<header class="ds-header">
     <span class="ds-header__brand" data-slot="brand"></span>
     <span class="ds-header__app">{{ appName() }}</span>
+    @if (tagline()) {
+      <span class="ds-header__tagline">{{ tagline() }}</span>
+    }
     @if (environment()) {
       <span class="ds-header__env">{{ environment() }}</span>
     }
@@ -20,5 +23,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 })
 export class DsHeaderComponent {
   readonly appName = input.required<string>();
+  /** A short line after the name (Phase 5 LLD §21: "Master Data Central"). */
+  readonly tagline = input<string | null>(null);
   readonly environment = input<string | null>(null);
 }

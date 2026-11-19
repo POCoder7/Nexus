@@ -1,6 +1,34 @@
 {
   "components" : {
     "schemas" : {
+      "ActivityItem" : {
+        "properties" : {
+          "at" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "changeRequestId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "decidedBy" : {
+            "type" : "string"
+          },
+          "decisionBasis" : {
+            "type" : "string"
+          },
+          "requestedBy" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "Actor" : {
         "properties" : {
           "displayName" : {
@@ -779,11 +807,24 @@
             },
             "type" : "array"
           },
+          "hierarchyCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
           "policySummary" : {
             "items" : {
               "$ref" : "#/components/schemas/ShadowSummaryRow"
             },
             "type" : "array"
+          },
+          "recentActivity" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ActivityItem"
+            },
+            "type" : "array"
+          },
+          "recentChanges" : {
+            "$ref" : "#/components/schemas/RecentChanges"
           },
           "requests" : {
             "$ref" : "#/components/schemas/MyRequests"
@@ -1767,6 +1808,23 @@
           },
           "parentName" : {
             "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "RecentChanges" : {
+        "properties" : {
+          "days" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "nodesChanged" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "requestsApplied" : {
+            "format" : "int64",
+            "type" : "integer"
           }
         },
         "type" : "object"

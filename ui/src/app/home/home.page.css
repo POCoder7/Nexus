@@ -1,8 +1,41 @@
+/* Home (Phase 5 LLD §21): the owner's mock-up, in the design tokens (UI_STANDARD §3). */
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-4);
+}
+
+.home h2 {
+  margin: var(--nx-space-3) 0 0;
+  font-size: var(--nx-font-size-heading-3);
+}
+
+.intro {
+  margin: 0;
+}
+
+.attention {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--nx-space-3);
+  padding: var(--nx-space-3) var(--nx-space-4);
+  border: var(--nx-border-width) solid var(--nx-color-border-default);
+  border-radius: var(--nx-radius-1);
+  background: var(--nx-color-surface-raised);
+  color: var(--nx-color-text-primary);
+  text-decoration: none;
+}
+
+.attention:hover {
+  background: var(--nx-color-surface-hover);
+}
+
 .search {
   display: flex;
   flex-direction: column;
   gap: var(--nx-space-2);
-  max-width: 40rem;
+  max-width: 48rem;
 }
 
 .search label {
@@ -21,30 +54,139 @@
   border-radius: var(--nx-radius-1);
 }
 
-.cards {
+.snapshot {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
-  gap: var(--nx-space-5);
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--nx-space-4);
 }
 
-.wide {
-  grid-column: 1 / -1;
-}
-
-.pills {
+.stat {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--nx-space-2);
+  flex-direction: column;
+  gap: var(--nx-space-1);
 }
 
-.nx-list li {
+.stat h3 {
+  margin: 0;
+  font-size: var(--nx-font-size-label);
+  color: var(--nx-color-text-secondary);
+}
+
+.stat p {
+  margin: 0;
+}
+
+.stat__main {
+  font-size: var(--nx-font-size-heading-3);
+  font-weight: var(--nx-font-weight-strong);
+}
+
+.stat a {
+  margin-top: auto;
+  padding-top: var(--nx-space-2);
+}
+
+.quick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: var(--nx-space-3);
+}
+
+.quick__action {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--nx-space-2);
+  padding: var(--nx-space-3);
+  border: var(--nx-border-width) solid var(--nx-color-border-strong);
+  border-radius: var(--nx-radius-1);
+  background: var(--nx-color-surface-raised);
+  color: var(--nx-color-text-primary);
+  text-decoration: none;
+}
+
+.quick__action:hover {
+  background: var(--nx-color-surface-hover);
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--nx-space-3);
+}
+
+.toggles {
+  display: inline-flex;
+  gap: var(--nx-space-3);
+}
+
+.details,
+.activity {
+  margin: var(--nx-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  border: var(--nx-border-width) solid var(--nx-color-border-default);
+  border-radius: var(--nx-radius-1);
+}
+
+.details li + li,
+.activity li + li {
+  border-top: var(--nx-border-width) solid var(--nx-color-border-default);
+}
+
+.details__row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--nx-space-3);
+  width: 100%;
+  padding: var(--nx-space-3) var(--nx-space-4);
+  border: 0;
+  background: var(--nx-color-surface-raised);
+  color: var(--nx-color-text-primary);
+  font-size: var(--nx-font-size-body);
+  text-align: left;
+  cursor: pointer;
 }
 
-.quick {
+.details__row:hover {
+  background: var(--nx-color-surface-hover);
+}
+
+.details__body {
   display: flex;
-  gap: var(--nx-space-5);
+  flex-wrap: wrap;
+  gap: var(--nx-space-4);
+  padding: var(--nx-space-2) var(--nx-space-4) var(--nx-space-3) var(--nx-space-7);
+}
+
+.details__body p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.activity li {
+  display: flex;
+  align-items: center;
+  gap: var(--nx-space-3);
+  padding: var(--nx-space-3) var(--nx-space-4);
+}
+
+.activity__icon {
+  color: var(--nx-color-status-success);
+}
+
+.activity__icon--rejected {
+  color: var(--nx-color-status-error);
+}
+
+.activity__text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.activity__when {
+  white-space: nowrap;
 }
