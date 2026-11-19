@@ -12,7 +12,21 @@ import { HierarchySummary } from './generated/models';
 import type {
   CreateSandbox, PageConflict, PageDiffRow, PageSandboxChild, PageSandboxView, RefreshResult, SandboxItemAdded, SandboxNode,
   SandboxView, PagePropertyDefinitionView, PageSavedQueryView, QueryDefinition, QueryPage, SaveQuery, SavedQueryView,
+  PageAuditEntry, PageRequestEvent,
 } from './generated/models';
+
+/** Transaction-history filters (AUD-01, Phase 5 LLD §18.4): dates are business dates; codes and a login, not ids. */
+export interface AuditFilters {
+  from?: string;
+  to?: string;
+  user?: string;
+  hierarchy?: string;
+  property?: string;
+  node?: string;
+  request?: string;
+  category?: string[];
+  includeSuperseded?: boolean;
+}
 
 /** Idempotency-Key for one user action (ADR-015); the interceptor turns it into the header. */
 export const IDEMPOTENCY_KEY = new HttpContextToken<string | null>(() => null);
@@ -111,6 +125,17 @@ export class NexusApi {
   async addItem(id: string, etag: string, body: ItemCommand, key: string): Promise<Tagged<ItemView>> {
     const r = await this.api.invoke$Response(fn.addChangeRequestItem, { id, 'If-Match': etag, body }, idem(key));
     return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  /** AUD-01: the transaction history, newest first. */
+  audit(filters: AuditFilters, cursor?: string, limit = 50): Promise<PageAuditEntry> {
+    const p = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0)));
+    return this.api.invoke(fn.searchAudit, { ...p, cursor, limit });
+  }
+
+  /** AUD-02: a request's history, oldest first. */
+  requestHistory(id: string, cursor?: string, limit = 100): Promise<PageRequestEvent> {
+    return this.api.invoke(fn.getRequestHistory, { id, cursor, limit });
   }
 
   items(id: string): Promise<PageItemView> {

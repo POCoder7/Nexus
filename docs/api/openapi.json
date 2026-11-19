@@ -34,6 +34,85 @@
         },
         "type" : "object"
       },
+      "AuditEntry" : {
+        "properties" : {
+          "actor" : {
+            "type" : "string"
+          },
+          "after" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
+          "before" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
+          "category" : {
+            "type" : "string"
+          },
+          "changeRequestId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "changeRequestTitle" : {
+            "type" : "string"
+          },
+          "changedFields" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "decidedBy" : {
+            "type" : "string"
+          },
+          "decisionBasis" : {
+            "type" : "string"
+          },
+          "hierarchyCode" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "nodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "nodeName" : {
+            "type" : "string"
+          },
+          "occurredAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "operation" : {
+            "type" : "string"
+          },
+          "propertyCode" : {
+            "type" : "string"
+          },
+          "propertyLabel" : {
+            "type" : "string"
+          },
+          "requestedBy" : {
+            "type" : "string"
+          },
+          "table" : {
+            "type" : "string"
+          },
+          "validFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "validTo" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "ChangeRequestView" : {
         "properties" : {
           "appliedAt" : {
@@ -991,6 +1070,20 @@
         },
         "type" : "object"
       },
+      "PageAuditEntry" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AuditEntry"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "PageChangeRequestView" : {
         "properties" : {
           "items" : {
@@ -1136,6 +1229,20 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/PropertyDefinitionView"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PageRequestEvent" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/RequestEvent"
             },
             "type" : "array"
           },
@@ -1540,6 +1647,31 @@
           "rowVersion" : {
             "format" : "int32",
             "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "RequestEvent" : {
+        "properties" : {
+          "actor" : {
+            "type" : "string"
+          },
+          "actorId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "at" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -2417,6 +2549,112 @@
         "tags" : [ "workflow-admin-controller" ]
       }
     },
+    "/api/v1/audit" : {
+      "get" : {
+        "operationId" : "searchAudit",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "user",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "hierarchy",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "node",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "property",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "request",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "category",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "includeSuperseded",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageAuditEntry"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "audit-controller" ]
+      }
+    },
     "/api/v1/change-requests" : {
       "get" : {
         "operationId" : "listChangeRequests",
@@ -2603,6 +2841,49 @@
           }
         },
         "tags" : [ "change-request-controller" ]
+      }
+    },
+    "/api/v1/change-requests/{id}/history" : {
+      "get" : {
+        "operationId" : "getRequestHistory",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 100,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageRequestEvent"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "request-history-controller" ]
       }
     },
     "/api/v1/change-requests/{id}/items" : {

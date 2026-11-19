@@ -26,6 +26,8 @@ export class NodeHistoryComponent {
 
   private readonly api = inject(NexusApi);
   protected readonly t = STRINGS.history;
+  /** AUD-01 (Phase 5 LLD §18.7): the full transaction history of this node, on the Audit page. */
+  protected readonly auditText = STRINGS.audit;
   protected readonly common = STRINGS.common;
   protected readonly events = signal<HistoryEvent[]>([]);
   protected readonly cursor = signal<string | null>(null);

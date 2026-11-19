@@ -17,6 +17,8 @@ export type { LoadWorkflowModel$Params as LoadWorkflowModel$Params } from './fn/
 export { loadWorkflowModel as loadWorkflowModel } from './fn/workflow-admin-controller/load-workflow-model';
 export type { ActivateWorkflowModel$Params as ActivateWorkflowModel$Params } from './fn/workflow-admin-controller/activate-workflow-model';
 export { activateWorkflowModel as activateWorkflowModel } from './fn/workflow-admin-controller/activate-workflow-model';
+export type { SearchAudit$Params as SearchAudit$Params } from './fn/audit-controller/search-audit';
+export { searchAudit as searchAudit } from './fn/audit-controller/search-audit';
 export type { ListChangeRequests$Params as ListChangeRequests$Params } from './fn/change-request-controller/list-change-requests';
 export { listChangeRequests as listChangeRequests } from './fn/change-request-controller/list-change-requests';
 export type { CreateChangeRequest$Params as CreateChangeRequest$Params } from './fn/change-request-controller/create-change-request';
@@ -39,6 +41,8 @@ export type { ValidateChangeRequest$Params as ValidateChangeRequest$Params } fro
 export { validateChangeRequest as validateChangeRequest } from './fn/change-request-controller/validate-change-request';
 export type { WithdrawChangeRequest$Params as WithdrawChangeRequest$Params } from './fn/change-request-controller/withdraw-change-request';
 export { withdrawChangeRequest as withdrawChangeRequest } from './fn/change-request-controller/withdraw-change-request';
+export type { GetRequestHistory$Params as GetRequestHistory$Params } from './fn/request-history-controller/get-request-history';
+export { getRequestHistory as getRequestHistory } from './fn/request-history-controller/get-request-history';
 export type { ReportClientError$Params as ReportClientError$Params } from './fn/client-error-controller/report-client-error';
 export { reportClientError as reportClientError } from './fn/client-error-controller/report-client-error';
 export type { ListHierarchies$Params as ListHierarchies$Params } from './fn/hierarchy-controller/list-hierarchies';

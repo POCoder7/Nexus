@@ -1,4 +1,5 @@
 <section class="history" [attr.aria-label]="t.label(nodeName())" aria-live="polite" [attr.aria-busy]="loading()" data-testid="node-history">
+  <p class="all-changes"><a routerLink="/audit" [queryParams]="{ node: nodeId() }" data-testid="node-all-changes">{{ auditText.allChangesToNode }}</a></p>
   @if (error(); as e) {
     <p class="nx-error-text" role="alert">{{ e.detail }}</p>
   }

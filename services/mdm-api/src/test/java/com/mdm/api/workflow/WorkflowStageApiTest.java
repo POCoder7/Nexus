@@ -179,6 +179,13 @@ class WorkflowStageApiTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.stages[1].decisions[0].override").value(true))
                 .andExpect(jsonPath("$.stages[1].decisions[0].comment").value("Approvers are all away today"));
 
+        UUID cr = ownerJdbc().sql("SELECT change_request_id FROM wf.workflow_instance WHERE instance_id = :i").param("i", instance)
+                .query(UUID.class).single();
+        mvc.perform(get("/api/v1/change-requests/" + cr + "/history").with(asUser(VIEWER)))   // AUD-02: the override and its reason
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.data.action == 'override')].data.comment").value("Approvers are all away today"))
+                .andExpect(jsonPath("$.items[?(@.data.action == 'override')].actor").value(ADMIN));
+
         complete(stage2);
         advance(instance);
         override(ADMIN, stageId(instance, 3), "approve", "Same admin on the next stage").andExpect(status().isForbidden())

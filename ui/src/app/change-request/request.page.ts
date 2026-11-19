@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { NexusApi, newIdempotencyKey } from '../api/nexus-api';
-import type { ChangeRequestView, InstanceView, ItemView, StageView } from '../api/generated/models';
+import type { ChangeRequestView, InstanceView, ItemView, RequestEvent, StageView } from '../api/generated/models';
+import { RequestHistoryComponent } from '../audit/request-history.component';
 import { Announcer } from '../core/announcer';
 import { ContextStore } from '../core/context.store';
 import { STRINGS } from '../core/strings';
@@ -20,7 +21,8 @@ import { WorkflowTimelineComponent } from './workflow-timeline.component';
  */
 @Component({
   selector: 'nx-request-page',
-  imports: [ItemListComponent, WorkflowTimelineComponent, DecisionPanelComponent, DsBadgeComponent, CopyIdComponent, NxDatePipe],
+  imports: [ItemListComponent, WorkflowTimelineComponent, DecisionPanelComponent, RequestHistoryComponent, DsBadgeComponent, CopyIdComponent,
+    NxDatePipe],
   templateUrl: './request.page.html',
   styleUrl: './request.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,6 +45,11 @@ export class RequestPage implements OnDestroy {
   protected readonly error = signal<UiError | null>(null);
   protected readonly deciding = signal(false);
   protected readonly decisionError = signal<UiError | null>(null);
+  /** AUD-02 (Phase 5 LLD §18.6): the request's history, oldest first, in pages. */
+  protected readonly history = signal<RequestEvent[]>([]);
+  protected readonly historyCursor = signal<string | null>(null);
+  protected readonly historyLoading = signal(false);
+  protected readonly timeZone = () => this.context.me()?.businessTimeZone ?? undefined;
   private poll: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly openStage = computed(() =>
@@ -89,6 +96,7 @@ export class RequestPage implements OnDestroy {
       this.items.set(items.items ?? []);
       this.instance.set(body.workflowInstanceId ? await this.api.instance(body.workflowInstanceId) : null);
       this.error.set(null);
+      void this.loadHistory(id, false);
       // just submitted: the engine opens the first stage shortly after, so follow it until a stage is open
       if (!this.poll && this.instance() && !this.openStage() && ['submitted', 'in_review'].includes(body.status ?? '')) {
         this.followEngine(null, 20);
@@ -112,6 +120,20 @@ export class RequestPage implements OnDestroy {
       await this.load(this.id());
       this.followEngine(stageId, 15);
     });
+  }
+
+  /** The first page again (after any change to the request), or the next page ("Show more"). */
+  protected async loadHistory(id: string, more: boolean): Promise<void> {
+    this.historyLoading.set(true);
+    try {
+      const page = await this.api.requestHistory(id, more ? this.historyCursor() ?? undefined : undefined);
+      this.history.set(more ? [...this.history(), ...(page.items ?? [])] : page.items ?? []);
+      this.historyCursor.set(page.nextCursor ?? null);
+    } catch {
+      // the history is secondary: the request itself has loaded, and its own errors are shown
+    } finally {
+      this.historyLoading.set(false);
+    }
   }
 
   protected async decide(intent: DecisionIntent): Promise<void> {

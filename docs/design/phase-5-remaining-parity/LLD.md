@@ -1105,8 +1105,8 @@ Personal objects (`saved_query`) are not listed: they are their owner's (§17.5.
 
 - **Filters:**
   - `from`, `to`: recorded time (when the change was made), dates in the business time zone. Default: the last 30
-    days. A range over 366 days needs a narrowing filter (`request`, `node` or `user`); otherwise 400
-    `audit.range_too_wide`, so one search cannot scan years of history.
+    days. A range over 366 days needs a narrowing filter (`request`, `node` or `user`); otherwise 400 (a field
+    error on `from`), so one search cannot scan years of history.
   - `user`: a login. It matches the requester, the decider or the applying actor of the entry's request.
   - `hierarchy`: a code. It matches the row's hierarchy, or, for a row without one (a node's name), a request that
     touched that hierarchy.
@@ -1175,8 +1175,22 @@ One list, oldest first, merged from:
 | **C-4** | Store the subject in three new audit columns (V1 edit), rather than reading JSON in every search |
 | **C-5** | CSV download waits for EXP-05 (Phase 8), which reuses this search |
 
-No new error codes: the range limit is a 400 (`audit.range_too_wide`), and the ADMIN categories are a 403
+No new error codes: the range limit is a 400 (a field error on `from`), and the ADMIN categories are a 403
 (`entitlement.missing`).
+
+*Built (2026-11-19, 5-17a to 5-17c):* as designed, with these details:
+- **Request of an audit row:** `trg_audit_row` takes the request from apply's setting or, outside apply, from the row's own
+  `change_request_id`, so draft edits and access rows are found by their request (AUD-02).
+- **Restated rows:** apply re-states the unchanged part of a fact before the effective date as a new row; that row equals
+  the one it replaces, so it is a `restated` entry, hidden with the superseded rows unless asked for.
+- **Errors:** the range limit and unknown codes or logins are ordinary 400 field errors (`from`, `user`, `hierarchy`,
+  `property`), like every parameter error; there is no separate `audit.range_too_wide` code.
+- **Request history:** a request row whose only change is its row version (an item changed) is not an event; the item
+  event says it. Enrichment items added in review have no recorded actor; the workflow's `enrich` action names who.
+- **UI:** "Audit" in the main navigation; the node History tab links to "All changes to this node".
+- **Tests:** pgTAP `30_audit_subjects` (9); JUnit `AuditApiTest` (5, including the request history), `WorkflowStageApiTest`
+  (the override and its reason in the history); Vitest `audit-text` (4); stories: audit table and request history (6, axe);
+  Playwright `15-audit` (2).
 
 ## 19. Users, roles and groups (ADR-042; for review)
 

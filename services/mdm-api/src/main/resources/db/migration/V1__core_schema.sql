@@ -729,7 +729,12 @@ CREATE TABLE audit_log (
   table_name        text NOT NULL,
   action            text NOT NULL,
   old_row           jsonb,
-  new_row           jsonb
+  new_row           jsonb,
+  -- The subject of the row (Phase 5 LLD §18.2, AUD-01), so the transaction history filters and pairs by index rather
+  -- than by reading JSON. Filled by trg_audit_row from the row itself; NULL when the row has no such column.
+  hierarchy_id      uuid,                      -- the row's hierarchy_id
+  node_id           uuid,                      -- node_id; child_node_id (placements); owned_node_id (ownership edges)
+  property_id       uuid                       -- property_id
 );
 
 CREATE FUNCTION trg_append_only() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -738,18 +743,30 @@ BEGIN
 END $$;
 CREATE TRIGGER audit_log_append_only BEFORE UPDATE OR DELETE ON audit_log
   FOR EACH ROW EXECUTE FUNCTION trg_append_only();
+-- Transaction history (AUD-01, Phase 5 LLD §18.4): newest first, and by request, node, hierarchy or actor.
+CREATE INDEX audit_log_recent ON audit_log (occurred_at DESC, audit_id DESC);
+CREATE INDEX audit_log_request ON audit_log (change_request_id);
+CREATE INDEX audit_log_node ON audit_log (node_id, occurred_at DESC);
+CREATE INDEX audit_log_hierarchy ON audit_log (hierarchy_id, occurred_at DESC);
+CREATE INDEX audit_log_actor ON audit_log (actor_id, occurred_at DESC);
 
 -- SECURITY DEFINER: audit rows are written with the owner's rights, so no application role needs (or has)
 -- INSERT on audit_log, and none can write audit rows of its own making (ADR-014).
+-- The request is the one apply is running (mdm.change_request_id) or, for writes outside apply (drafts, items, access
+-- rows), the row's own change_request_id: so a request's whole history can be found by it (AUD-02, LLD §18.6).
 CREATE FUNCTION trg_audit_row() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = mdm, public AS $$
+DECLARE r jsonb := to_jsonb(COALESCE(NEW, OLD));
 BEGIN
-  INSERT INTO audit_log (actor_id, change_request_id, table_name, action, old_row, new_row)
+  INSERT INTO audit_log (actor_id, change_request_id, table_name, action, old_row, new_row, hierarchy_id, node_id, property_id)
   VALUES (nullif(current_setting('mdm.actor_id', true), '')::uuid,
-          nullif(current_setting('mdm.change_request_id', true), '')::uuid,
+          coalesce(nullif(current_setting('mdm.change_request_id', true), '')::uuid, (r ->> 'change_request_id')::uuid),
           TG_TABLE_NAME, TG_OP,
           CASE WHEN TG_OP <> 'INSERT' THEN to_jsonb(OLD) END,
-          CASE WHEN TG_OP <> 'DELETE' THEN to_jsonb(NEW) END);
+          CASE WHEN TG_OP <> 'DELETE' THEN to_jsonb(NEW) END,
+          (r ->> 'hierarchy_id')::uuid,
+          coalesce(r ->> 'node_id', r ->> 'child_node_id', r ->> 'owned_node_id')::uuid,
+          (r ->> 'property_id')::uuid);
   RETURN COALESCE(NEW, OLD);
 END $$;
 

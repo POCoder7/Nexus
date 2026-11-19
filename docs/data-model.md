@@ -12,7 +12,7 @@ the version lifecycle, its guard and transition log, and the freeze lock. V12 ho
 
 | File | Contents |
 |---|---|
-| `V1__core_schema.sql` | Versions, change requests (maker-checker, AI as requester, guarded status transitions, frozen content after draft, row version for ETags, origin; Phase 5 sandboxes: `kind`, `sandbox_name`, `sandbox_base_recorded_at`, the kind guard `trg_cr_sandbox_kind` (`N2303`: origin `'sandbox'` only through a sandbox, kind moves once from sandbox to request while a draft) and the item limit at insert `change_item_sandbox_limit` (`N2302`)), nodes, identifiers, legal entity profile, hierarchies (shared nodes, cycle protection), properties (global/local, inheritance, derived, typed validation), validation rules, append-only audit log; the write path: node allocation, withdraw, submit, decide, validate (trial apply), apply with its handlers, change events (outbox) and item clearance |
+| `V1__core_schema.sql` | Versions, change requests (maker-checker, AI as requester, guarded status transitions, frozen content after draft, row version for ETags, origin; Phase 5 sandboxes: `kind`, `sandbox_name`, `sandbox_base_recorded_at`, the kind guard `trg_cr_sandbox_kind` (`N2303`: origin `'sandbox'` only through a sandbox, kind moves once from sandbox to request while a draft) and the item limit at insert `change_item_sandbox_limit` (`N2302`)), nodes, identifiers, legal entity profile, hierarchies (shared nodes, cycle protection), properties (global/local, inheritance, derived, typed validation), validation rules, append-only audit log (since Phase 5, AUD-01: each row also records its subject, `hierarchy_id`, `node_id` and `property_id`, and its request from apply or from the row itself, with indexes for the transaction-history search); the write path: node allocation, withdraw, submit, decide, validate (trial apply), apply with its handlers, change events (outbox) and item clearance |
 | `V2__ownership_ubo.sql` | Evidence documents, weighted ownership and control graph, UBO thresholds, deterministic effective-ownership calculation, UBO ownership and control prongs, starter validation rules |
 | `V3__drm_export.sql` | Export profiles that reproduce DRM hierarchy and generation exports, as-of tree walk, property resolution with inheritance, export file generation with SHA-256, parallel-run reconciliation, DRM migration staging tables |
 | `V4__workflow.sql` | DRG-equivalent workflow layer in schema `wf`: versioned workflow models, tasks, Submit/Enrich/Approve/Commit stages, approval groups and methods, node access scopes, separation of duties, conditional stages with request splitting, claims, SLAs, append-only request history, event outbox, user worklist |
@@ -181,7 +181,7 @@ Engine flow for a covered model: submit → run full validation → `wf.apply_co
 | Query / node filter | `export_profile.node_filter` (declarative JSON) |
 | Hierarchy and generation exports | `export_profile` + `export_profile_column` + `export_drm()` |
 | DRG request | `change_request` + `change_item` |
-| Transaction log | `audit_log` |
+| Transaction log | `audit_log`; read by `GET /audit` (AUD-01) and `GET /change-requests/{id}/history` (AUD-02), Phase 5 LLD §18 |
 
 ## Key design decisions
 

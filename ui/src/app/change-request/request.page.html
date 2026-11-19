@@ -45,6 +45,8 @@
         } @else {
           <p class="nx-muted">{{ t.coreMode }}</p>
         }
+        <nx-request-history [events]="history()" [loading]="historyLoading()" [hasMore]="!!historyCursor()" [timeZone]="timeZone()"
+                            (loadMore)="loadHistory(r.id ?? '', true)" />
       </div>
     </div>
   } @else {
