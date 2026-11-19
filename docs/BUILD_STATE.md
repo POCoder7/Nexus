@@ -41,7 +41,7 @@
 | All hierarchies in one tree (owner request 2026-11-17): `/browse`, version at the root, readable hierarchies below, each opened on first expand; node panel editable with the rights of the node's own hierarchy (drag and drop within one hierarchy), "Open in {hierarchy}"; property grid shows names only (codes as tooltips); "All hierarchies" in the navigation, and Home's "Browse hierarchies" opens it | HIE-12, VER-01 | Done `c1d57dc` (read-only first), then editable | Vitest `AllHierarchiesStore` (6); Playwright `14-all-hierarchies` (3, axe) | Phase 5 LLD §20. UI only: no API, schema or decision change |
 | 5-17a Transaction history: `audit_log` subject columns, request fallback and indexes (V1 edit); `GET /audit` with filters, categories, before → after pairing, scope | AUD-01 | Done (with 5-17b and 5-17c) | pgTAP `30_audit_subjects` (9); JUnit `AuditApiTest` (pairing, a move, filters, paging, range limit, who sees what) | ADR-043, LLD §18 "Built" |
 | 5-17b Request history: `GET /change-requests/{id}/history`; History section on the request page | AUD-02 | Done | JUnit `AuditApiTest` (core-mode sequence, actors, 404, paging), `WorkflowStageApiTest` (override and reason) | |
-| 5-17c Audit page (`/audit`), navigation, the node History tab's link | AUD-01 | Done | Vitest `audit-text` (4); stories +6 (axe); Playwright `15-audit` (2) | |
+| 5-17c Audit page (`/audit`), navigation, the node History tab's link; then (owner, 2026-11-19) a version filter and dropdowns for version, hierarchy and property | AUD-01 | Done | Vitest `audit-text` (4); stories +6 (axe); Playwright `15-audit` (2) | |
 
 ### Phase 3 progress
 | Increment | Capability | Status | Tests | Notes |

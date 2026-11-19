@@ -20,6 +20,7 @@ export interface AuditFilters {
   from?: string;
   to?: string;
   user?: string;
+  version?: string;
   hierarchy?: string;
   property?: string;
   node?: string;

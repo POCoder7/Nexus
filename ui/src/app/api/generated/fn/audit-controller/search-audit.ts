@@ -13,6 +13,7 @@ export interface SearchAudit$Params {
   from?: string;
   to?: string;
   user?: string;
+  version?: string;
   hierarchy?: string;
   node?: string;
   property?: string;
@@ -29,6 +30,7 @@ export function searchAudit(http: HttpClient, rootUrl: string, params?: SearchAu
     rb.query('from', params.from, {});
     rb.query('to', params.to, {});
     rb.query('user', params.user, {});
+    rb.query('version', params.version, {});
     rb.query('hierarchy', params.hierarchy, {});
     rb.query('node', params.node, {});
     rb.query('property', params.property, {});

@@ -2577,6 +2577,13 @@
           }
         }, {
           "in" : "query",
+          "name" : "version",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
           "name" : "hierarchy",
           "required" : false,
           "schema" : {

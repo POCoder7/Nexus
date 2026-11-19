@@ -52,7 +52,8 @@ public class AuditQuery {
     private static final Set<String> SUBJECT = Set.of("hierarchy_id", "node_id", "child_node_id", "property_id", "owned_node_id");
 
     /** {@code readable}: null = every hierarchy; {@code admin}: no scope at all (§18.5). */
-    public record Criteria(Instant from, Instant to, UUID user, UUID hierarchy, UUID node, UUID property, UUID request,
+    /** {@code version}: rows written by requests raised in that version (LLD §18.4). */
+    public record Criteria(Instant from, Instant to, UUID user, UUID version, UUID hierarchy, UUID node, UUID property, UUID request,
                            Set<String> categories, boolean includeSuperseded, boolean admin, Set<UUID> readable,
                            Instant cursorAt, String cursorSource, Long cursorId, int limit) {
     }
@@ -117,6 +118,9 @@ public class AuditQuery {
                     AND (prev.old_row IS NULL
                          OR (s.new_row - string_to_array(:technical, ',')) IS DISTINCT FROM (prev.old_row - string_to_array(:technical, ',')))
                     """);
+        }
+        if (c.version() != null) {
+            sql.append(" AND EXISTS (SELECT 1 FROM mdm.change_request vr WHERE vr.change_request_id = s.change_request_id AND vr.version_id = :version)");
         }
         if (c.request() != null) {
             sql.append(" AND s.change_request_id = :request");
@@ -192,6 +196,7 @@ public class AuditQuery {
                 .param("from", Timestamp.from(c.from())).param("to", Timestamp.from(c.to()))
                 .param("limit", c.limit() + 1);
         if (c.request() != null) spec = spec.param("request", c.request());
+        if (c.version() != null) spec = spec.param("version", c.version());
         if (c.node() != null) spec = spec.param("node", c.node());
         if (c.property() != null) spec = spec.param("property", c.property());
         if (c.hierarchy() != null) spec = spec.param("hierarchy", c.hierarchy());

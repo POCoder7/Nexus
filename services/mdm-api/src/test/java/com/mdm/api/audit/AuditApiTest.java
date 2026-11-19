@@ -142,6 +142,12 @@ class AuditApiTest extends PostgresIntegrationTest {
     void filtersPagingAndTheRangeLimit() throws Exception {
         assertThat(titles(search(ADMIN, "user=" + APPROVER + "&limit=200"))).contains("AU retail", "AU move")
                 .doesNotContain((String) null);
+        // version (LLD §18.4): changes made by requests raised in it
+        assertThat(titles(search(ADMIN, "version=AU working&limit=200")))
+                .contains("AU retail", "AU wholesale", "AU move", "AU other hierarchy");
+        ownerJdbc().sql("INSERT INTO mdm.version (version_name, business_as_of) VALUES ('AU empty', current_date) ON CONFLICT DO NOTHING").update();
+        assertThat(titles(search(ADMIN, "version=AU empty"))).isEmpty();
+        mvc.perform(get("/api/v1/audit").param("version", "AU no such").with(asUser(ADMIN))).andExpect(status().isBadRequest());
         mvc.perform(get("/api/v1/audit").param("user", "au_nobody").with(asUser(ADMIN))).andExpect(status().isBadRequest());   // unknown login
         assertThat(titles(search(ADMIN, "user=" + VIEWER1))).isEmpty();   // a real user who changed nothing
 

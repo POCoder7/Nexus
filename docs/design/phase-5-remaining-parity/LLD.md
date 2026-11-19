@@ -1100,7 +1100,7 @@ Personal objects (`saved_query`) are not listed: they are their owner's (§17.5.
 ### 18.4 API
 | Endpoint | Purpose | Auth |
 |---|---|---|
-| `GET /api/v1/audit?from&to&user&hierarchy&node&property&request&category&includeSuperseded&cursor&limit` | Transaction history, newest first, keyset paged on `(occurred_at, audit_id)` | READ; ADMIN for the ADMIN categories |
+| `GET /api/v1/audit?from&to&user&version&hierarchy&node&property&request&category&includeSuperseded&cursor&limit` | Transaction history, newest first, keyset paged on `(occurred_at, audit_id)` | READ; ADMIN for the ADMIN categories |
 | `GET /api/v1/change-requests/{id}/history?cursor&limit` | Request history, oldest first (§18.6) | Whoever can see the request |
 
 - **Filters:**
@@ -1111,6 +1111,8 @@ Personal objects (`saved_query`) are not listed: they are their owner's (§17.5.
   - `hierarchy`: a code. It matches the row's hierarchy, or, for a row without one (a node's name), a request that
     touched that hierarchy.
   - `category`: one or more of §18.3; default `data`.
+  - `version` (added at the owner's request, 2026-11-19): a version name. It matches rows written by requests raised
+    in that version (a version is a slice, so a request belongs to one); rows without a request are left out.
 - **Paging:** `limit` 1 to 200, default 50, and an opaque cursor, as every list (§17.15 limits).
 - **No totals.** Counting the whole log is avoided; the page says whether there is a next page.
 
@@ -1140,7 +1142,9 @@ One list, oldest first, merged from:
 
 ### 18.7 UI (UI_STANDARD)
 - **Audit page** (`/audit`, "Audit" in the main navigation for everyone who can read a hierarchy):
-  - a filter bar: date range, user, hierarchy, node (search), property, request id, categories (ADMIN categories only
+  - a filter bar: date range, user (text), version, hierarchy and property as dropdowns (versions from `GET /versions`;
+    the hierarchies the user can read; properties by category; owner, 2026-11-19), node and request id (filled by the
+    links), categories (ADMIN categories only
     for ADMIN), "Show superseded rows";
   - a table (`ds-table`): when, what (the sentence, with before → after), node (link to it in its hierarchy at that
     date), hierarchy, request (link), requested by, approved by;

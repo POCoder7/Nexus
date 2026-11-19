@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuditFilters, NexusApi } from '../api/nexus-api';
-import type { AuditEntry } from '../api/generated/models';
+import type { AuditEntry, HierarchySummary, PropertyDefinitionView, VersionView } from '../api/generated/models';
 import { Announcer } from '../core/announcer';
 import { ContextStore } from '../core/context.store';
 import { STRINGS } from '../core/strings';
@@ -28,11 +28,33 @@ const ADMIN_CATEGORIES = ['requests', 'definitions', 'access', 'configuration'];
         <ds-field [label]="t.from" for="nx-audit-from"><input id="nx-audit-from" type="date" name="from" [(ngModel)]="form.from" /></ds-field>
         <ds-field [label]="t.to" for="nx-audit-to"><input id="nx-audit-to" type="date" name="to" [(ngModel)]="form.to" /></ds-field>
         <ds-field [label]="t.user" for="nx-audit-user"><input id="nx-audit-user" name="user" autocomplete="off" [(ngModel)]="form.user" /></ds-field>
+        <ds-field [label]="t.version" for="nx-audit-version">
+          <select id="nx-audit-version" name="version" [(ngModel)]="form.version">
+            <option value="">{{ t.allVersions }}</option>
+            @for (v of versions(); track v.name) {
+              <option [value]="v.name">{{ v.name }}</option>
+            }
+          </select>
+        </ds-field>
         <ds-field [label]="t.hierarchy" for="nx-audit-hierarchy">
-          <input id="nx-audit-hierarchy" name="hierarchy" autocomplete="off" [(ngModel)]="form.hierarchy" />
+          <select id="nx-audit-hierarchy" name="hierarchy" [(ngModel)]="form.hierarchy">
+            <option value="">{{ t.allHierarchies }}</option>
+            @for (h of hierarchies(); track h.code) {
+              <option [value]="h.code">{{ h.name }} ({{ h.code }})</option>
+            }
+          </select>
         </ds-field>
         <ds-field [label]="t.property" for="nx-audit-property">
-          <input id="nx-audit-property" name="property" autocomplete="off" [(ngModel)]="form.property" />
+          <select id="nx-audit-property" name="property" [(ngModel)]="form.property">
+            <option value="">{{ t.allProperties }}</option>
+            @for (g of propertyGroups(); track g.category) {
+              <optgroup [label]="g.category">
+                @for (p of g.properties; track p.code) {
+                  <option [value]="p.code">{{ p.label || p.code }}</option>
+                }
+              </optgroup>
+            }
+          </select>
         </ds-field>
         <ds-field [label]="t.node" for="nx-audit-node"><input id="nx-audit-node" name="node" autocomplete="off" [(ngModel)]="form.node" /></ds-field>
         <ds-field [label]="t.request" for="nx-audit-request">
@@ -77,6 +99,7 @@ export class AuditPage {
   readonly from = input<string | undefined>();
   readonly to = input<string | undefined>();
   readonly user = input<string | undefined>();
+  readonly version = input<string | undefined>();
   readonly hierarchy = input<string | undefined>();
   readonly property = input<string | undefined>();
   readonly node = input<string | undefined>();
@@ -96,6 +119,19 @@ export class AuditPage {
   protected readonly error = signal<UiError | null>(null);
   /** ADMIN_SYSTEM anywhere = ADMIN: the other categories are offered (a hint; the server decides). */
   protected readonly categories = computed(() => (this.context.canEverywhere('ADMIN_SYSTEM') ? ['data', ...ADMIN_CATEGORIES] : ['data']));
+  /** Dropdown options (owner, 2026-11-19; LLD §18.7): versions, the hierarchies this user can read, properties by category. */
+  protected readonly versions = signal<VersionView[]>([]);
+  protected readonly hierarchies = signal<HierarchySummary[]>([]);
+  private readonly properties = signal<PropertyDefinitionView[]>([]);
+  protected readonly propertyGroups = computed(() => {
+    const groups = new Map<string, PropertyDefinitionView[]>();
+    for (const p of this.properties()) {
+      const c = p.category ?? STRINGS.properties.uncategorised;
+      groups.set(c, [...(groups.get(c) ?? []), p]);
+    }
+    return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))
+      .map(([category, properties]) => ({ category, properties: properties.sort((x, y) => (x.label ?? '').localeCompare(y.label ?? '')) }));
+  });
 
   /** The form's values; copied from the URL when it changes, written to the URL by Search. */
   protected form = this.empty();
@@ -103,21 +139,58 @@ export class AuditPage {
   private generation = 0;
 
   constructor() {
+    void this.loadOptions();
     effect(() => {
       const filters: AuditFilters = {
-        from: this.from(), to: this.to(), user: this.user(), hierarchy: this.hierarchy(), property: this.property(),
+        from: this.from(), to: this.to(), user: this.user(), version: this.version(), hierarchy: this.hierarchy(), property: this.property(),
         node: this.node(), request: this.request(),
         category: [this.category() ?? []].flat().filter((c) => !!c),
         includeSuperseded: this.superseded() === 'true',
       };
       untracked(() => {
         this.filters = filters;
-        this.form = { from: filters.from ?? '', to: filters.to ?? '', user: filters.user ?? '', hierarchy: filters.hierarchy ?? '',
+        this.form = { from: filters.from ?? '', to: filters.to ?? '', user: filters.user ?? '', version: filters.version ?? '',
+          hierarchy: filters.hierarchy ?? '',
           property: filters.property ?? '', node: filters.node ?? '', request: filters.request ?? '',
           categories: filters.category?.length ? [...filters.category] : ['data'], includeSuperseded: !!filters.includeSuperseded };
         void this.load(false);
       });
     });
+  }
+
+  /**
+   * The dropdowns' options, once per visit. A list that fails to load leaves its dropdown with "All …" only; a value
+   * already in the URL is still searched (it is added as an option, so the dropdown shows it).
+   */
+  private async loadOptions(): Promise<void> {
+    const [versions, hierarchies, properties] = await Promise.allSettled([
+      this.api.versions(undefined, undefined, 200), this.api.hierarchies(), this.api.propertyDefinitions()]);
+    if (versions.status === 'fulfilled') {
+      this.versions.set(versions.value.items ?? []);
+    }
+    if (hierarchies.status === 'fulfilled') {
+      this.hierarchies.set(hierarchies.value.items ?? []);
+    }
+    if (properties.status === 'fulfilled') {
+      this.properties.set(properties.value.items ?? []);
+    }
+    this.keepUrlValues();
+  }
+
+  /** A value from the URL that is not in its list (a shared link, a list still loading) stays selectable. */
+  private keepUrlValues(): void {
+    const v = this.version();
+    if (v && !this.versions().some((x) => x.name === v)) {
+      this.versions.update((list) => [...list, { name: v }]);
+    }
+    const h = this.hierarchy();
+    if (h && !this.hierarchies().some((x) => x.code === h)) {
+      this.hierarchies.update((list) => [...list, { code: h, name: h }]);
+    }
+    const p = this.property();
+    if (p && !this.properties().some((x) => x.code === p)) {
+      this.properties.update((list) => [...list, { code: p, label: p }]);
+    }
   }
 
   protected toggle(c: string): void {
@@ -135,7 +208,8 @@ export class AuditPage {
     const blank = (v: string) => v.trim() || null;
     void this.router.navigate([], {
       queryParams: {
-        from: blank(f.from), to: blank(f.to), user: blank(f.user), hierarchy: blank(f.hierarchy), property: blank(f.property),
+        from: blank(f.from), to: blank(f.to), user: blank(f.user), version: blank(f.version), hierarchy: blank(f.hierarchy),
+        property: blank(f.property),
         node: blank(f.node), request: blank(f.request),
         category: f.categories.length && !(f.categories.length === 1 && f.categories[0] === 'data') ? f.categories : null,
         superseded: f.includeSuperseded ? 'true' : null,
@@ -180,6 +254,7 @@ export class AuditPage {
   }
 
   private empty() {
-    return { from: '', to: '', user: '', hierarchy: '', property: '', node: '', request: '', categories: ['data'], includeSuperseded: false };
+    return { from: '', to: '', user: '', version: '', hierarchy: '', property: '', node: '', request: '', categories: ['data'],
+      includeSuperseded: false };
   }
 }

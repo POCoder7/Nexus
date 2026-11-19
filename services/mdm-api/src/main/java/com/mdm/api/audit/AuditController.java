@@ -63,13 +63,15 @@ public class AuditController {
 
     /**
      * {@code from} and {@code to} are business dates (inclusive) of when the change was recorded; default the last 30 days.
-     * {@code user} is a login (requester, decider or applying actor); {@code hierarchy} and {@code property} are codes.
+     * {@code user} is a login (requester, decider or applying actor); {@code version} is a version name (changes made by
+     * requests raised in it); {@code hierarchy} and {@code property} are codes.
      */
     @GetMapping
     public Page<AuditEntry> searchAudit(Actor actor,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String user,
+            @RequestParam(required = false) String version,
             @RequestParam(required = false) String hierarchy,
             @RequestParam(required = false) UUID node,
             @RequestParam(required = false) String property,
@@ -109,13 +111,14 @@ public class AuditController {
         }
 
         UUID userId = user == null ? null : lookup("SELECT user_id FROM mdm.app_user WHERE login = :c", user, "user");
+        UUID versionId = version == null ? null : lookup("SELECT version_id FROM mdm.version WHERE version_name = :c", version, "version");
         UUID hierarchyId = hierarchy == null ? null
                 : hierarchies.findIdByCode(hierarchy).orElseThrow(() -> ItemValidationException.field("hierarchy", "unknown hierarchy " + hierarchy));
         UUID propertyId = property == null ? null
                 : lookup("SELECT property_id FROM mdm.property_definition WHERE property_code = :c", property, "property");
 
         List<String> key = cursors.decode(cursor, 3);
-        Criteria criteria = new Criteria(start(first), start(last.plusDays(1)), userId, hierarchyId, node, propertyId, request,
+        Criteria criteria = new Criteria(start(first), start(last.plusDays(1)), userId, versionId, hierarchyId, node, propertyId, request,
                 categories, includeSuperseded, admin, admin ? null : readable.orElse(null),
                 key == null ? null : Instant.parse(key.get(0)), key == null ? null : key.get(1),
                 key == null ? null : Long.valueOf(key.get(2)), limit);

@@ -31,10 +31,17 @@ test.describe('Audit', () => {
   test('the Audit page shows the change in words, with who requested and approved it', async ({ page }) => {
     await signInAs(page, 'u_viewer');
     await page.goto('/audit');
-    await page.getByLabel('Property (code)').fill('E2E.CostCentre');
-    await page.getByLabel('Hierarchy (code)').fill('ORGTL');
+    // dropdowns (owner, 2026-11-19): only readable hierarchies are offered; properties by name
+    const filters = page.getByRole('form', { name: 'Filter the history' });
+    const hierarchies = filters.getByLabel('Hierarchy', { exact: true });
+    await expect(hierarchies.locator('option', { hasText: 'Demo Org Legal (ORGTL)' })).toHaveCount(1);
+    await expect(hierarchies.locator('option', { hasText: 'E2E_H' })).toHaveCount(0);   // u_viewer cannot read it
+    await filters.getByLabel('Version').selectOption('E2E working');
+    await hierarchies.selectOption('ORGTL');
+    await filters.getByLabel('Property', { exact: true }).selectOption({ label: 'Cost centre' });
     await page.getByTestId('audit-search').click();
     await expect(page).toHaveURL(/property=E2E.CostCentre/);
+    await expect(page).toHaveURL(/version=E2E(\+|%20)working/);
     const row = page.getByTestId('audit-table').locator('tbody tr').filter({ hasText: 'E2E audit journey' });
     await expect(row).toContainText('Cost centre');
     await expect(row.getByTestId('audit-change')).toContainText('CC-AUDIT-1');
