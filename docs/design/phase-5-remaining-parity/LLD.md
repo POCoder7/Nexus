@@ -1033,6 +1033,151 @@ The `dev.cel` version is `dev.cel:cel` 0.15.0. `protobuf-java` 4.36.2 and `guava
 | `P95_COMPARE_STRUCTURE_S` | 30 |
 | `P95_BATCH_ADD_S` | 10 |
 
+## 18. Rows decided by ADR-039 (§18.1 to §18.9: audit, written first by ADR-043; approved 2026-11-19)
+ADR-043 takes AUD-01 and AUD-02 ahead of the other ADR-039 rows. Their sections are §18.1 to §18.9; the other 19 rows
+get their sections here later, before their build, as planned.
+
+### 18.1 What DRM does, and what Nexus has
+- **DRM:** the transaction history lists who changed what and when, filtered by date, user, hierarchy, node, property and
+  transaction type. Each governance request has its own history.
+- **Nexus records more than DRM, but nothing reads it yet:**
+  - `mdm.audit_log`: one row per insert, update or delete on every governed table, written only by `trg_audit_row`
+    (definer, append-only), with the time, the actor (`mdm.actor_id`), the request (`mdm.change_request_id`) and the
+    row before and after;
+  - the bitemporal facts themselves (the node History tab, QRY-04, reads them for one node);
+  - `wf.instance_action` (every workflow action, with actor and comment, override reasons included), `wf.policy_evaluation`
+    and `wf.config_audit` (workflow configuration).
+- **Who did it.** Data changes are written only by apply, which sets the actor and the request. The request names its
+  requester (the maker) and its decider (the checker); in a workflow, the stage decisions name the approvers. API writes
+  outside apply (drafts, items) do not set the actor, so their audit rows have none; only the requester can edit a draft
+  (`ChangeRequestService` refuses anyone else), so the request history attributes draft edits to the requester.
+
+### 18.2 Data design (edit V1; no new migration)
+```sql
+-- audit_log gains the subject of each row, filled by trg_audit_row from the row itself (NEW, or OLD for a delete).
+-- They make the filters and the before/after pairing (§18.3) use indexes instead of reading JSON.
+ALTER TABLE mdm.audit_log
+  ADD COLUMN hierarchy_id uuid,   -- row's hierarchy_id; NULL for rows without one (node_attr, a global property value)
+  ADD COLUMN node_id      uuid,   -- node_id; child_node_id for hierarchy_relationship; owned_node_id for ownership_edge
+  ADD COLUMN property_id  uuid;   -- property_id (property_value, property_definition)
+-- (written in V1's CREATE TABLE; no backfill: local databases are recreated, rule 6)
+CREATE INDEX ON mdm.audit_log (occurred_at DESC, audit_id DESC);
+CREATE INDEX ON mdm.audit_log (change_request_id);
+CREATE INDEX ON mdm.audit_log (node_id, occurred_at DESC);
+CREATE INDEX ON mdm.audit_log (hierarchy_id, occurred_at DESC);
+CREATE INDEX ON mdm.audit_log (actor_id, occurred_at DESC);
+```
+- The trigger stays the only writer, and the log stays append-only. No column is ever updated.
+- No schema change for AUD-02: it reads `audit_log`, `change_request`, `change_item`, `wf.instance_action` and
+  `wf.policy_evaluation`. The API reads `wf` as it already does (`InstanceQuery`); `mdm` still never references `wf`.
+
+### 18.3 Transaction history: what one entry is
+An entry is one audit row, described in words. Each has a **category**, which decides the default view and who sees it:
+
+| Category | Tables | Shown by default | Who sees it |
+|---|---|---|---|
+| Data | `node`, `node_attr`, `hierarchy`, `hierarchy_relationship`, `property_value`, `node_identifier`, `legal_entity_profile`, `ownership_edge` | Yes | Readers of its hierarchy (§18.5) |
+| Requests | `change_request`, `change_item` | No | Those who can see the request |
+| Definitions | `property_definition`, `version` | No | ADMIN |
+| Access | `user_role`, `user_group`, `user_group_member`, `user_group_scope` | No | ADMIN |
+| Configuration | `wf.config_audit` rows (models, policies, stage groups) | No | ADMIN |
+
+Personal objects (`saved_query`) are not listed: they are their owner's (§17.5.3).
+
+- **Kind:**
+  - `stated`: a fact row inserted (a new value or placement for its valid period);
+  - `superseded`: a fact row's recorded period closed by apply. It is the "before" of a `stated` row and is hidden by
+    default ("Show superseded rows");
+  - `created`, `updated`, `deleted`: rows of non-bitemporal tables (requests, items, groups, versions, definitions).
+- **Before and after.** A `stated` row is paired with the `superseded` row of the same request, table and subject
+  (hierarchy, node, property), so the entry reads "Segment: Retail → Wholesale, from 2026-12-01" or "Placement:
+  under North → under South". Without a pair it is new ("Segment: Wholesale"). The pairing is one indexed lookup
+  per row on `change_request_id`.
+- **Fields:** time; category and kind; a summary built from the subject and the changed columns; node (id and name),
+  hierarchy, property (code and label); valid period; before and after values; the request (id and title), its
+  requester and decider (or "decided by policy"); the actor recorded by apply.
+
+### 18.4 API
+| Endpoint | Purpose | Auth |
+|---|---|---|
+| `GET /api/v1/audit?from&to&user&hierarchy&node&property&request&category&includeSuperseded&cursor&limit` | Transaction history, newest first, keyset paged on `(occurred_at, audit_id)` | READ; ADMIN for the ADMIN categories |
+| `GET /api/v1/change-requests/{id}/history?cursor&limit` | Request history, oldest first (§18.6) | Whoever can see the request |
+
+- **Filters:**
+  - `from`, `to`: recorded time (when the change was made), dates in the business time zone. Default: the last 30
+    days. A range over 366 days needs a narrowing filter (`request`, `node` or `user`); otherwise 400
+    `audit.range_too_wide`, so one search cannot scan years of history.
+  - `user`: a login. It matches the requester, the decider or the applying actor of the entry's request.
+  - `hierarchy`: a code. It matches the row's hierarchy, or, for a row without one (a node's name), a request that
+    touched that hierarchy.
+  - `category`: one or more of §18.3; default `data`.
+- **Paging:** `limit` 1 to 200, default 50, and an opaque cursor, as every list (§17.15 limits).
+- **No totals.** Counting the whole log is avoided; the page says whether there is a next page.
+
+### 18.5 Who sees what
+- **ADMIN:** every category, every hierarchy.
+- **Others:** the `data` category only, for hierarchies they can read. A row with a hierarchy is shown if they can read
+  it; a row without one (a node's name, a global property value) is shown if the request that wrote it touched only
+  hierarchies they can read. Rows without a request (bootstrap rows written by the database owner) are ADMIN only.
+- **Request history:** the same rule as the request (`ChangeRequestService.canSee`): the requester, or someone who can
+  read every hierarchy its items touch; access requests to ADMINs only (ADR-042).
+- Until 5-5, scope is per hierarchy, as for every read (ADR-043 D3).
+
+### 18.6 Request history (AUD-02)
+One list, oldest first, merged from:
+
+| Source | Events |
+|---|---|
+| `change_request` audit rows | created; title, version or date edited; submitted; approved or rejected (with the note); applied; apply failed (with the reason); withdrawn |
+| `change_item` audit rows | item added, changed or removed while a draft, with its action and target (the item text the tray uses) |
+| `wf.instance_action` | submit, claim, unclaim, reassign, enrich, approve, reject, push back, commit, withdraw, comment, escalate, split, SLA breached, override (with its reason), AI suggestion |
+| `wf.policy_evaluation` | each evaluation: policy, mode, outcome, and every failed check |
+
+- **Actor of each event:** the actor recorded on the row; for request rows, the column that names it (requester for
+  created and submitted, `decided_by` for the decision, the applying actor for applied); draft item edits are the
+  requester's (§18.1).
+- **Events are facts, not text:** the API returns a type and fields; the UI writes the sentence (as `item-text.ts` does).
+
+### 18.7 UI (UI_STANDARD)
+- **Audit page** (`/audit`, "Audit" in the main navigation for everyone who can read a hierarchy):
+  - a filter bar: date range, user, hierarchy, node (search), property, request id, categories (ADMIN categories only
+    for ADMIN), "Show superseded rows";
+  - a table (`ds-table`): when, what (the sentence, with before → after), node (link to it in its hierarchy at that
+    date), hierarchy, request (link), requested by, approved by;
+  - "Show more" with the cursor; the filters live in the URL, so a search can be shared as a link;
+  - empty and error states in words; dates in the business time zone.
+- **Request page:** a "History" section below the workflow timeline: the merged list, with "Show more".
+- **Node panel:** the History tab is unchanged (it reads facts at the node's level); it gains "All changes to this node",
+  which opens the Audit page filtered by the node.
+
+### 18.8 Tests
+| Area | Cases | Type |
+|---|---|---|
+| Subjects | Each audited table fills `hierarchy_id`, `node_id`, `property_id` as §18.2; the log stays append-only; no application role can write it | pgTAP `30_audit_subjects` |
+| Search | Every filter; newest first; keyset paging with no gap or repeat; the range limit (400); pairing: a value change, a move, a new value, a removal; `includeSuperseded` | JUnit `AuditApiTest` |
+| Who sees what | A viewer of H1 sees H1 rows and not H2 rows, nor node-name rows of a request that also touched H2; a non-ADMIN asking for `access` gets 403; bootstrap rows ADMIN only | JUnit |
+| Request history | Core mode: created, items, submitted, approved, applied. Workflow: stage actions, override with reason, policy evaluations. Hidden from a user who cannot see the request (404) | JUnit `RequestHistoryApiTest` |
+| UI | Audit page filters and URL; request History section; stories with axe | Vitest, stories |
+| Journey | A change made in the demo seed appears on the Audit page with before → after and both people, and in the request's History | Playwright `15-audit` |
+
+### 18.9 Increments and choices for review
+| # | Increment | Size |
+|---|---|---|
+| 5-17a | V1 edit (subject columns, indexes); `GET /audit` with filters, categories, pairing and scope | M |
+| 5-17b | `GET /change-requests/{id}/history`; the request page's History section | S |
+| 5-17c | The Audit page, navigation, the node panel's link, and `15-audit` | M |
+
+| Choice | Recommendation |
+|---|---|
+| **C-1** | Who sees what as §18.5: ADMINs everything; others data changes in hierarchies they can read |
+| **C-2** | Default to data changes, with superseded rows hidden and paired into before → after |
+| **C-3** | The user filter matches the requester, the decider or the applying actor |
+| **C-4** | Store the subject in three new audit columns (V1 edit), rather than reading JSON in every search |
+| **C-5** | CSV download waits for EXP-05 (Phase 8), which reuses this search |
+
+No new error codes: the range limit is a 400 (`audit.range_too_wide`), and the ADMIN categories are a 403
+(`entitlement.missing`).
+
 ## 19. Users, roles and groups (ADR-042; for review)
 
 **Status: designed 2026-11-17 and approved by the repository owner the same day, with every recommended choice C-1 to C-5 (§19.10).** It

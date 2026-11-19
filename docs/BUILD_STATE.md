@@ -7,7 +7,7 @@
   - queries, built ahead of 5-4 and 5-5 by ADR-041 (5-9, 5-13a, 5-13b) `ab0872d`;
   - demo scripts and setup instructions `247d69d` (the bash scripts are tested; the PowerShell ones are not, because this session cannot run PowerShell).
 
-  **2026-11-17: the owner asked for a users, roles and groups model. ADR-042 records the decisions and Phase 5 LLD §19 designs it, replacing 5-4 with 5-4a to 5-4d. Approved the same day with every recommended choice (OD-49); the override also needs Audit-Risk before `main` (OD-49a).** 5-4a, 5-4b and 5-4c are built and committed together (5-4a alone would have left access changes ungoverned), with the All hierarchies tree the owner asked for the same day (LLD §20); the owner decided not to build 5-4d (the Access screens). Next: 5-5. Note for running the UI tooling from Git Bash: Node is at `C:\Program Files\nodejs` (add it to PATH), and the Storybook test runner needs the working directory spelled with an upper-case drive (`cd "C:/Projects/Nexus/ui"`), or it finds no stories
+  **2026-11-17: the owner asked for a users, roles and groups model. ADR-042 records the decisions and Phase 5 LLD §19 designs it, replacing 5-4 with 5-4a to 5-4d. Approved the same day with every recommended choice (OD-49); the override also needs Audit-Risk before `main` (OD-49a).** 5-4a, 5-4b and 5-4c are built and committed together (5-4a alone would have left access changes ungoverned), with the All hierarchies tree the owner asked for the same day (LLD §20); the owner decided not to build 5-4d (the Access screens). **2026-11-19: the owner asked for audit as in DRM; ADR-043 takes AUD-01 and AUD-02 ahead of the order, and LLD §18.1 to §18.9 designs them; approved the same day with C-1 to C-5 (OD-50).** Next: 5-17a to 5-17c, then 5-5. Note for running the UI tooling from Git Bash: Node is at `C:\Program Files\nodejs` (add it to PATH), and the Storybook test runner needs the working directory spelled with an upper-case drive (`cd "C:/Projects/Nexus/ui"`), or it finds no stories
 - **Baseline (2026-11-17, after 5-4a to 5-4c and the All hierarchies tree):** db-test **pass** 631/631 (30 files) · mvnw verify **pass** 151/151 · UI: lint pass, contract (`api:check`) pass, unit 92/92, stories 62/62 (axe), production build pass, end to end 52/52 (axe). One end-to-end run failed `07-views` while a UI source file was being edited during the run (the dev server reloaded the page under the axe check); the rerun with no edits passed 49/49
 - **Last commit:** see `git log -1`
 
@@ -152,7 +152,7 @@
 ADR-040 (database independence, OD-48) is deferred; revisit it before a shared environment exists. Phase 5 build under way; the plan was approved on 2026-11-14.
 1. Branch `feature/NEW-08-phase-5-remaining-parity` from `develop` (done; records commit `ef97d97`, then 5-1a).
 2. Build, in order:
-   - ~~5-1a~~, ~~5-1b~~, ~~5-2~~, ~~5-3~~, ~~5-4a~~, ~~5-4b~~, ~~5-4c~~ (5-4d not built, owner decision), **5-5**;
+   - ~~5-1a~~, ~~5-1b~~, ~~5-2~~, ~~5-3~~, ~~5-4a~~, ~~5-4b~~, ~~5-4c~~ (5-4d not built, owner decision), **5-17a to 5-17c (audit, ADR-043, approved)**, 5-5;
    - 5-9, 5-10a (the `dev.cel` dependency and the protobuf smoke test come first), 5-10b, 5-11, 5-12a, 5-12b, 5-13a, 5-13b, 5-14, 5-15, 5-16;
    - then write LLD §18 for the 21 ADR-039 rows, and **stop for review** (design stop);
    - then the §18 increments;
