@@ -22,4 +22,5 @@ export interface VersionView {
   submittedAt?: string;
   submittedBy?: PersonRef;
   transitions?: Array<VersionTransition>;
+  versionType?: string;
 }

@@ -41,11 +41,13 @@ public final class VersionDtos {
     public record VersionView(String name, String status, LocalDate businessAsOf, Instant recordedAsOf, String baseVersion,
                               String description, Instant createdAt, PersonRef createdBy, Instant submittedAt,
                               PersonRef submittedBy, Instant finalizedAt, PersonRef finalizedBy, int revision,
-                              List<VersionTransition> transitions, VersionEdit edit, OpenRequests openRequests) {
+                              List<VersionTransition> transitions, VersionEdit edit, OpenRequests openRequests,
+                              /* DRM's version type (VER-04): normal, baseline (kept for compares) or as_of */ String versionType) {
     }
 
     /** {@code businessAsOf} may be left out when copying: the copy then takes its base's business date. */
-    public record CreateVersion(String name, LocalDate businessAsOf, String baseVersion, String description) {
+    /** {@code versionType}: normal (default), baseline or as_of; set once, at create (VER-04, N2701 afterwards). */
+    public record CreateVersion(String name, LocalDate businessAsOf, String baseVersion, String description, String versionType) {
     }
 
     /** Partial update: a null field keeps the stored value; an empty description clears it. */

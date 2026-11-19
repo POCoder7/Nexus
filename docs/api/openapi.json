@@ -246,6 +246,124 @@
         },
         "type" : "object"
       },
+      "CompareRequest" : {
+        "properties" : {
+          "includeInactive" : {
+            "type" : "boolean"
+          },
+          "includeOrder" : {
+            "type" : "boolean"
+          },
+          "kinds" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "left" : {
+            "$ref" : "#/components/schemas/CompareSide"
+          },
+          "propertyCodes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "right" : {
+            "$ref" : "#/components/schemas/CompareSide"
+          },
+          "subtreeRootId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "CompareRow" : {
+        "properties" : {
+          "detail" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "nodeId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "nodeName" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "CompareRunView" : {
+        "properties" : {
+          "counts" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          },
+          "error" : {
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "finishedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "frozen" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kinds" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "left" : {
+            "$ref" : "#/components/schemas/ResolvedSide"
+          },
+          "reused" : {
+            "type" : "boolean"
+          },
+          "right" : {
+            "$ref" : "#/components/schemas/ResolvedSide"
+          },
+          "startedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "CompareSide" : {
+        "properties" : {
+          "asOf" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "hierarchyCode" : {
+            "type" : "string"
+          },
+          "recordedAsOf" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "Conflict" : {
         "properties" : {
           "action" : {
@@ -337,6 +455,9 @@
             "type" : "string"
           },
           "name" : {
+            "type" : "string"
+          },
+          "versionType" : {
             "type" : "string"
           }
         },
@@ -1112,6 +1233,20 @@
         },
         "type" : "object"
       },
+      "PageCompareRow" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CompareRow"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "PageConflict" : {
         "properties" : {
           "items" : {
@@ -1676,6 +1811,28 @@
         },
         "type" : "object"
       },
+      "ResolvedSide" : {
+        "properties" : {
+          "asOf" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "hierarchyCode" : {
+            "type" : "string"
+          },
+          "hierarchyName" : {
+            "type" : "string"
+          },
+          "recordedAsOf" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "RunQuery" : {
         "properties" : {
           "definition" : {
@@ -2224,6 +2381,9 @@
               "$ref" : "#/components/schemas/VersionTransition"
             },
             "type" : "array"
+          },
+          "versionType" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -3151,6 +3311,110 @@
           }
         },
         "tags" : [ "client-error-controller" ]
+      }
+    },
+    "/api/v1/compares" : {
+      "post" : {
+        "operationId" : "startCompare",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CompareRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CompareRunView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "compare-controller" ]
+      }
+    },
+    "/api/v1/compares/{id}" : {
+      "get" : {
+        "operationId" : "getCompare",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CompareRunView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "compare-controller" ]
+      }
+    },
+    "/api/v1/compares/{id}/rows" : {
+      "get" : {
+        "operationId" : "listCompareRows",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "type",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 100,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageCompareRow"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "compare-controller" ]
       }
     },
     "/api/v1/hierarchies" : {
@@ -4631,6 +4895,13 @@
         "parameters" : [ {
           "in" : "query",
           "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "type",
           "required" : false,
           "schema" : {
             "type" : "string"

@@ -8,7 +8,7 @@
   - demo scripts and setup instructions `247d69d` (the bash scripts are tested; the PowerShell ones are not, because this session cannot run PowerShell).
 
   **2026-11-17: the owner asked for a users, roles and groups model. ADR-042 records the decisions and Phase 5 LLD §19 designs it, replacing 5-4 with 5-4a to 5-4d. Approved the same day with every recommended choice (OD-49); the override also needs Audit-Risk before `main` (OD-49a).** 5-4a, 5-4b and 5-4c are built and committed together (5-4a alone would have left access changes ungoverned), with the All hierarchies tree the owner asked for the same day (LLD §20); the owner decided not to build 5-4d (the Access screens). **2026-11-19: the owner asked for audit as in DRM; ADR-043 takes AUD-01 and AUD-02 ahead of the order, and LLD §18.1 to §18.9 designs them; approved the same day with C-1 to C-5 (OD-50), and built (5-17a to 5-17c).** Next: 5-5. Note for running the UI tooling from Git Bash: Node is at `C:\Program Files\nodejs` (add it to PATH), and the Storybook test runner needs the working directory spelled with an upper-case drive (`cd "C:/Projects/Nexus/ui"`), or it finds no stories
-- **Baseline (2026-11-19, after 5-17a to 5-17c, audit):** db-test **pass** 640/640 (31 files) · mvnw verify: 156/156 tests pass (the final repackage step failed only because the demo held the jar; rebuilt after stopping it) · UI: lint pass, unit 96/96, stories 68/68 (axe), end to end 54/54 (axe; one run had a timing failure in `05-worklist-home`, which passed on two reruns). One end-to-end run failed `07-views` while a UI source file was being edited during the run (the dev server reloaded the page under the axe check); the rerun with no edits passed 49/49
+- **Baseline (2026-11-19, after 5-12 compares):** db-test **pass** 654/654 (32 files) · mvnw verify **pass** 160/160 · UI: lint pass, unit 98/98, stories 72/72 (axe), production build pass, end to end 55/55 (axe).
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -42,6 +42,7 @@
 | 5-17a Transaction history: `audit_log` subject columns, request fallback and indexes (V1 edit); `GET /audit` with filters, categories, before → after pairing, scope | AUD-01 | Done (with 5-17b and 5-17c) | pgTAP `30_audit_subjects` (9); JUnit `AuditApiTest` (pairing, a move, filters, paging, range limit, who sees what) | ADR-043, LLD §18 "Built" |
 | 5-17b Request history: `GET /change-requests/{id}/history`; History section on the request page | AUD-02 | Done | JUnit `AuditApiTest` (core-mode sequence, actors, 404, paging), `WorkflowStageApiTest` (override and reason) | |
 | 5-17c Audit page (`/audit`), navigation, the node History tab's link; then (owner, 2026-11-19) a version filter and dropdowns for version, hierarchy and property | AUD-01 | Done | Vitest `audit-text` (4); stories +6 (axe); Playwright `15-audit` (2) | |
+| 5-12 Compares and baselines: `compare_run`, `compare_row`, `compare_side`, `compare_fill` (V13); `/compares` (start, poll, rows by kind); version types and `GET /versions?type=`; Compare page, "Compare with baseline" on the Versions page | QRY-02, VER-04 | Done (ADR-044: built before 5-10 and 5-11) | pgTAP `31_compares` (14); JUnit `CompareApiTest` (4); Vitest +2; stories +4 (axe); Playwright `16-compare` | LLD §17.4 "Built in 5-12"; the compare perf test waits for the perf run |
 
 ### Phase 3 progress
 | Increment | Capability | Status | Tests | Notes |
@@ -156,7 +157,7 @@ ADR-040 (database independence, OD-48) is deferred; revisit it before a shared e
 1. Branch `feature/NEW-08-phase-5-remaining-parity` from `develop` (done; records commit `ef97d97`, then 5-1a).
 2. Build, in order:
    - ~~5-1a~~, ~~5-1b~~, ~~5-2~~, ~~5-3~~, ~~5-4a~~, ~~5-4b~~, ~~5-4c~~ (5-4d not built, owner decision), ~~5-17a to 5-17c~~ (audit, ADR-043), **5-5**;
-   - 5-9, 5-10a (the `dev.cel` dependency and the protobuf smoke test come first), 5-10b, 5-11, 5-12a, 5-12b, 5-13a, 5-13b, 5-14, 5-15, 5-16;
+   - ~~5-9~~, 5-10a (the `dev.cel` dependency and the protobuf smoke test come first), 5-10b, 5-11, ~~5-12~~ (built first by ADR-044), ~~5-13a~~, ~~5-13b~~, 5-14, 5-15, 5-16;
    - then write LLD §18 for the 21 ADR-039 rows, and **stop for review** (design stop);
    - then the §18 increments;
    - then the 5-8 gate.

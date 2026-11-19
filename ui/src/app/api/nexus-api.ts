@@ -12,7 +12,7 @@ import { HierarchySummary } from './generated/models';
 import type {
   CreateSandbox, PageConflict, PageDiffRow, PageSandboxChild, PageSandboxView, RefreshResult, SandboxItemAdded, SandboxNode,
   SandboxView, PagePropertyDefinitionView, PageSavedQueryView, QueryDefinition, QueryPage, SaveQuery, SavedQueryView,
-  PageAuditEntry, PageRequestEvent,
+  PageAuditEntry, PageRequestEvent, CompareRequest, CompareRunView, PageCompareRow,
 } from './generated/models';
 
 /** Transaction-history filters (AUD-01, Phase 5 LLD §18.4): dates are business dates; codes and a login, not ids. */
@@ -174,8 +174,23 @@ export class NexusApi {
   }
 
   /** Versions, newest business date first (VER-01, VER-02). `status` undefined = every status. */
-  versions(status?: string, cursor?: string, limit = 50): Promise<PageVersionView> {
-    return this.api.invoke(fn.listVersions, { status, cursor, limit });
+  /** {@code type}: normal, baseline or as_of (VER-04). */
+  versions(status?: string, cursor?: string, limit = 50, type?: string): Promise<PageVersionView> {
+    return this.api.invoke(fn.listVersions, { status, type, cursor, limit });
+  }
+
+  /** QRY-02: start a compare (or get a reusable one); poll it with compare(). */
+  startCompare(body: CompareRequest): Promise<CompareRunView> {
+    return this.api.invoke(fn.startCompare, { body });
+  }
+
+  compare(id: string): Promise<CompareRunView> {
+    return this.api.invoke(fn.getCompare, { id });
+  }
+
+  /** One page of a done compare's rows of one kind. */
+  compareRows(id: string, type?: string, cursor?: string, limit = 100): Promise<PageCompareRow> {
+    return this.api.invoke(fn.listCompareRows, { id, type, cursor, limit });
   }
 
   async version(name: string): Promise<Tagged<VersionView>> {

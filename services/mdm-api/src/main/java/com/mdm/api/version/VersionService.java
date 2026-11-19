@@ -51,6 +51,8 @@ public class VersionService {
             "expired", List.of());
 
     static final Set<String> STATUSES = NEXT.keySet();
+    /** DRM's version types (VER-04; V1 CHECK). */
+    static final Set<String> TYPES = Set.of("normal", "baseline", "as_of");
     static final int MAX_NAME = 100;
 
     private final VersionRepository repository;
@@ -64,14 +66,17 @@ public class VersionService {
     }
 
     @Transactional(readOnly = true)
-    public Page<VersionView> list(Actor actor, String status, int limit, String cursor) {
+    public Page<VersionView> list(Actor actor, String status, String type, int limit, String cursor) {
         requireRead(actor);
         cursors.checkLimit(limit);
         if (status != null && !STATUSES.contains(status)) {
             throw new IllegalArgumentException("status must be one of working, submitted, finalized, expired");
         }
         List<String> after = cursors.decode(cursor, 2);
-        List<VersionRow> rows = repository.page(status, after == null ? null : cursorDate(after.get(0)),
+        if (type != null && !TYPES.contains(type)) {
+            throw new IllegalArgumentException("type must be one of normal, baseline, as_of");
+        }
+        List<VersionRow> rows = repository.page(status, type, after == null ? null : cursorDate(after.get(0)),
                 after == null ? null : after.get(1), limit);
         boolean admin = repository.isAdmin(actor.userId());
         // counts are needed only to explain a refused submit, so only for working versions
@@ -108,7 +113,11 @@ public class VersionService {
         if (businessAsOf == null) {
             throw ItemValidationException.field("businessAsOf", "is required");
         }
-        UUID id = repository.create(name, businessAsOf, baseId, blankToNull(body.description()), actor.userId());
+        String type = body.versionType() == null || body.versionType().isBlank() ? "normal" : body.versionType().trim();
+        if (!TYPES.contains(type)) {
+            throw ItemValidationException.field("versionType", "must be one of normal, baseline, as_of");
+        }
+        UUID id = repository.create(name, businessAsOf, baseId, blankToNull(body.description()), actor.userId(), type);
         return full(actor, repository.findById(id).orElseThrow());
     }
 
@@ -161,7 +170,7 @@ public class VersionService {
         String editWhy = editWhyNot(v, admin);
         return new VersionView(v.name(), v.status(), v.businessAsOf(), v.recordedAsOf(), v.baseVersion(), v.description(),
                 v.createdAt(), v.createdBy(), v.submittedAt(), v.submittedBy(), v.finalizedAt(), v.finalizedBy(), v.revision(),
-                List.copyOf(transitions), new VersionEdit(editWhy == null, editWhy), withCounts ? counts : null);
+                List.copyOf(transitions), new VersionEdit(editWhy == null, editWhy), withCounts ? counts : null, v.versionType());
     }
 
     /** Null when the caller may make the move; otherwise the reason, in the order the database checks it. */

@@ -42,6 +42,7 @@ export class VersionDialogComponent {
   private readonly key = newIdempotencyKey();
 
   protected readonly t = STRINGS.versions.dialog;
+  protected readonly versionTypes = ['normal', 'baseline', 'as_of'];
   protected readonly common = STRINGS.common;
   protected readonly titleId = 'nx-version-dialog-title';
   protected readonly editing = this.data.mode === 'edit' ? this.data.version : null;
@@ -55,6 +56,8 @@ export class VersionDialogComponent {
   protected readonly form = this.fb.group({
     name: this.fb.control(this.editing?.name ?? '', [Validators.required, Validators.maxLength(NAME_MAX)]),
     businessAsOf: this.fb.control(''),
+    /** VER-04: normal, baseline or as_of; set at create only. */
+    versionType: this.fb.control('normal'),
     baseVersion: this.fb.control(''),
     description: this.fb.control(this.editing?.description ?? ''),
   });
@@ -139,7 +142,8 @@ export class VersionDialogComponent {
         ? await this.api.updateVersion(this.editing.name ?? '', etagOfRevision(this.editing.revision),
           { name: v.name.trim(), description: v.description.trim() })
         : await this.api.createVersion({ name: v.name.trim(), businessAsOf: v.businessAsOf || undefined,
-          baseVersion: v.baseVersion || undefined, description: v.description.trim() || undefined }, this.key);
+          baseVersion: v.baseVersion || undefined, description: v.description.trim() || undefined,
+          versionType: v.versionType || undefined }, this.key);
       const text = this.editing ? STRINGS.versions.saved(saved.body.name ?? '') : STRINGS.versions.created(saved.body.name ?? '');
       this.toast.confirm(text);
       this.announcer.polite(text);

@@ -44,6 +44,14 @@
         <input type="date" [id]="fieldId('businessAsOf')" formControlName="businessAsOf"
                [attr.aria-invalid]="!!errorFor('businessAsOf')" [attr.aria-describedby]="describedBy('businessAsOf', true)" />
       </ds-field>
+      <ds-field [label]="t.versionType" [for]="fieldId('versionType')" [hint]="t.versionTypeHint">
+        <select [id]="fieldId('versionType')" formControlName="versionType" [attr.aria-describedby]="fieldId('versionType') + '-hint'"
+                data-testid="version-type">
+          @for (type of versionTypes; track type) {
+            <option [value]="type">{{ t.versionTypes[type] }}</option>
+          }
+        </select>
+      </ds-field>
     }
 
     <ds-field [label]="t.description" [for]="fieldId('description')" [error]="errorFor('description')">

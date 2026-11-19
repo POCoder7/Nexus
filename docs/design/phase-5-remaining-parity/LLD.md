@@ -693,6 +693,23 @@ slice (ADR-037), so a baseline is a version with `version_type = 'baseline'`, fi
 - The values are DRM's three type names: `normal`, `baseline` and `as_of`. An `as_of` version names a past slice (VER-03).
 - The compare page offers "Compare with baseline", which puts the latest finalized baseline on the left.
 
+*Built in 5-12 (2026-11-19, ahead of 5-10 and 5-11 by ADR-044):* as designed, with these details:
+- **SQL:** `mdm.compare_side` (one side: placements at the slice, or below a sub-tree root, plus the top with no parent,
+  with names and the active flag) and `mdm.compare_fill` (all three kinds, set-based, in one transaction; marks the run
+  done with counts), appended to V13. `nexus_api` writes runs and rows; `compare_fill` runs with its rights.
+- **Property compare:** `resolve_properties_batch` on both sides for the nodes on both sides; no CEL values exist before
+  5-11 (ADR-044 D2).
+- **Two hierarchies:** each side's top has no parent, so the other hierarchy's top reads as moved (to or from the top).
+- **API:** the rows parameter is `type`, not `kind` (`kind` is kept off query parameters, see §17.11). A run is shared by
+  its id: whoever can read both hierarchies may open it; others get 404. Expired runs are deleted when a run starts.
+- **Versions:** `versionType` on create and on every version, and `GET /versions?type=`; the create dialog offers the
+  type. "Compare with baseline" is a button on the Versions page: the newest finalized baseline on the left, the working
+  version on the right, in the last hierarchy used.
+- **UI:** "Compare" in the main navigation; the form and the run are in the URL (`?run=`); results in tabs by kind with
+  counts, drawn with the change tokens and an icon and named in words.
+- **Tests:** pgTAP `31_compares` (14); JUnit `CompareApiTest` (4); Vitest `compare-text` (2); stories (4, axe); Playwright
+  `16-compare` (1). The performance test at `MAX_NODES_PER_HIERARCHY` waits for the perf run at the end of the build.
+
 ### 17.5 QRY-01 property queries
 
 #### 17.5.1 Query definition
@@ -901,7 +918,7 @@ for 24 hours. `derivation_history` gets one row per formula change.
 | `POST /api/v1/change-requests/{id}/items` with `set_property_derivation` | Propose a formula | `SYSTEM_ADMIN` proposes; another `SYSTEM_ADMIN` decides |
 | `POST /api/v1/queries/run` `{definition}` `?version\|asOf&cursor&limit` | Run an unsaved query (paged, with continuation) | READ on the hierarchy |
 | `GET /api/v1/queries`, `POST /api/v1/queries`, `GET/PUT/DELETE /api/v1/queries/{id}` (`If-Match`), `POST /api/v1/queries/{id}/run` | Saved queries | Owner edits; shared readers run |
-| `POST /api/v1/compares` → 202 `{id}`; `GET /api/v1/compares/{id}`; `GET /api/v1/compares/{id}/rows?kind&cursor&limit` | Compares | READ on both sides |
+| `POST /api/v1/compares` → 202 `{id}`; `GET /api/v1/compares/{id}`; `GET /api/v1/compares/{id}/rows?type&cursor&limit` (`type` = the row kind; built as `type` because `kind` is kept off query parameters, 5-12) | Compares | READ on both sides |
 | `GET /api/v1/search` | Cross-hierarchy search | READ (filtered) |
 | `POST /api/v1/change-requests/{id}/items/batch`, `POST /api/v1/sandboxes/{id}/items/batch` | Batch items | Owner, `If-Match` |
 | `GET /api/v1/versions?type=baseline`; `versionType` on create | Baselines | As ADR-037 |
@@ -971,7 +988,7 @@ All data is synthetic (ADR-038 D5).
 | 5-9 | Foundations: enum and hard-limit edits, `version_type`, `resolve_properties_batch`, filter groups, operators and attributes, guards N2805 and N2806, settings | M | PRP-06, QRY-01, VER-04 | pgTAP |
 | 5-10 | CEL engine: the `dev.cel` dependency (version approved in the plan), port, catalog, resolver in node detail, `derivation_history`, check endpoint | L | PRP-06 | JUnit |
 | 5-11 | `set_property_derivation`: item-factory checks, check again at submit, apply handler, decision guard, admin UI | M | PRP-06 | pgTAP, JUnit, Playwright |
-| 5-12 | Compare runs, endpoints and UI; baselines | L | QRY-02, VER-04 | pgTAP, JUnit, Playwright |
+| 5-12 | Compare runs, endpoints and UI; baselines (**built first**, ADR-044) | L | QRY-02, VER-04 | pgTAP, JUnit, Playwright |
 | 5-13 | Query planner and runner, saved queries, query builder and results UI | L | QRY-01 | pgTAP, JUnit, Playwright |
 | 5-14 | Cross-hierarchy search and the header search box | M | QRY-03 | JUnit, Playwright |
 | 5-15 | Batch items, edit from results, bulk "Set property" | M | QRY-05, IMP-03 | JUnit, Playwright |

@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, effect, inject, input, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, signal, untracked } from '@angular/core';
 import { Router } from '@angular/router';
+import { NexusApi } from '../api/nexus-api';
 import type { VersionView } from '../api/generated/models';
+import { PreferencesStore } from '../core/preferences.store';
 import { Announcer } from '../core/announcer';
 import { ContextStore } from '../core/context.store';
 import { STRINGS } from '../core/strings';
@@ -23,11 +25,15 @@ import { TransitionChoice, VersionsTableComponent } from './versions-table.compo
     <section class="nx-page">
       <div class="head">
         <h1>{{ t.title }}</h1>
+        <ds-button (pressed)="compareWithBaseline()" data-testid="compare-baseline">{{ compareText.withBaseline }}</ds-button>
         @if (canAdmin()) {
           <ds-button variant="primary" (pressed)="create()" data-testid="new-version">{{ t.newVersion }}</ds-button>
         }
       </div>
       <p class="nx-muted" data-testid="versions-shared-note">{{ t.sharedNote }}</p>
+      @if (baselineMissing()) {
+        <p class="nx-muted" role="status" data-testid="no-baseline">{{ compareText.noBaseline }}</p>
+      }
       <div class="chips" role="group" [attr.aria-label]="t.filtersLabel">
         @for (f of filters; track f) {
           <button type="button" class="chip" [attr.aria-pressed]="store.filter() === f" [attr.data-filter]="f" (click)="choose(f)">
@@ -67,6 +73,10 @@ export class VersionsPage {
   protected readonly filters = VERSION_FILTERS;
   protected readonly canAdmin = () => this.context.can('ADMIN_VERSION');
   protected readonly timeZone = () => this.context.me()?.businessTimeZone ?? undefined;
+  protected readonly compareText = STRINGS.compare;
+  protected readonly baselineMissing = signal(false);
+  private readonly api = inject(NexusApi);
+  private readonly prefs = inject(PreferencesStore);
 
   constructor() {
     effect(() => {
@@ -79,6 +89,22 @@ export class VersionsPage {
 
   protected choose(filter: VersionFilter): void {
     void this.router.navigate([], { queryParams: { status: filter === 'all' ? null : filter }, queryParamsHandling: 'merge' });
+  }
+
+  /**
+   * VER-04 (Phase 5 LLD §17.4.5): Compare, with the newest finalized baseline on the left and the working version on
+   * the right, both in the last hierarchy used (the user can change any of them there).
+   */
+  protected async compareWithBaseline(): Promise<void> {
+    const page = await this.api.versions('finalized', undefined, 200, 'baseline');
+    const baseline = page.items?.[0];
+    this.baselineMissing.set(!baseline);
+    if (!baseline) {
+      this.announcer.polite(this.compareText.noBaseline);
+      return;
+    }
+    const h = this.prefs.lastHierarchy() ?? null;
+    void this.router.navigate(['/compare'], { queryParams: { lh: h, lv: baseline.name, rh: h, rv: this.context.workingVersion() ?? null } });
   }
 
   protected openPicture(v: VersionView): void {

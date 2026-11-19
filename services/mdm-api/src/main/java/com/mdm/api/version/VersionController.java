@@ -35,12 +35,13 @@ public class VersionController {
         this.service = service;
     }
 
-    /** Newest business date first, then by name. {@code status}: working, submitted, finalized or expired. */
+    /** Newest business date first, then by name. {@code status}: working, submitted, finalized or expired; {@code type}: normal, baseline or as_of. */
     @GetMapping
     public Page<VersionView> listVersions(Actor actor, @RequestParam(required = false) String status,
+                                          @RequestParam(required = false) String type,
                                           @RequestParam(defaultValue = "50") int limit,
                                           @RequestParam(required = false) String cursor) {
-        return service.list(actor, status, limit, cursor);
+        return service.list(actor, status, type, limit, cursor);
     }
 
     @GetMapping("/{name}")

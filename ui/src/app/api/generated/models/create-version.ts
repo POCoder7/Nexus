@@ -6,4 +6,5 @@ export interface CreateVersion {
   businessAsOf?: string;
   description?: string;
   name?: string;
+  versionType?: string;
 }

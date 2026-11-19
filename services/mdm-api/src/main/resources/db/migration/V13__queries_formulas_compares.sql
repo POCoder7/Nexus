@@ -139,3 +139,187 @@ CREATE TRIGGER saved_query_audit AFTER INSERT OR UPDATE OR DELETE ON mdm.saved_q
   FOR EACH ROW EXECUTE FUNCTION mdm.trg_audit_row();
 
 GRANT INSERT, UPDATE (name, description, hierarchy_id, definition, visibility), DELETE ON mdm.saved_query TO nexus_api;
+
+-- =============================================================================
+-- 5-12 Compares (QRY-02) and baselines (VER-04): Phase 5 LLD §17.4; built before 5-10 and 5-11 by ADR-044.
+-- A compare is a run whose rows are stored and paged (a 500 000-node compare cannot be recomputed per page). Runs are
+-- derived and rebuildable, like the sandbox overlay: not governed data, not audited, deleted when they expire.
+-- =============================================================================
+CREATE TABLE mdm.compare_run (
+  compare_run_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  requested_by   uuid NOT NULL REFERENCES mdm.app_user,
+  definition     jsonb NOT NULL,      -- both sides resolved to (hierarchy, asOf, recordedAsOf), kinds, options
+  slice_key      text NOT NULL,       -- md5 of the resolved definition: equal keys compare the same slices the same way
+  is_frozen      boolean NOT NULL,    -- both sides have a recorded time in the past, so the answer never changes
+  status         text NOT NULL DEFAULT 'running' CHECK (status IN ('running', 'done', 'failed')),
+  counts         jsonb,
+  error          text,
+  started_at     timestamptz NOT NULL DEFAULT now(),
+  finished_at    timestamptz,
+  expires_at     timestamptz NOT NULL
+);
+CREATE INDEX compare_run_reuse ON mdm.compare_run (slice_key) WHERE status = 'done' AND is_frozen;
+CREATE INDEX compare_run_expiry ON mdm.compare_run (expires_at);
+
+CREATE TABLE mdm.compare_row (
+  compare_run_id uuid NOT NULL REFERENCES mdm.compare_run ON DELETE CASCADE,
+  seq            bigint NOT NULL,
+  kind           text NOT NULL CHECK (kind IN ('structure', 'property', 'rename')),
+  node_id        uuid NOT NULL,
+  node_name      text NOT NULL,
+  detail         jsonb NOT NULL,
+  PRIMARY KEY (compare_run_id, seq)
+);
+CREATE INDEX compare_row_page ON mdm.compare_row (compare_run_id, kind, node_name, node_id, seq);
+
+-- One side of a compare: every placement in the hierarchy at the slice (or below a sub-tree root, through primary and
+-- shared placements, bounded by max_hierarchy_depth), plus the top (or the root) with no parent, each with the node's
+-- name, description and active flag at the slice.
+CREATE FUNCTION mdm.compare_side(p_hierarchy uuid, p_on date, p_rec timestamptz, p_root uuid)
+RETURNS TABLE (node_id uuid, parent_node_id uuid, is_primary boolean, sort_order numeric, node_name text,
+               description text, is_active boolean)
+LANGUAGE sql STABLE SET search_path = mdm, public AS $$
+WITH RECURSIVE
+edges AS (
+  SELECT r.parent_node_id, r.child_node_id, r.is_primary, r.sort_order
+  FROM mdm.hierarchy_relationship r
+  WHERE r.hierarchy_id = p_hierarchy AND r.valid_period @> p_on AND r.recorded_period @> p_rec
+),
+top AS (SELECT coalesce(p_root, h.top_node_id) AS node_id FROM mdm.hierarchy h WHERE h.hierarchy_id = p_hierarchy),
+sub(node_id, depth) AS (
+  SELECT t.node_id, 0 FROM top t WHERE p_root IS NOT NULL
+  UNION
+  SELECT e.child_node_id, s.depth + 1 FROM edges e JOIN sub s ON e.parent_node_id = s.node_id
+  WHERE s.depth < (SELECT coalesce(max(setting_value::int), 50) FROM mdm.system_setting WHERE setting_key = 'max_hierarchy_depth')
+),
+placements AS (
+  SELECT t.node_id, NULL::uuid AS parent_node_id, true AS is_primary, NULL::numeric AS sort_order FROM top t
+  UNION ALL
+  SELECT e.child_node_id, e.parent_node_id, e.is_primary, e.sort_order FROM edges e
+  WHERE p_root IS NULL OR e.parent_node_id IN (SELECT s.node_id FROM sub s)
+)
+SELECT p.node_id, p.parent_node_id, p.is_primary, p.sort_order, coalesce(a.node_name, p.node_id::text), a.description,
+       coalesce(a.is_active, true)
+FROM placements p
+LEFT JOIN mdm.node_attr a ON a.node_id = p.node_id AND a.valid_period @> p_on AND a.recorded_period @> p_rec
+$$;
+
+-- Fills a run (§17.4.2), set-based, in the caller's transaction, and marks it done with counts. The definition holds
+-- left and right {hierarchyId, asOf, recordedAsOf}, kinds, propertyIds (null = every property), subtreeRootId,
+-- includeInactive and includeOrder. Nodes are matched by node_id, so a rename is reported as a rename.
+CREATE FUNCTION mdm.compare_fill(p_run uuid)
+RETURNS jsonb LANGUAGE plpgsql SET search_path = mdm, public AS $$
+DECLARE
+  d        jsonb;
+  lh uuid; rh uuid; la date; ra date; lr timestamptz; rr timestamptz;
+  v_root   uuid;
+  v_inact  boolean;
+  v_order  boolean;
+  v_kinds  text[];
+  v_props  uuid[];
+  v_seq    bigint := 0;
+  v_n      bigint;
+  v_counts jsonb := '{}';
+BEGIN
+  SELECT definition INTO d FROM mdm.compare_run WHERE compare_run_id = p_run AND status = 'running' FOR UPDATE;
+  IF d IS NULL THEN
+    RAISE EXCEPTION 'Compare run % is not running', p_run USING ERRCODE = 'N2808', HINT = 'compare.not_running';
+  END IF;
+  lh := (d #>> '{left,hierarchyId}')::uuid;  la := (d #>> '{left,asOf}')::date;  lr := (d #>> '{left,recordedAsOf}')::timestamptz;
+  rh := (d #>> '{right,hierarchyId}')::uuid; ra := (d #>> '{right,asOf}')::date; rr := (d #>> '{right,recordedAsOf}')::timestamptz;
+  v_root  := (d ->> 'subtreeRootId')::uuid;
+  v_inact := coalesce((d ->> 'includeInactive')::boolean, false);
+  v_order := coalesce((d ->> 'includeOrder')::boolean, false);
+  v_kinds := ARRAY(SELECT jsonb_array_elements_text(d -> 'kinds'));
+  v_props := CASE WHEN jsonb_typeof(d -> 'propertyIds') = 'array'
+                  THEN ARRAY(SELECT jsonb_array_elements_text(d -> 'propertyIds'))::uuid[] END;
+
+  IF 'structure' = ANY (v_kinds) THEN
+    INSERT INTO mdm.compare_row (compare_run_id, seq, kind, node_id, node_name, detail)
+    SELECT p_run, v_seq + row_number() OVER (ORDER BY x.node_name, x.node_id, x.change), 'structure', x.node_id, x.node_name, x.detail
+    FROM (
+      WITH l AS (SELECT * FROM mdm.compare_side(lh, la, lr, v_root) s WHERE v_inact OR s.is_active),
+           r AS (SELECT * FROM mdm.compare_side(rh, ra, rr, v_root) s WHERE v_inact OR s.is_active),
+           names AS (SELECT DISTINCT ON (n.node_id) n.node_id, n.node_name FROM (SELECT * FROM r UNION ALL SELECT * FROM l) n),
+           lp AS (SELECT * FROM l WHERE l.is_primary), rp AS (SELECT * FROM r WHERE r.is_primary)
+      SELECT coalesce(rp.node_id, lp.node_id) AS node_id, coalesce(rp.node_name, lp.node_name) AS node_name,
+             CASE WHEN lp.node_id IS NULL THEN 'added' WHEN rp.node_id IS NULL THEN 'removed'
+                  WHEN lp.parent_node_id IS DISTINCT FROM rp.parent_node_id THEN 'moved' ELSE 'reordered' END AS change,
+             jsonb_strip_nulls(jsonb_build_object(
+               'change', CASE WHEN lp.node_id IS NULL THEN 'added' WHEN rp.node_id IS NULL THEN 'removed'
+                              WHEN lp.parent_node_id IS DISTINCT FROM rp.parent_node_id THEN 'moved' ELSE 'reordered' END,
+               'leftParentId', lp.parent_node_id, 'rightParentId', rp.parent_node_id,
+               'leftParentName', (SELECT n.node_name FROM names n WHERE n.node_id = lp.parent_node_id),
+               'rightParentName', (SELECT n.node_name FROM names n WHERE n.node_id = rp.parent_node_id),
+               'leftSortOrder', lp.sort_order, 'rightSortOrder', rp.sort_order)) AS detail
+      FROM lp FULL JOIN rp ON lp.node_id = rp.node_id
+      WHERE lp.node_id IS NULL OR rp.node_id IS NULL OR lp.parent_node_id IS DISTINCT FROM rp.parent_node_id
+         OR (v_order AND lp.sort_order IS DISTINCT FROM rp.sort_order)
+      UNION ALL
+      -- shared (non-primary) placements, compared as sets of (parent, child)
+      SELECT coalesce(rs.node_id, ls.node_id), coalesce(rs.node_name, ls.node_name),
+             CASE WHEN ls.node_id IS NULL THEN 'shared_added' ELSE 'shared_removed' END,
+             jsonb_strip_nulls(jsonb_build_object(
+               'change', CASE WHEN ls.node_id IS NULL THEN 'shared_added' ELSE 'shared_removed' END,
+               'leftParentId', ls.parent_node_id, 'rightParentId', rs.parent_node_id,
+               'leftParentName', (SELECT n.node_name FROM names n WHERE n.node_id = ls.parent_node_id),
+               'rightParentName', (SELECT n.node_name FROM names n WHERE n.node_id = rs.parent_node_id)))
+      FROM (SELECT * FROM l WHERE NOT l.is_primary) ls
+      FULL JOIN (SELECT * FROM r WHERE NOT r.is_primary) rs ON ls.node_id = rs.node_id AND ls.parent_node_id = rs.parent_node_id
+      WHERE ls.node_id IS NULL OR rs.node_id IS NULL
+    ) x;
+    GET DIAGNOSTICS v_n = ROW_COUNT;
+    v_seq := v_seq + v_n;
+    v_counts := v_counts || jsonb_build_object('structure', v_n);
+  END IF;
+
+  IF 'rename' = ANY (v_kinds) THEN
+    INSERT INTO mdm.compare_row (compare_run_id, seq, kind, node_id, node_name, detail)
+    SELECT p_run, v_seq + row_number() OVER (ORDER BY r.node_name, r.node_id), 'rename', r.node_id, r.node_name,
+           jsonb_build_object('leftName', l.node_name, 'rightName', r.node_name,
+                              'leftDescription', l.description, 'rightDescription', r.description)
+    FROM (SELECT DISTINCT ON (s.node_id) * FROM mdm.compare_side(lh, la, lr, v_root) s WHERE v_inact OR s.is_active) l
+    JOIN (SELECT DISTINCT ON (s.node_id) * FROM mdm.compare_side(rh, ra, rr, v_root) s WHERE v_inact OR s.is_active) r
+      ON r.node_id = l.node_id
+    WHERE (l.node_name, l.description) IS DISTINCT FROM (r.node_name, r.description);
+    GET DIAGNOSTICS v_n = ROW_COUNT;
+    v_seq := v_seq + v_n;
+    v_counts := v_counts || jsonb_build_object('rename', v_n);
+  END IF;
+
+  IF 'property' = ANY (v_kinds) THEN
+    -- resolved values (stored, inherited, default) of the nodes on both sides, each side in its own hierarchy and slice
+    INSERT INTO mdm.compare_row (compare_run_id, seq, kind, node_id, node_name, detail)
+    SELECT p_run, v_seq + row_number() OVER (ORDER BY x.node_name, x.node_id, x.property_code), 'property', x.node_id,
+           x.node_name, x.detail
+    FROM (
+      WITH both_sides AS (
+        SELECT r.node_id, r.node_name
+        FROM (SELECT DISTINCT ON (s.node_id) * FROM mdm.compare_side(rh, ra, rr, v_root) s WHERE v_inact OR s.is_active) r
+        JOIN (SELECT DISTINCT ON (s.node_id) * FROM mdm.compare_side(lh, la, lr, v_root) s WHERE v_inact OR s.is_active) l
+          ON l.node_id = r.node_id
+      ),
+      lv AS (SELECT * FROM mdm.resolve_properties_batch(ARRAY(SELECT node_id FROM both_sides), lh, la, lr, v_props)),
+      rv AS (SELECT * FROM mdm.resolve_properties_batch(ARRAY(SELECT node_id FROM both_sides), rh, ra, rr, v_props))
+      SELECT b.node_id, b.node_name, pd.property_code,
+             jsonb_build_object('propertyId', pd.property_id, 'propertyCode', pd.property_code, 'propertyLabel', pd.label,
+                                'category', pd.category_code, 'leftValue', lv.value, 'rightValue', rv.value,
+                                'leftProvenance', lv.provenance, 'rightProvenance', rv.provenance) AS detail
+      FROM lv FULL JOIN rv ON rv.node_id = lv.node_id AND rv.property_id = lv.property_id
+      JOIN both_sides b ON b.node_id = coalesce(rv.node_id, lv.node_id)
+      JOIN mdm.property_definition pd ON pd.property_id = coalesce(rv.property_id, lv.property_id)
+      WHERE lv.value IS DISTINCT FROM rv.value
+    ) x;
+    GET DIAGNOSTICS v_n = ROW_COUNT;
+    v_seq := v_seq + v_n;
+    v_counts := v_counts || jsonb_build_object('property', v_n);
+  END IF;
+
+  UPDATE mdm.compare_run SET status = 'done', counts = v_counts, finished_at = now() WHERE compare_run_id = p_run;
+  RETURN v_counts;
+END $$;
+
+-- Runs are written by the API (it starts, fills and expires them); compare_fill runs with the caller's rights and reads
+-- only what every role can read.
+GRANT INSERT, UPDATE (status, counts, error, finished_at), DELETE ON mdm.compare_run TO nexus_api;
+GRANT INSERT, DELETE ON mdm.compare_row TO nexus_api;

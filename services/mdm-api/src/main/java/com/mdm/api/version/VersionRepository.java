@@ -29,7 +29,7 @@ public class VersionRepository {
     public record VersionRow(UUID id, String name, String status, LocalDate businessAsOf, Instant recordedAsOf,
                              String baseVersion, String description, Instant createdAt, PersonRef createdBy,
                              Instant submittedAt, PersonRef submittedBy, Instant finalizedAt, PersonRef finalizedBy,
-                             int revision) {
+                             int revision, String versionType) {
     }
 
     private static final String SELECT = """
@@ -38,7 +38,7 @@ public class VersionRepository {
                    v.created_by, cu.display_name AS created_by_name,
                    v.submitted_at, v.submitted_by, su.display_name AS submitted_by_name,
                    v.finalized_at, v.finalized_by, fu.display_name AS finalized_by_name,
-                   v.revision
+                   v.revision, v.version_type
             FROM mdm.version v
             LEFT JOIN mdm.version b   ON b.version_id = v.base_version_id
             LEFT JOIN mdm.app_user cu ON cu.user_id = v.created_by
@@ -55,16 +55,18 @@ public class VersionRepository {
     }
 
     /** Keyset page on (business date descending, name); fetches {@code limit + 1} rows so the caller can tell if there is more. */
-    public List<VersionRow> page(String status, LocalDate afterDate, String afterName, int limit) {
+    /** {@code type}: normal, baseline or as_of (VER-04); null = every type. */
+    public List<VersionRow> page(String status, String type, LocalDate afterDate, String afterName, int limit) {
         return jdbc.sql(SELECT + """
                 WHERE (CAST(:status AS text) IS NULL OR v.status::text = CAST(:status AS text))
+                  AND (CAST(:type AS text) IS NULL OR v.version_type = CAST(:type AS text))
                   AND (CAST(:d AS date) IS NULL
                        OR v.business_as_of < CAST(:d AS date)
                        OR (v.business_as_of = CAST(:d AS date) AND v.version_name > CAST(:n AS text)))
                 ORDER BY v.business_as_of DESC, v.version_name
                 LIMIT :limit
                 """)
-                .param("status", status).param("d", afterDate).param("n", afterName).param("limit", limit + 1)
+                .param("status", status).param("type", type).param("d", afterDate).param("n", afterName).param("limit", limit + 1)
                 .query(ROW).list();
     }
 
@@ -105,10 +107,10 @@ public class VersionRepository {
         return jdbc.sql("SELECT mdm.is_version_admin(:u)").param("u", userId).query(Boolean.class).single();
     }
 
-    public UUID create(String name, LocalDate businessAsOf, UUID baseVersionId, String description, UUID actor) {
-        return jdbc.sql("SELECT mdm.create_version(:name, CAST(:date AS date), CAST(:base AS uuid), :description, :actor)")
+    public UUID create(String name, LocalDate businessAsOf, UUID baseVersionId, String description, UUID actor, String versionType) {
+        return jdbc.sql("SELECT mdm.create_version(:name, CAST(:date AS date), CAST(:base AS uuid), :description, :actor, :type)")
                 .param("name", name).param("date", businessAsOf).param("base", baseVersionId)
-                .param("description", description).param("actor", actor)
+                .param("description", description).param("actor", actor).param("type", versionType)
                 .query(UUID.class).single();
     }
 
@@ -129,7 +131,8 @@ public class VersionRepository {
                 rs.getObject("business_as_of", LocalDate.class), instant(rs.getTimestamp("recorded_as_of")),
                 rs.getString("base_name"), rs.getString("description"), instant(rs.getTimestamp("created_at")),
                 person(rs, "created_by"), instant(rs.getTimestamp("submitted_at")), person(rs, "submitted_by"),
-                instant(rs.getTimestamp("finalized_at")), person(rs, "finalized_by"), rs.getInt("revision"));
+                instant(rs.getTimestamp("finalized_at")), person(rs, "finalized_by"), rs.getInt("revision"),
+                rs.getString("version_type"));
     }
 
     private static PersonRef person(ResultSet rs, String column) throws SQLException {

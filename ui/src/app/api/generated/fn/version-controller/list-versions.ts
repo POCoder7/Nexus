@@ -11,6 +11,7 @@ import { PageVersionView } from '../../models/page-version-view';
 
 export interface ListVersions$Params {
   status?: string;
+  type?: string;
   limit?: number;
   cursor?: string;
 }
@@ -19,6 +20,7 @@ export function listVersions(http: HttpClient, rootUrl: string, params?: ListVer
   const rb = new RequestBuilder(rootUrl, listVersions.PATH, 'get');
   if (params) {
     rb.query('status', params.status, {});
+    rb.query('type', params.type, {});
     rb.query('limit', params.limit, {});
     rb.query('cursor', params.cursor, {});
   }

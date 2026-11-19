@@ -45,5 +45,6 @@
 | ADR-041 | Build property queries before governed grants and sub-tree read filtering | Accepted (repository owner, 2026-11-15) |
 | ADR-042 | Users, roles and groups: five roles, generic groups in `mdm`, governed access changes, workflow override, service accounts | Accepted (repository owner, 2026-11-17, with C-1 to C-5); override needs Audit-Risk (OD-49a) |
 | ADR-043 | Build transaction history and request history (AUD-01, AUD-02) ahead of the Phase 5 order | Accepted (repository owner, 2026-11-19; design LLD §18 approved with C-1 to C-5, OD-50) |
+| ADR-044 | Build compares and baselines (5-12) before the formula increments (5-10, 5-11) | Accepted (repository owner, 2026-11-19) |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.

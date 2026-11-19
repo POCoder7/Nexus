@@ -45,6 +45,12 @@ export type { GetRequestHistory$Params as GetRequestHistory$Params } from './fn/
 export { getRequestHistory as getRequestHistory } from './fn/request-history-controller/get-request-history';
 export type { ReportClientError$Params as ReportClientError$Params } from './fn/client-error-controller/report-client-error';
 export { reportClientError as reportClientError } from './fn/client-error-controller/report-client-error';
+export type { StartCompare$Params as StartCompare$Params } from './fn/compare-controller/start-compare';
+export { startCompare as startCompare } from './fn/compare-controller/start-compare';
+export type { GetCompare$Params as GetCompare$Params } from './fn/compare-controller/get-compare';
+export { getCompare as getCompare } from './fn/compare-controller/get-compare';
+export type { ListCompareRows$Params as ListCompareRows$Params } from './fn/compare-controller/list-compare-rows';
+export { listCompareRows as listCompareRows } from './fn/compare-controller/list-compare-rows';
 export type { ListHierarchies$Params as ListHierarchies$Params } from './fn/hierarchy-controller/list-hierarchies';
 export { listHierarchies as listHierarchies } from './fn/hierarchy-controller/list-hierarchies';
 export type { GetHierarchy$Params as GetHierarchy$Params } from './fn/hierarchy-controller/get-hierarchy';
