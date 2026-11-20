@@ -1,7 +1,7 @@
 -- pgTAP: model changes for the hackathon CSV load (ADR-046, Phase 4 LLD §17). H-1: node display names and hierarchy
 -- descriptions. Synthetic data only.
 BEGIN;
-SELECT plan(17);
+SELECT plan(23);
 
 -- Fixture ------------------------------------------------------------------------------------------------------
 INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
@@ -138,6 +138,20 @@ UPDATE mdm.change_request SET status = 'approved', decided_by = '00000000-0000-0
 SELECT is(pg_temp.apply('00000000-0000-0000-0000-000000003246'), -1, 'Through a change request the refusal fails the apply');
 SELECT is((SELECT left(apply_error, 5) FROM mdm.change_request WHERE change_request_id = '00000000-0000-0000-0000-000000003246'),
   'N2025', '… as a rule failure, recorded on the request');
+
+-- Ledgers (D4, H-3) ----------------------------------------------------------------------------------------------
+SELECT lives_ok($$INSERT INTO mdm.ledger (ledger_id, ledger_name, currency_code, finance_country)
+                  VALUES ('XL100', 'X ledger', 'USD', 'USA')$$, 'A ledger with id, name, currency and finance country is stored');
+SELECT throws_ok($$INSERT INTO mdm.ledger (ledger_id, ledger_name, currency_code, finance_country)
+                   VALUES ('XL200', 'X ledger two', 'usd', 'USA')$$, '23514', NULL, 'A currency must be three upper-case letters');
+SELECT throws_ok($$INSERT INTO mdm.ledger (ledger_id, ledger_name, currency_code, finance_country)
+                   VALUES ('X L300', 'X ledger three', 'EUR', 'DEU')$$, '23514', NULL, 'A ledger id has no spaces');
+SELECT is((SELECT count(*)::int FROM mdm.audit_log WHERE table_name = 'ledger' AND new_row ->> 'ledger_id' = 'XL100'), 1,
+  'Ledger changes are audited');
+SET LOCAL ROLE nexus_api;
+SELECT lives_ok($$UPDATE mdm.ledger SET is_active = false WHERE ledger_id = 'XL100'$$, 'The API may retire a ledger');
+SELECT throws_ok($$DELETE FROM mdm.ledger WHERE ledger_id = 'XL100'$$, '42501', NULL, '… but never delete one');
+RESET ROLE;
 
 SELECT * FROM finish();
 ROLLBACK;

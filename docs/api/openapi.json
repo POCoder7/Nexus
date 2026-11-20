@@ -1058,6 +1058,43 @@
         },
         "type" : "object"
       },
+      "Ledger" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "currency" : {
+            "type" : "string"
+          },
+          "financeCountry" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "LedgerUpdate" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "currency" : {
+            "type" : "string"
+          },
+          "financeCountry" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "MeView" : {
         "properties" : {
           "actor" : {
@@ -1443,6 +1480,20 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/ItemView"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PageLedger" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Ledger"
             },
             "type" : "array"
           },
@@ -2868,6 +2919,42 @@
         "tags" : [ "workflow-admin-controller" ]
       }
     },
+    "/api/v1/admin/ledgers/{id}" : {
+      "put" : {
+        "operationId" : "saveLedger",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LedgerUpdate"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Ledger"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "ledger-controller" ]
+      }
+    },
     "/api/v1/admin/workflow-models" : {
       "get" : {
         "operationId" : "listWorkflowModels",
@@ -3997,6 +4084,41 @@
           }
         },
         "tags" : [ "home-controller" ]
+      }
+    },
+    "/api/v1/ledgers" : {
+      "get" : {
+        "operationId" : "listLedgers",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 200,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageLedger"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "ledger-controller" ]
       }
     },
     "/api/v1/me" : {

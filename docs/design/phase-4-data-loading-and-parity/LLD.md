@@ -493,6 +493,17 @@ CREATE TABLE mdm.ledger (
 - **Reads:** `GET /ledgers`, for every role.
 - **Integrity:** the profiler checks that the values of the property that uses the LEDGER list are ledger ids.
 
+**Built in H-3 (2026-11-20), in V16.**
+- **Checks on the table.** The id has no spaces and is at most 20 characters, the currency is three upper-case letters,
+  and the name and finance country are required.
+- **No deletes.** `nexus_api` may insert and update but not delete; a ledger is retired with `is_active = false`.
+- **API.**
+  - `GET /api/v1/ledgers` is paged by id.
+  - `PUT /api/v1/admin/ledgers/{id}` creates a ledger (201) or replaces one (200). It is ADMIN only, and field errors
+    come back as 400.
+- **Audit actor.** The API sets `mdm.actor_id` for the transaction, so the audit row names the ADMIN. Direct API writes
+  did not set it before (e.g. saved queries), which is an existing gap.
+
 ### 17.5 One rule catalogue (D5) — V16
 ```sql
 ALTER TABLE mdm.validation_rule
