@@ -20,8 +20,10 @@ import com.mdm.api.validation.ValidationService;
 import com.mdm.api.workflow.WorkflowGateway;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -134,6 +136,51 @@ public class ChangeRequestService {
         UUID itemId = repository.insertItem(cr.id(), repository.nextSeq(cr.id()), item.action(), item.hierarchyId(),
                 item.nodeId(), item.targetParentId(), item.propertyId(), item.payload());
         return new AddedItem(repository.item(itemId).orElseThrow(), repository.find(id).orElseThrow().rowVersion());
+    }
+
+    /**
+     * Checks one change against the rules before it is added (owner, 2026-11-20: show the hierarchy's rules while adding a
+     * child). The item is built and inserted exactly as {@link #addItem} would, into the caller's own open draft or
+     * sandbox ({@code requestId}) or into a request made for the check in {@code versionName}; the request is validated
+     * before and after, and the findings the change adds are returned. Nothing is kept: the transaction is rolled back,
+     * so the stored findings, the allocated node and any request made for the check disappear. Item errors (a leaf
+     * parent, no permission) are thrown as they would be by addItem.
+     */
+    @Transactional
+    public ValidationReport checkItem(Actor actor, UUID requestId, String versionName, LocalDate effectiveFrom, ItemCommand cmd,
+                                      List<ChangeRequestDtos.CheckProperty> properties) {
+        try {
+            ChangeRequestView cr;
+            if (requestId != null) {
+                cr = lockVisible(actor, requestId);
+                requireRequester(actor, cr);
+                if (!"draft".equals(cr.status())) {
+                    throw new RuleException("change_request.not_draft",
+                            "Only a draft can be edited; this change request is " + cr.status() + ".");
+                }
+            } else {
+                cr = create(actor, new CreateRequest(versionName, "Rule check", null, null, effectiveFrom, null, false));
+            }
+            ValidationReport before = validation.run(cr.id(), cr.effectiveFrom());
+            AddedItem added = insertItem(actor, cr, cmd);
+            for (ChangeRequestDtos.CheckProperty p : properties) {
+                if (p.value() == null || p.value().isNull() || added.item().nodeId() == null) {
+                    continue;
+                }
+                insertItem(actor, cr, new ItemCommand("set_property", cmd.hierarchyCode(), added.item().nodeId(), null, p.code(),
+                        com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode().set("value", p.value())));
+            }
+            ValidationReport after = validation.run(cr.id(), cr.effectiveFrom());
+            return new ValidationReport(after.validatedAt(), added(before.errors(), after.errors()), added(before.warnings(), after.warnings()));
+        } finally {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+        }
+    }
+
+    /** The findings in {@code after} that {@code before} did not have (same rule, node and message). */
+    private static List<ValidationReport.Finding> added(List<ValidationReport.Finding> before, List<ValidationReport.Finding> after) {
+        Set<ValidationReport.Finding> had = new java.util.HashSet<>(before);
+        return after.stream().filter(f -> !had.contains(f)).toList();
     }
 
     @Transactional(readOnly = true)

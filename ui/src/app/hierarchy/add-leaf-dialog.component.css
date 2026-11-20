@@ -36,3 +36,128 @@
   border: var(--nx-border-width) solid var(--nx-color-border-default);
   border-radius: var(--nx-radius-1);
 }
+
+/* Properties grouped by category, each section collapsible (owner, 2026-11-20) */
+.props-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--nx-space-3);
+}
+
+.props-title {
+  margin: 0;
+  font-size: var(--nx-font-size-label);
+}
+
+.props-note {
+  margin: 0;
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-3);
+}
+
+.section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-4);
+}
+
+
+.toolbar {
+  display: flex;
+  gap: var(--nx-space-3);
+}
+
+.toggle-all,
+.disclosure {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.toggle-all {
+  color: var(--nx-color-text-link);
+  text-decoration: underline;
+  font-size: var(--nx-font-size-label);
+}
+
+.toggle-all:disabled {
+  color: var(--nx-color-text-secondary);
+  text-decoration: none;
+  cursor: default;
+}
+
+.disclosure {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--nx-space-2);
+  color: inherit;
+}
+
+.chevron {
+  display: inline-block;
+  width: 1em;
+}
+
+.count {
+  color: var(--nx-color-text-secondary);
+  font-size: var(--nx-font-size-label);
+}
+
+/* The hierarchy's rules and Check (owner, 2026-11-20) */
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nx-space-2);
+  padding: var(--nx-space-4);
+  border: var(--nx-border-width) solid var(--nx-color-border-default);
+  border-radius: var(--nx-radius-1);
+}
+
+.check {
+  padding: var(--nx-space-2) var(--nx-space-4);
+  border: var(--nx-border-width) solid var(--nx-color-border-strong);
+  border-radius: var(--nx-radius-1);
+  background: var(--nx-color-surface-panel);
+  color: var(--nx-color-text-primary);
+  cursor: pointer;
+}
+
+.check:disabled {
+  color: var(--nx-color-text-secondary);
+  cursor: default;
+}
+
+.check-ok,
+.finding {
+  margin: 0;
+}
+
+.check-ok {
+  color: var(--nx-color-status-success);
+}
+
+.finding--error {
+  color: var(--nx-color-status-error);
+}
+
+.finding--warning {
+  color: var(--nx-color-status-warning);
+}
+
+.rule-list {
+  margin: 0;
+  padding-left: var(--nx-space-5);
+  font-size: var(--nx-font-size-label);
+}
+
+.rule-code {
+  font-weight: var(--nx-font-weight-strong);
+}

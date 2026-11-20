@@ -10,7 +10,7 @@ describe('HeaderSearchComponent', () => {
     const api = { searchAll: vi.fn(async () => results) };
     TestBed.configureTestingModule({
       providers: [provideRouter([{ path: '**', children: [] }]), { provide: NexusApi, useValue: api },
-        { provide: ContextStore, useValue: { slice: () => ({}) } }],
+        { provide: ContextStore, useValue: { slice: () => ({}), workspaceParams: () => ({}) } }],
     });
     const fixture = TestBed.createComponent(HeaderSearchComponent);
     await fixture.whenStable();

@@ -39,4 +39,19 @@ describe('ItemListComponent', () => {
     expect(el.querySelector('li:nth-child(2) .line--added')!.textContent).toContain('After: Retail');
     expect(el.querySelector('[aria-pressed=true]')!.textContent?.trim()).toBe('Inline');
   });
+
+  it('offers Remove on each change only when asked, and says which change it removes', async () => {
+    const fixture = await render();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelectorAll('[data-testid=item-remove]')).toHaveLength(0);
+    fixture.componentRef.setInput('removable', true);
+    await fixture.whenStable();
+    const buttons = el.querySelectorAll<HTMLButtonElement>('[data-testid=item-remove]');
+    expect(buttons).toHaveLength(4);
+    expect(buttons[0].getAttribute('aria-label')).toBe('Remove change 1: Add Synthetic leaf (leaf)');
+    const removed: string[] = [];
+    fixture.componentInstance.remove.subscribe((i) => removed.push(i.id!));
+    buttons[2].click();
+    expect(removed).toEqual(['i3']);
+  });
 });

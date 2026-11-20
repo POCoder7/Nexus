@@ -36,6 +36,22 @@ test('a sandbox is created and opens the workspace in sandbox mode', async ({ pa
   await expectAccessible(page);
 });
 
+test('another hierarchy opens in the same sandbox, from the context bar and the Hierarchies menu', async ({ page }) => {
+  await signInAs(page, ARCHITECT);
+  await page.goto(`/hierarchies/${HIERARCHY}?sandbox=${sandboxId}`);
+  await expect(page.getByTestId('hierarchy-switcher')).toHaveValue(HIERARCHY);
+  await page.getByTestId('hierarchy-switcher').selectOption('E2E_MGMT');
+  await expect(page).toHaveURL(new RegExp(`/hierarchies/E2E_MGMT\\?.*sandbox=${sandboxId}`));
+  await expect(page.getByTestId('sandbox-banner')).toContainText(NAME);
+  await expect(page.getByTestId('hierarchy-switcher')).toHaveValue('E2E_MGMT');
+  await expectAccessible(page);
+
+  await page.getByTestId('nav-hierarchies').click();
+  await page.getByRole('link', { name: 'Open a hierarchy' }).click();
+  await expect(page).toHaveURL(new RegExp(`sandbox=${sandboxId}`));
+  await expect(page.getByTestId('sandbox-banner')).toContainText(NAME);
+});
+
 test('three kinds of change become the sandbox\'s items', async ({ page }) => {
   await signInAs(page, ARCHITECT);
   await page.goto(`/hierarchies/${HIERARCHY}?sandbox=${sandboxId}`);

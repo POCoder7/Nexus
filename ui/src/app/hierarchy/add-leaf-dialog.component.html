@@ -20,10 +20,16 @@
     }
 
     <ds-field [label]="t.name" [for]="fieldId('name')" [required]="true" [requiredText]="common.required"
-              [error]="errorFor('name', $any(form.controls.name))">
+              [error]="errorFor('name', $any(form.controls.name))" [hint]="t.nameHint">
       <input [id]="fieldId('name')" formControlName="name" autocomplete="off"
              [attr.aria-invalid]="!!errorFor('name', $any(form.controls.name))"
              [attr.aria-describedby]="errorFor('name', $any(form.controls.name)) ? fieldId('name') + '-error' : null" />
+    </ds-field>
+    <ds-field [label]="t.displayName" [for]="fieldId('displayName')" [error]="errorFor('displayName', $any(form.controls.displayName))"
+              [hint]="t.displayNameHint">
+      <input [id]="fieldId('displayName')" formControlName="displayName" autocomplete="off"
+             [attr.aria-invalid]="!!errorFor('displayName', $any(form.controls.displayName))"
+             [attr.aria-describedby]="errorFor('displayName', $any(form.controls.displayName)) ? fieldId('displayName') + '-error' : null" />
     </ds-field>
     <ds-field [label]="t.description" [for]="fieldId('description')">
       <textarea [id]="fieldId('description')" formControlName="description" rows="2"></textarea>
@@ -44,13 +50,91 @@
       <input type="date" [id]="fieldId('effective')" formControlName="effectiveFrom" />
     </ds-field>
 
+    <!-- the hierarchy's rules, and a check of this node against them (owner, 2026-11-20) -->
+    <section class="rules" aria-labelledby="nx-add-leaf-rules-title" data-testid="add-leaf-rules">
+      <div class="props-head">
+        <h3 id="nx-add-leaf-rules-title" class="props-title">{{ t.rulesTitle }}</h3>
+        <button type="button" class="check" [disabled]="checking()" (click)="check()" data-testid="add-leaf-check"
+                [attr.aria-describedby]="fieldId('check') + '-hint'">{{ t.check }}</button>
+      </div>
+      <p class="nx-muted props-note" [id]="fieldId('check') + '-hint'">{{ t.checkHint }}</p>
+      <div aria-live="polite" data-testid="add-leaf-check-result">
+        @if (checking()) {
+          <p class="nx-muted props-note">{{ t.checking }}</p>
+        } @else if (checkResult(); as r) {
+          @if (r.errors.length === 0 && r.warnings.length === 0) {
+            <p class="check-ok" data-testid="add-leaf-check-ok"><span aria-hidden="true">✓ </span>{{ t.checkOk }}</p>
+          }
+          @for (f of r.errors; track $index) {
+            <p class="finding finding--error" data-testid="add-leaf-check-error"><span aria-hidden="true">✕ </span><span class="nx-visually-hidden">{{ t.errorWord }}: </span>{{ findingText(f.ruleCode, f.message ?? '') }}</p>
+          }
+          @for (f of r.warnings; track $index) {
+            <p class="finding finding--warning"><span aria-hidden="true">! </span><span class="nx-visually-hidden">{{ t.warningWord }}: </span>{{ findingText(f.ruleCode, f.message ?? '') }}</p>
+          }
+        }
+        @if (checkError(); as ce) {
+          <p class="nx-error-text">{{ ce.detail }}</p>
+        }
+      </div>
+      @if (rules().length > 0) {
+        <button type="button" class="disclosure" [attr.aria-expanded]="rulesOpen()" [attr.aria-controls]="fieldId('rule-list')"
+                (click)="rulesOpen.set(!rulesOpen())" data-testid="add-leaf-rules-toggle">
+          <span class="chevron" aria-hidden="true">{{ rulesOpen() ? '▾' : '▸' }}</span>
+          {{ t.rulesList(rules().length) }}
+        </button>
+        @if (rulesOpen()) {
+          <ul class="rule-list" [id]="fieldId('rule-list')">
+            @for (r of rules(); track r.code) {
+              <li>
+                <span class="rule-code">{{ r.code }}</span>
+                {{ r.description }}
+                @if (r.severity === 'warning') {
+                  <span class="count">({{ t.warningWord }})</span>
+                }
+                @if (r.thisHierarchyOnly) {
+                  <span class="count">({{ t.thisHierarchy }})</span>
+                }
+              </li>
+            }
+          </ul>
+        }
+      }
+    </section>
+
     @if (loadError(); as le) {
       <p class="nx-error-text" role="alert">{{ le.detail }}</p>
     }
     @if (formProperties().length > 0) {
-      <fieldset class="props" formGroupName="properties">
-        <legend>{{ t.properties }}</legend>
-        @for (p of formProperties(); track p.code) {
+      <div class="props-head">
+        <h3 class="props-title">{{ t.properties }}</h3>
+        @if (sections().length > 1) {
+          <div class="toolbar" role="group" [attr.aria-label]="gridText.categoriesLabel">
+            <button type="button" class="toggle-all" data-testid="expand-all" [disabled]="allExpanded()" (click)="expandAll()">
+              {{ gridText.expandAll }}
+            </button>
+            <button type="button" class="toggle-all" data-testid="collapse-all" [disabled]="allCollapsed()" (click)="collapseAll()">
+              {{ gridText.collapseAll }}
+            </button>
+          </div>
+        }
+      </div>
+      @if (someHidden()) {
+        <p class="nx-muted props-note" data-testid="props-hidden-note">{{ isLeafChecked() ? t.limbOnlyHidden : t.leafOnlyHidden }}</p>
+      }
+      <div formGroupName="properties" class="sections">
+      @for (s of sections(); track s.category) {
+        @let expanded = isExpanded(s.category);
+        <fieldset class="props" [attr.data-category]="s.category">
+          <legend>
+            <button type="button" class="disclosure" [attr.aria-expanded]="expanded" [attr.aria-controls]="sectionId(s.category)"
+                    (click)="toggle(s.category)">
+              <span class="chevron" aria-hidden="true">{{ expanded ? '▾' : '▸' }}</span>
+              {{ s.category }}
+              <span class="count">{{ sectionCount(s) }}</span>
+            </button>
+          </legend>
+          <div class="section-body" [id]="sectionId(s.category)">
+        @for (p of expanded ? s.properties : []; track p.code) {
           @let control = form.controls.properties.controls[p.code!];
           <ds-field [label]="p.label ?? p.code!" [for]="fieldId(p.code!)" [required]="!!p.required" [requiredText]="common.required"
                     [error]="errorFor(p.code!, $any(control))" [hint]="defaultHint(p)">
@@ -69,7 +153,10 @@
             }
           </ds-field>
         }
-      </fieldset>
+          </div>
+        </fieldset>
+      }
+      </div>
     }
   </form>
   <ng-container dialog-actions>

@@ -40,7 +40,7 @@ const REQUESTS_SHOWN = 3;
                 <h3>{{ t.groups['hierarchies'] }}</h3>
                 <ul>
                   @for (x of (r.hierarchies ?? []).slice(0, hierarchiesShown); track x.code) {
-                    <li><a [routerLink]="['/hierarchies', x.code]" (click)="close()">{{ x.name }} <span class="nx-muted">({{ x.code }})</span></a></li>
+                    <li><a [routerLink]="['/hierarchies', x.code]" [queryParams]="context.workspaceParams()" (click)="close()">{{ x.name }} <span class="nx-muted">({{ x.code }})</span></a></li>
                   }
                 </ul>
               }
@@ -97,7 +97,7 @@ export class HeaderSearchComponent {
   protected readonly label = nodeLabel;
   private readonly api = inject(NexusApi);
   private readonly router = inject(Router);
-  private readonly context = inject(ContextStore);
+  protected readonly context = inject(ContextStore);
   private readonly announcer = inject(Announcer);
   private readonly host = inject(ElementRef<HTMLElement>);
   protected readonly h = STRINGS.home;

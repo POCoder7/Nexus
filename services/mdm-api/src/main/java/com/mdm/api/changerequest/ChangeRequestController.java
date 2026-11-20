@@ -23,6 +23,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import com.mdm.api.common.ItemValidationException;
 import java.util.UUID;
 
 /** Drafting change requests (HIE-02, PRP-01; Phase 1 LLD §5.2). Submit and decision arrive in increment 1-8. */
@@ -106,6 +107,19 @@ public class ChangeRequestController {
                                            @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
         int version = service.deleteItem(actor, id, itemId, ifMatch);
         return ResponseEntity.noContent().eTag(ETags.of(version)).build();
+    }
+
+    /**
+     * Checks a change against the rules before it is added (the Add-child dialog's Check): the findings it would add to
+     * the request. Nothing is kept. Item errors are answered as for adding an item (400, 403, 422).
+     */
+    @PostMapping("/check-item")
+    public ValidationReport checkChangeRequestItem(Actor actor, @RequestBody ChangeRequestDtos.CheckItem body) {
+        if (body == null || body.item() == null) {
+            throw ItemValidationException.field("item", "is required");
+        }
+        return service.checkItem(actor, body.requestId(), body.versionName(), body.effectiveFrom(), body.item(),
+                body.properties() == null ? List.of() : body.properties());
     }
 
     /** Trial validation: nothing changes except that the findings are stored with the request. */

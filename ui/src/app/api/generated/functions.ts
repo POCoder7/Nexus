@@ -47,6 +47,8 @@ export type { ListChangeRequests$Params as ListChangeRequests$Params } from './f
 export { listChangeRequests as listChangeRequests } from './fn/change-request-controller/list-change-requests';
 export type { CreateChangeRequest$Params as CreateChangeRequest$Params } from './fn/change-request-controller/create-change-request';
 export { createChangeRequest as createChangeRequest } from './fn/change-request-controller/create-change-request';
+export type { CheckChangeRequestItem$Params as CheckChangeRequestItem$Params } from './fn/change-request-controller/check-change-request-item';
+export { checkChangeRequestItem as checkChangeRequestItem } from './fn/change-request-controller/check-change-request-item';
 export type { GetChangeRequest$Params as GetChangeRequest$Params } from './fn/change-request-controller/get-change-request';
 export { getChangeRequest as getChangeRequest } from './fn/change-request-controller/get-change-request';
 export type { UpdateChangeRequest$Params as UpdateChangeRequest$Params } from './fn/change-request-controller/update-change-request';
@@ -87,6 +89,8 @@ export type { GetNodePath$Params as GetNodePath$Params } from './fn/hierarchy-co
 export { getNodePath as getNodePath } from './fn/hierarchy-controller/get-node-path';
 export type { SearchHierarchy$Params as SearchHierarchy$Params } from './fn/hierarchy-controller/search-hierarchy';
 export { searchHierarchy as searchHierarchy } from './fn/hierarchy-controller/search-hierarchy';
+export type { ListHierarchyRules$Params as ListHierarchyRules$Params } from './fn/hierarchy-rules-controller/list-hierarchy-rules';
+export { listHierarchyRules as listHierarchyRules } from './fn/hierarchy-rules-controller/list-hierarchy-rules';
 export type { GetHome$Params as GetHome$Params } from './fn/home-controller/get-home';
 export { getHome as getHome } from './fn/home-controller/get-home';
 export type { GetMe$Params as GetMe$Params } from './fn/me-controller/get-me';

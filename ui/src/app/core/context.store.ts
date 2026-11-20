@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { NexusApi, Slice } from '../api/nexus-api';
-import type { MeView, SandboxView, VersionView } from '../api/generated/models';
+import type { HierarchySummary, MeView, SandboxView, VersionView } from '../api/generated/models';
 import { formatBusinessDate, formatInstant } from '../shared/format/nx-date.pipe';
 import { WORKING_VERSIONS_LIMIT } from './config';
 import { STRINGS } from './strings';
@@ -38,6 +38,10 @@ export class ContextStore {
   /** The status of that version, looked up from the server (it can change while the picture is open). */
   readonly versionStatus = signal<string | null>(null);
   readonly hierarchyName = signal<string | null>(null);
+  /** The code of the hierarchy open in the workspace (null on other pages), for the context-bar hierarchy switcher. */
+  readonly hierarchyCode = signal<string | null>(null);
+  /** The hierarchies the user can read, for that switcher (first page; loaded with the user). */
+  readonly hierarchies = signal<HierarchySummary[]>([]);
   /** Working versions for the context-bar picker: the first page of `GET /versions?status=working`. */
   readonly workingVersions = signal<VersionView[]>([]);
   /**
@@ -102,6 +106,33 @@ export class ContextStore {
   private sandboxFor: string | null = null;
 
   /** Reloads the open sandboxes for the switcher. Failures keep the last list. */
+  async loadHierarchies(): Promise<void> {
+    try {
+      this.hierarchies.set((await this.api.hierarchies()).items ?? []);
+    } catch {
+      // the switcher then shows only the hierarchy in view
+    }
+  }
+
+  /**
+   * The query parameters that make up the working context (sandbox, version picture, as-of date): kept when the user
+   * moves to another hierarchy, so a sandbox spans hierarchies instead of being left by the first link (owner, 2026-11-20).
+   * Page-specific parameters (the selected node, filters) are not part of it.
+   */
+  workspaceParams(): Record<string, string> {
+    const p: Record<string, string> = {};
+    const add = (key: string, value: string | null) => {
+      if (value) {
+        p[key] = value;
+      }
+    };
+    add('sandbox', this.sandboxParam());
+    add('version', this.versionParam());
+    add('asOf', this.asOfParam());
+    add('recordedAsOf', this.recordedAsOfParam());
+    return p;
+  }
+
   async loadSandboxes(): Promise<void> {
     try {
       this.mySandboxes.set((await this.api.sandboxes('draft')).items ?? []);

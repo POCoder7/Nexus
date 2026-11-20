@@ -237,6 +237,42 @@
         },
         "type" : "object"
       },
+      "CheckItem" : {
+        "properties" : {
+          "effectiveFrom" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "item" : {
+            "$ref" : "#/components/schemas/ItemCommand"
+          },
+          "properties" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CheckProperty"
+            },
+            "type" : "array"
+          },
+          "requestId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "versionName" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "CheckProperty" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "value" : {
+            "$ref" : "#/components/schemas/JsonNode"
+          }
+        },
+        "type" : "object"
+      },
       "ChildNode" : {
         "properties" : {
           "active" : {
@@ -648,6 +684,9 @@
             "format" : "int32",
             "type" : "integer"
           },
+          "nodeFilter" : {
+            "type" : "string"
+          },
           "readOnly" : {
             "type" : "boolean"
           },
@@ -744,6 +783,26 @@
           },
           "purpose" : {
             "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "HierarchyRule" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "severity" : {
+            "type" : "string"
+          },
+          "thisHierarchyOnly" : {
+            "type" : "boolean"
           }
         },
         "type" : "object"
@@ -3837,6 +3896,34 @@
         "tags" : [ "change-request-controller" ]
       }
     },
+    "/api/v1/change-requests/check-item" : {
+      "post" : {
+        "operationId" : "checkChangeRequestItem",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CheckItem"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ValidationReport"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "change-request-controller" ]
+      }
+    },
     "/api/v1/change-requests/{id}" : {
       "get" : {
         "operationId" : "getChangeRequest",
@@ -4613,6 +4700,35 @@
           }
         },
         "tags" : [ "hierarchy-controller" ]
+      }
+    },
+    "/api/v1/hierarchies/{code}/rules" : {
+      "get" : {
+        "operationId" : "listHierarchyRules",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/HierarchyRule"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "hierarchy-rules-controller" ]
       }
     },
     "/api/v1/hierarchies/{code}/search" : {

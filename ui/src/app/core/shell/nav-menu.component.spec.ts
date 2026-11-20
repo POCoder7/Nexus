@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { ContextStore } from '../context.store';
 import { NavMenuComponent } from './nav-menu.component';
 
 /** Phase 5 LLD §21: navigation menus are disclosure buttons (keyboard and pointer). */
@@ -40,5 +41,20 @@ describe('NavMenuComponent', () => {
     (el.querySelector('a') as HTMLAnchorElement).click();
     await fixture.whenStable();
     expect(el.querySelector('ul')).toBeNull();
+  });
+
+  it("keeps the sandbox in a link that asks for the working context", async () => {
+    TestBed.configureTestingModule({ providers: [provideRouter([{ path: "**", children: [] }])] });
+    TestBed.inject(ContextStore).syncFromUrl(null, null, null, "sb-1");
+    const fixture = TestBed.createComponent(NavMenuComponent);
+    fixture.componentRef.setInput("label", "Hierarchies");
+    fixture.componentRef.setInput("items", [{ label: "Open hierarchy", link: "/hierarchies", keepContext: true },
+      { label: "Browse", link: "/browse" }]);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    el.querySelector("button")!.click();
+    await fixture.whenStable();
+    const links = [...el.querySelectorAll("a")].map((a) => a.getAttribute("href"));
+    expect(links).toEqual(["/hierarchies?sandbox=sb-1", "/browse"]);
   });
 });

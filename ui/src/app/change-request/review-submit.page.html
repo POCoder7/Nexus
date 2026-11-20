@@ -48,7 +48,11 @@
     </section>
   }
 
-  <nx-item-list [items]="items()" [findings]="errors()" [label]="t.items" />
+  @if (editable() && items().length > 0) {
+    <p class="nx-muted" data-testid="remove-hint">{{ t.removeHint }}</p>
+  }
+  <nx-item-list [items]="items()" [findings]="errors()" [label]="t.items" [removable]="editable()" [busy]="removing()"
+                (remove)="remove($event)" />
 
   <div class="findings" aria-live="polite">
     @if (validating()) {
@@ -82,9 +86,21 @@
 
   @if (request()?.status === 'draft') {
     <div class="actions">
-      <ds-button variant="primary" [disabled]="submitting() || validating() || errors().length > 0 || notWorking()" (pressed)="submit()">
+      <ds-button variant="primary" [disabled]="submitting() || validating() || removing() || errors().length > 0 || notWorking() || items().length === 0"
+                 (pressed)="submit()">
         {{ t.submit }}
       </ds-button>
+      @if (editable()) {
+        @if (confirmDiscard()) {
+          <span role="group" class="confirm" [attr.aria-label]="t.discard">
+            <span>{{ t.discardConfirm }}</span>
+            <ds-button variant="danger" [disabled]="moving()" (pressed)="discard()" data-testid="draft-discard-confirm">{{ t.discard }}</ds-button>
+            <ds-button variant="link" (pressed)="confirmDiscard.set(false)">{{ common.cancel }}</ds-button>
+          </span>
+        } @else {
+          <ds-button [disabled]="moving() || removing()" (pressed)="confirmDiscard.set(true)" data-testid="draft-discard">{{ t.discard }}</ds-button>
+        }
+      }
     </div>
   }
 </section>

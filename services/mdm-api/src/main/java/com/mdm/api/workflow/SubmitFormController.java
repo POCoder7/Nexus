@@ -28,8 +28,13 @@ import java.util.UUID;
 @RequestMapping("/api/v1/workflow/models")
 public class SubmitFormController {
 
+    /**
+     * {@code nodeFilter} (any, leaf, limb; ADR-046 D2) says which new nodes the property applies to, so the form can offer
+     * it only for those: a leaf-only property is neither offered nor required when the new node may have children.
+     */
     public record FormProperty(String code, String label, String dataType, String scope, String category, boolean required,
-                               boolean readOnly, Integer maxLength, JsonNode defaultValue, List<String> listValues) {
+                               boolean readOnly, Integer maxLength, JsonNode defaultValue, List<String> listValues,
+                               String nodeFilter) {
     }
 
     public record SubmitForm(String modelCode, int modelVersion, String label, List<String> allowedActions,
@@ -50,7 +55,8 @@ public class SubmitFormController {
 
     /**
      * {@code hierarchy} (optional) is the hierarchy the form is for; the caller must be able to read it (local properties
-     * are set per hierarchy by the item, so the same list applies).
+     * are set per hierarchy by the item, so the same list applies). With a hierarchy, only the properties that apply to
+     * it are listed (no hierarchies on the definition, or this one among them; the same rule as mdm.property_applies).
      * Only the active version of the model is described: that is the one a submit would start.
      */
     @GetMapping("/{code}/submit-form")
@@ -59,10 +65,9 @@ public class SubmitFormController {
             throw new ForbiddenException("entitlement.missing",
                     "You don't have the propose changes permission. Ask an administrator for a steward role.");
         }
-        if (hierarchy != null) {
-            hierarchies.findIdByCode(hierarchy).filter(id -> entitlements.canRead(actor, id))
-                    .orElseThrow(() -> new NotFoundException("Hierarchy " + hierarchy + " not found"));
-        }
+        UUID hierarchyId = hierarchy == null ? null
+                : hierarchies.findIdByCode(hierarchy).filter(id -> entitlements.canRead(actor, id))
+                        .orElseThrow(() -> new NotFoundException("Hierarchy " + hierarchy + " not found"));
         record Model(UUID id, int version, String label) {
         }
         Model model = jdbc.sql("SELECT model_id, model_version, label FROM wf.workflow_model WHERE model_code = :c AND status = 'active'")
@@ -82,7 +87,7 @@ public class SubmitFormController {
         List<FormProperty> properties = jdbc.sql("""
                 SELECT pd.property_code, pd.label, pd.data_type::text AS data_type, pd.scope::text AS scope, pd.category_code,
                        bool_or(tp.is_required) AS required, bool_and(tp.is_read_only) AS read_only, pd.max_length,
-                       pd.default_value::text AS default_value, min(tp.sort_seq) AS sort_seq,
+                       pd.default_value::text AS default_value, min(tp.sort_seq) AS sort_seq, pd.node_filter,
                        (SELECT array_agg(lv.list_value ORDER BY lv.list_value) FROM mdm.property_list_value lv
                         WHERE lv.property_id = pd.property_id AND lv.is_active) AS list_values
                 FROM wf.submit_task st
@@ -90,9 +95,13 @@ public class SubmitFormController {
                 JOIN wf.task_property tp ON tp.task_id = t.task_id
                 JOIN mdm.property_definition pd ON pd.property_id = tp.property_id
                 WHERE st.model_id = :m AND pd.origin = 'stored'
+                  AND (CAST(:h AS uuid) IS NULL
+                       OR NOT EXISTS (SELECT 1 FROM mdm.property_hierarchy ph WHERE ph.property_id = pd.property_id)
+                       OR EXISTS (SELECT 1 FROM mdm.property_hierarchy ph
+                                  WHERE ph.property_id = pd.property_id AND ph.hierarchy_id = CAST(:h AS uuid)))
                 GROUP BY pd.property_id
                 ORDER BY min(tp.sort_seq) NULLS LAST, pd.property_code
-                """).param("m", model.id())
+                """).param("m", model.id()).param("h", hierarchyId)
                 .query((rs, i) -> {
                     java.sql.Array lv = rs.getArray("list_values");
                     String dv = rs.getString("default_value");
@@ -100,7 +109,7 @@ public class SubmitFormController {
                     return new FormProperty(rs.getString("property_code"), rs.getString("label"), rs.getString("data_type"),
                             rs.getString("scope"), rs.getString("category_code"), rs.getBoolean("required"),
                             rs.getBoolean("read_only"), maxLength, readJson(dv),
-                            lv == null ? null : Arrays.asList((String[]) lv.getArray()));
+                            lv == null ? null : Arrays.asList((String[]) lv.getArray()), rs.getString("node_filter"));
                 })
                 .list();
         return new SubmitForm(code, model.version(), model.label(), actions, properties);

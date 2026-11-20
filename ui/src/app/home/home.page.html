@@ -1,8 +1,6 @@
 <section class="nx-page home">
-  <header class="greeting">
-    <h1>{{ greeting() }}</h1>
-    <p class="nx-muted">{{ t.title }} · {{ today() }}</p>
-  </header>
+  <!-- no visible greeting (owner, 2026-11-20); the page keeps its one h1 for screen readers (UI_STANDARD) -->
+  <h1 class="nx-visually-hidden">{{ homeHeading }}</h1>
 
   @if (error(); as e) {
     <div class="nx-card" role="alert">

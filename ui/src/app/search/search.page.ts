@@ -36,7 +36,7 @@ const PAGE = 20;
             <h2 id="sr-h">{{ t.groups['hierarchies'] }} ({{ hierarchies().length }})</h2>
             <ul>
               @for (h of hierarchies(); track h.code) {
-                <li><a [routerLink]="['/hierarchies', h.code]">{{ h.name }}</a> <span class="nx-muted">{{ h.code }}{{ h.purpose ? ' · ' + h.purpose : '' }}</span></li>
+                <li><a [routerLink]="['/hierarchies', h.code]" [queryParams]="context.workspaceParams()">{{ h.name }}</a> <span class="nx-muted">{{ h.code }}{{ h.purpose ? ' · ' + h.purpose : '' }}</span></li>
               }
             </ul>
           </section>
@@ -100,7 +100,7 @@ export class SearchPage {
   readonly q = input<string | undefined>();
 
   private readonly api = inject(NexusApi);
-  private readonly context = inject(ContextStore);
+  protected readonly context = inject(ContextStore);
   private readonly announcer = inject(Announcer);
   protected readonly t = STRINGS.search;
   protected readonly statuses = STRINGS.statuses;

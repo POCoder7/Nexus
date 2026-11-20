@@ -1,5 +1,6 @@
 user_id,display_name,role,groups,notes
 u_admin,Administrator,ADMIN,ALL,Can do Everything
+u_admin2,Administrator Two,ADMIN,ALL,Second administrator so a version can be submitted by one ADMIN and finalized by another
 u_editor1,Org Editor One,EDITOR,ORG_EDITORS,Edits ORGNEXUS and ORGNHYD
 u_editor2,AM Editor One,EDITOR,AM_EDITORS,Edits ORGSPI
 u_editor3,Org and AM Editor,EDITOR,ORG_EDITORS;AM_EDITORS,Edits all three hierarchies

@@ -43,6 +43,20 @@ public final class ChangeRequestDtos {
     public record DecisionRequest(String decision, String note) {
     }
 
+    /**
+     * A change to check before adding it: into the caller's open draft or sandbox ({@code requestId}), or else as the first
+     * change of a request in {@code versionName} taking effect on {@code effectiveFrom} (default business today).
+     * {@code properties} (optional) are set on the item's node as set_property items in the same check, so a new leaf is
+     * checked with the values the user is about to give it.
+     */
+    public record CheckItem(UUID requestId, String versionName, LocalDate effectiveFrom, ItemCommand item,
+                            java.util.List<CheckProperty> properties) {
+    }
+
+    /** A property value for the checked item's node. */
+    public record CheckProperty(String code, JsonNode value) {
+    }
+
     /** An item together with the request's new ETag after adding it. */
     public record AddedItem(ItemView item, int rowVersion) {
     }

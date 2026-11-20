@@ -56,11 +56,17 @@ export class AppShellComponent {
     const current = this.context.sandbox();
     return current && !list.some((s) => s.id === current.id) ? [current, ...list] : list;
   });
+  /** The hierarchy switcher's list: the readable hierarchies, and the one in view even if it is not among them. */
+  protected readonly switcherHierarchies = computed(() => {
+    const list = this.context.hierarchies();
+    const code = this.context.hierarchyCode();
+    return code && !list.some((h) => h.code === code) ? [{ code, name: this.context.hierarchyName() ?? code }, ...list] : list;
+  });
   /** Count badge on Worklist (LLD §12.2): the Assigned view's count, refreshed on navigation. */
   protected readonly worklistCount = signal<number | null>(null);
   /** The navigation menus (Phase 5 LLD §21). */
   protected readonly hierarchyItems: NavMenuItem[] = [
-    { label: STRINGS.nav.openHierarchy, link: '/hierarchies' },
+    { label: STRINGS.nav.openHierarchy, link: '/hierarchies', keepContext: true },
     { label: STRINGS.nav.browse, link: '/browse', testId: 'nav-browse' },
   ];
   protected readonly adminItems: NavMenuItem[] = [
@@ -96,6 +102,7 @@ export class AppShellComponent {
       if (me) {
         void this.context.loadWorkingVersions();
         void this.context.loadSandboxes();
+        void this.context.loadHierarchies();
       }
     });
     // the tray follows the sandbox in view: its items there, the latest draft in live data (NEW-08)
@@ -103,6 +110,13 @@ export class AppShellComponent {
       this.context.sandboxParam();
       untracked(() => void this.context.load().then((me) => me && this.tray.load(true)));
     });
+  }
+
+  /** The context-bar hierarchy switcher: another hierarchy, keeping the sandbox, version and date in view. */
+  protected chooseHierarchy(code: string): void {
+    if (code && code !== this.context.hierarchyCode()) {
+      void this.router.navigate(['/hierarchies', code], { queryParams: this.context.workspaceParams() });
+    }
   }
 
   /** The context-bar switcher: a sandbox's id, or '' for live data. The page stays; only the data in view changes. */

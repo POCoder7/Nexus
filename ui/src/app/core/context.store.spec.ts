@@ -152,4 +152,20 @@ describe('ContextStore', () => {
     expect(store.inSandbox()).toBe(false);
     expect(store.sandbox()).toBeNull();
   });
+
+  it("keeps the working context (sandbox, version, dates) for links to another hierarchy, nothing else", async () => {
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), { provide: NexusApi, useValue: {
+        me: async () => ({ businessToday: "2031-05-17" }),
+        version: async () => ({ body: { status: "finalized" } }),
+        sandbox: async () => ({ body: { id: "sb-1", kind: "sandbox", status: "draft" }, etag: "\"1\"" }),
+      } }],
+    });
+    const store = TestBed.inject(ContextStore);
+    await store.load();
+    expect(store.workspaceParams()).toEqual({});
+    store.syncFromUrl("2031-05-16", "2031-05-16T08:00:00Z", "Synthetic close", "sb-1");
+    expect(store.workspaceParams()).toEqual({ sandbox: "sb-1", version: "Synthetic close", asOf: "2031-05-16",
+      recordedAsOf: "2031-05-16T08:00:00Z" });
+  });
 });

@@ -82,3 +82,50 @@ thead th {
   font-size: var(--nx-font-size-label);
   color: var(--nx-color-change-modified);
 }
+
+/* Category collapse / expand (owner, 2026-11-20) */
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--nx-space-3);
+  margin-bottom: var(--nx-space-2);
+}
+
+.toggle-all,
+.disclosure {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.toggle-all {
+  color: var(--nx-color-text-link);
+  text-decoration: underline;
+  font-size: var(--nx-font-size-label);
+}
+
+.toggle-all:disabled {
+  color: var(--nx-color-text-secondary);
+  text-decoration: none;
+  cursor: default;
+}
+
+.disclosure {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--nx-space-2);
+  color: inherit;
+  font-weight: inherit;
+}
+
+.chevron {
+  display: inline-block;
+  width: 1em;
+}
+
+.count {
+  color: var(--nx-color-text-secondary);
+  font-weight: normal;
+}

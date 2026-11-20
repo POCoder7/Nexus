@@ -51,6 +51,13 @@ export class ReviewSubmitPage {
   protected readonly moving = signal(false);
   /** Working versions other than the request's own, to move the draft to. */
   protected readonly targets = computed(() => this.context.workingVersions().filter((v) => v.name !== this.request()?.versionName));
+  /** The requester's own draft: its changes can be removed and the draft discarded (owner, 2026-11-20). */
+  protected readonly editable = computed(() => {
+    const r = this.request();
+    return r?.status === 'draft' && !!r.requesterId && r.requesterId === this.context.me()?.actor?.userId;
+  });
+  protected readonly removing = signal(false);
+  protected readonly confirmDiscard = signal(false);
   private etag = '';
 
   constructor() {
@@ -154,13 +161,47 @@ export class ReviewSubmitPage {
     }
   }
 
+  /**
+   * Removes a change and, for an added node, the later changes to that node (they cannot apply without it); then checks
+   * the draft again. The server decides (requester only, draft only, ETag).
+   */
+  protected async remove(item: ItemView): Promise<void> {
+    const ids = item.action === 'add_node' && item.nodeId
+      ? this.items().filter((i) => i.nodeId === item.nodeId && (i.seq ?? 0) > (item.seq ?? 0)).map((i) => i.id!).reverse()
+      : [];
+    this.removing.set(true);
+    this.error.set(null);
+    try {
+      this.etag = await this.tray.removeItems(this.id(), this.etag, [...ids, item.id!]);
+      const text = this.t.removed(ids.length + 1);
+      this.toast.confirm(text);
+      this.announcer.polite(text);
+      await this.load(this.id());
+    } catch (e) {
+      const error = UiError.from(e);
+      this.error.set(error);
+      this.announcer.assertive(error.detail);
+      if (error.status === 412) {
+        await this.load(this.id());
+      }
+    } finally {
+      this.removing.set(false);
+    }
+  }
+
+  /** Discards the whole draft (a withdrawal of a draft: nothing in it reached live data). */
+  protected async discard(): Promise<void> {
+    await this.withdraw(this.t.discarded);
+    this.confirmDiscard.set(false);
+  }
+
   /** Withdraws the draft; the request page then shows it as withdrawn. */
-  protected async withdraw(): Promise<void> {
+  protected async withdraw(done: string = this.t.withdrawn): Promise<void> {
     this.moving.set(true);
     try {
       await this.tray.withdraw(this.id(), this.etag);
-      this.toast.confirm(this.t.withdrawn);
-      this.announcer.polite(this.t.withdrawn);
+      this.toast.confirm(done);
+      this.announcer.polite(done);
       await this.router.navigate(['/requests', this.id()]);
     } catch (e) {
       const error = UiError.from(e);

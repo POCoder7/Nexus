@@ -75,3 +75,18 @@
   border-left: var(--nx-focus-width) solid var(--nx-color-change-added);
   color: var(--nx-color-change-added);
 }
+
+/* Remove a change from the requester's draft (owner, 2026-11-20) */
+.remove {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--nx-color-text-link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.remove:disabled {
+  color: var(--nx-color-text-secondary);
+  cursor: default;
+}

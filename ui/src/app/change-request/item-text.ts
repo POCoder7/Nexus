@@ -1,5 +1,6 @@
 import type { ItemView } from '../api/generated/models';
 import { STRINGS } from '../core/strings';
+import { nodeLabel } from '../shared/format/node-label';
 
 /** How one change item is worded in the before/after views (one place for both modes). */
 export type ChangeKind = 'added' | 'removed' | 'modified' | 'moved';
@@ -26,7 +27,7 @@ export function changeKind(item: ItemView): ChangeKind {
 export function describeItem(item: ItemView): string {
   const p = (item.payload ?? {}) as Record<string, unknown>;
   switch (item.action) {
-    case 'add_node': return t.addNode(String(p['name'] ?? ''), !!p['isLeaf']);
+    case 'add_node': return t.addNode(nodeLabel({ name: String(p['name'] ?? ''), displayName: p['displayName'] as string | undefined }), !!p['isLeaf']);
     case 'set_property': return t.setProperty(item.propertyCode ?? '');
     case 'clear_property': return t.clearProperty(item.propertyCode ?? '');
     case 'insert_node': return t.insertNode;
@@ -63,6 +64,7 @@ export function afterText(item: ItemView): string {
     case 'set_property':
       return p['value'] === null ? STRINGS.properties.blank : String(p['value']);
     case 'add_node':
+      return nodeLabel({ name: String(p['name'] ?? ''), displayName: p['displayName'] as string | undefined });
     case 'add_hierarchy':
       return String(p['name'] ?? '');
     case 'update_node':

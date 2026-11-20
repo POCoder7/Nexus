@@ -54,7 +54,7 @@ class HackathonIntakeTest extends PostgresIntegrationTest {
         assertThat(rows).containsEntry("hierarchies.csv", 3).containsEntry("nodes.csv", 59).containsEntry("relationships.csv", 94)
                 .containsEntry("attribute_definitions.csv", 18).containsEntry("attribute_values.csv", 184)
                 .containsEntry("reference_lists.csv", 20).containsEntry("ledgers.csv", 3).containsEntry("validation_rules.csv", 18)
-                .containsEntry("versions.csv", 4).containsEntry("users.csv", 11).containsEntry("groups.csv", 6).containsEntry("roles.csv", 5);
+                .containsEntry("versions.csv", 4).containsEntry("users.csv", 12).containsEntry("groups.csv", 6).containsEntry("roles.csv", 5);
         // what the load will leave out is said up front: four derived attributes and the FEED rule
         assertThat(r.findings()).filteredOn(f -> "skipped".equals(f.kind())).hasSize(5);
     }

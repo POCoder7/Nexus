@@ -72,6 +72,7 @@ export class HierarchyWorkspacePage implements OnDestroy {
           const h = this.store.hierarchy();
           if (h) {
             this.context.hierarchyName.set(h.name ?? code);
+            this.context.hierarchyCode.set(code);
             this.announcer.polite(this.t.loaded(h.name ?? code));
             if (!this.context.isHistorical()) {
               this.prefs.rememberHierarchy(code);
@@ -97,6 +98,7 @@ export class HierarchyWorkspacePage implements OnDestroy {
 
   ngOnDestroy(): void {
     this.context.hierarchyName.set(null);
+    this.context.hierarchyCode.set(null);
   }
 
   protected onSelect(id: string): void {

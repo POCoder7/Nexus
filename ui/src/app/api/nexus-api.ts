@@ -14,6 +14,7 @@ import type {
   SandboxView, PagePropertyDefinitionView, PageSavedQueryView, QueryDefinition, QueryPage, SaveQuery, SavedQueryView,
   PageAuditEntry, PageRequestEvent, CompareRequest, CompareRunView, PageCompareRow, SearchResults,
   PageValidationRuleView, ValidationRuleEdit, ValidationRuleView, LoadFinding, IntakeResult, LoadRunView, PageLoadRunView,
+  CheckItem, HierarchyRule,
 } from './generated/models';
 
 /** Transaction-history filters (AUD-01, Phase 5 LLD §18.4): dates are business dates; codes and a login, not ids. */
@@ -267,6 +268,22 @@ export class NexusApi {
   async moveRequest(id: string, etag: string, versionName: string): Promise<Tagged<ChangeRequestView>> {
     const r = await this.api.invoke$Response(fn.updateChangeRequest, { id, 'If-Match': etag, body: { versionName } });
     return { body: r.body, etag: etagOf(r.headers.get('ETag')) };
+  }
+
+  /** Removes one change from the caller's draft; returns the request's new ETag. */
+  async deleteItem(id: string, itemId: string, etag: string): Promise<string> {
+    const r = await this.api.invoke$Response(fn.deleteChangeRequestItem, { id, itemId, 'If-Match': etag });
+    return etagOf(r.headers.get('ETag'));
+  }
+
+  /** Checks a change against the rules before it is added; nothing is kept (the Add-child dialog's Check). */
+  checkItem(body: CheckItem): Promise<ValidationReport> {
+    return this.api.invoke(fn.checkChangeRequestItem, { body });
+  }
+
+  /** The rules a hierarchy's nodes are checked against, in words. */
+  hierarchyRules(code: string): Promise<HierarchyRule[]> {
+    return this.api.invoke(fn.listHierarchyRules, { code });
   }
 
   async withdraw(id: string, etag: string): Promise<Tagged<ChangeRequestView>> {

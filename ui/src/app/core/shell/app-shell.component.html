@@ -61,8 +61,19 @@
   </span>
   @if (context.hierarchyName(); as h) {
     <span class="context-bar__item">
-      <span class="context-bar__label">{{ t.context.hierarchy }}</span>
-      <span>{{ h }}</span>
+      @if (switcherHierarchies().length > 1) {
+        <!-- another hierarchy in the same sandbox, version and date (owner, 2026-11-20) -->
+        <label class="context-bar__label" for="nx-hierarchy-switch">{{ t.context.hierarchy }}</label>
+        <select id="nx-hierarchy-switch" class="context-bar__select" data-testid="hierarchy-switcher"
+                [value]="context.hierarchyCode() ?? ''" (change)="chooseHierarchy($any($event.target).value)">
+          @for (x of switcherHierarchies(); track x.code) {
+            <option [value]="x.code" [selected]="x.code === context.hierarchyCode()">{{ x.name ?? x.code }}</option>
+          }
+        </select>
+      } @else {
+        <span class="context-bar__label">{{ t.context.hierarchy }}</span>
+        <span>{{ h }}</span>
+      }
     </span>
   }
 </div>

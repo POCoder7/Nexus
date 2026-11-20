@@ -28,7 +28,7 @@ test('S1-R4: a missing required property blocks "Add to request" at the field', 
   await openNorth(page);
   await page.getByRole('button', { name: 'Add child' }).click();
   const dialog = page.getByRole('dialog', { name: 'Add a child under E2E Region North' });
-  await dialog.getByLabel('Name').fill(LEAF);
+  await dialog.getByLabel(/^Code/).fill(LEAF);
   await dialog.getByRole('button', { name: 'Add to request' }).click();
   await expect(dialog.getByTestId('add-leaf-summary')).toContainText('Cost centre: Required');
   await expect(dialog.getByLabel('Cost centre')).toHaveAttribute('aria-invalid', 'true');
@@ -46,7 +46,7 @@ test('S1-R4: the steward adds the leaf to a draft and submits it after validatio
   await openNorth(page);
   await page.getByRole('button', { name: 'Add child' }).click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Name').fill(LEAF);
+  await dialog.getByLabel(/^Code/).fill(LEAF);
   await dialog.getByLabel('Description').fill('Synthetic leaf added by the end-to-end suite');
   await dialog.getByLabel('Cost centre').fill('CC-E2E-01');
   await dialog.getByRole('button', { name: 'Add to request' }).click();
@@ -137,7 +137,7 @@ test('S1-R4: a duplicate name is reported at the item and blocks submission', as
   await openNorth(page);
   await page.getByRole('button', { name: 'Add child' }).click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Name').fill('E2E North Leaf One');   // already exists
+  await dialog.getByLabel(/^Code/).fill('E2E North Leaf One');   // already exists
   await dialog.getByLabel('Cost centre').fill('CC-E2E-02');
   await dialog.getByRole('button', { name: 'Add to request' }).click();
   await expect(dialog).toHaveCount(0);

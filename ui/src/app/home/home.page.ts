@@ -8,7 +8,7 @@ import { STRINGS } from '../core/strings';
 import { UiError } from '../core/ui-error';
 import { DsBadgeComponent, DsButtonComponent, DsDialog, DsTab, DsTableDirective, DsTabsComponent } from '../shared/ds';
 import { NodeChangeData, NodeChangeDialogComponent } from '../hierarchy/node-change-dialog.component';
-import { formatBusinessDate, NxInstantPipe } from '../shared/format/nx-date.pipe';
+import { NxInstantPipe } from '../shared/format/nx-date.pipe';
 
 type WorkTab = 'decide' | 'drafts' | 'inFlight';
 
@@ -38,13 +38,7 @@ export class HomePage {
   protected readonly error = signal<UiError | null>(null);
   protected readonly tab = signal<string>('');
 
-  /** "Good morning, …" by the browser's clock; the date is the server's business day. */
-  protected readonly greeting = computed(() => {
-    const hour = new Date().getHours();
-    const part = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
-    return this.t.greeting(this.t.dayParts[part], this.context.displayName() ?? '');
-  });
-  protected readonly today = computed(() => formatBusinessDate(this.context.businessToday()));
+  protected readonly homeHeading = STRINGS.nav.home;
 
   /** The work tabs this user can have (§21.1): decisions for deciders, drafts and in-flight for proposers. */
   protected readonly tabs = computed<DsTab[]>(() => {

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output, signal } from '@angular/core';
 import type { PropertyValue } from '../api/generated/models';
 import { STRINGS } from '../core/strings';
 
@@ -11,6 +11,8 @@ export interface PropertyGroup {
  * `nx-property-grid` (LLD §3.3, UI_STANDARD §5): resolved properties grouped by category, each value with its provenance
  * marker (stored, inherited with a link to the source node, derived, default, not set) as icon + text + provenance token,
  * never colour alone. WAI-ARIA grid: arrow keys move between cells, Home/End within a row. Read-only in Phase 3.
+ * Each category collapses and expands (a disclosure button with aria-expanded), with Expand all / Collapse all above
+ * the grid; collapsed rows are not rendered, so arrow keys skip them. The choice is kept while the grid shows other nodes.
  */
 @Component({
   selector: 'nx-property-grid',
@@ -50,6 +52,35 @@ export class PropertyGridComponent {
     }
     return [...byCategory.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([category, rows]) => ({ category, rows }));
   });
+
+  /** Categories the user has collapsed (by name, so the choice carries over when another node is shown). */
+  protected readonly collapsed = signal<ReadonlySet<string>>(new Set());
+  protected readonly allExpanded = computed(() => this.groups().every((g) => !this.collapsed().has(g.category)));
+  protected readonly allCollapsed = computed(() => this.groups().every((g) => this.collapsed().has(g.category)));
+
+  protected isExpanded(category: string): boolean {
+    return !this.collapsed().has(category);
+  }
+
+  protected toggle(category: string): void {
+    const next = new Set(this.collapsed());
+    if (!next.delete(category)) {
+      next.add(category);
+    }
+    this.collapsed.set(next);
+  }
+
+  protected expandAll(): void {
+    this.collapsed.set(new Set());
+  }
+
+  protected collapseAll(): void {
+    this.collapsed.set(new Set([...this.collapsed(), ...this.groups().map((g) => g.category)]));
+  }
+
+  protected groupId(category: string): string {
+    return `nx-prop-group-${category.replace(/[^A-Za-z0-9_-]/g, '_')}`;
+  }
 
   protected display(p: PropertyValue): string {
     if (p.provenance === 'none') {

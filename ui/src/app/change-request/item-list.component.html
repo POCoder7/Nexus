@@ -11,6 +11,9 @@
         <th scope="col">{{ label() }}</th>
         <th scope="col">{{ t.before }}</th>
         <th scope="col">{{ t.after }}</th>
+        @if (removable()) {
+          <th scope="col"><span class="nx-visually-hidden">{{ t.removeChange }}</span></th>
+        }
       </tr>
     </thead>
     <tbody>
@@ -26,6 +29,12 @@
           </td>
           <td>{{ before(item) }}</td>
           <td>{{ after(item) }}</td>
+          @if (removable()) {
+            <td>
+              <button type="button" class="remove" [disabled]="busy()" data-testid="item-remove"
+                      [attr.aria-label]="t.removeChangeOf(item.seq ?? 0, describe(item))" (click)="remove.emit(item)">{{ t.removeChange }}</button>
+            </td>
+          }
         </tr>
       }
     </tbody>
@@ -38,6 +47,10 @@
           <span class="nx-identifier">{{ item.seq }}.</span>
           <span [class]="'change change--' + kind(item)"><span aria-hidden="true">{{ icon(item) }} </span>{{ kindLabel(item) }}</span>
           {{ describe(item) }}
+          @if (removable()) {
+            <button type="button" class="remove" [disabled]="busy()" data-testid="item-remove"
+                    [attr.aria-label]="t.removeChangeOf(item.seq ?? 0, describe(item))" (click)="remove.emit(item)">{{ t.removeChange }}</button>
+          }
         </p>
         <p class="line line--removed"><span aria-hidden="true">− </span><span class="nx-visually-hidden">{{ t.before }}: </span>{{ before(item) }}</p>
         <p class="line line--added"><span aria-hidden="true">+ </span><span class="nx-visually-hidden">{{ t.after }}: </span>{{ after(item) }}</p>

@@ -34,7 +34,7 @@ describe('PropertyGridComponent', () => {
   it('groups by category and links an inherited value to its source node', async () => {
     const fixture = await render();
     const el: HTMLElement = fixture.nativeElement;
-    expect([...el.querySelectorAll('tbody .group th')].map((g) => g.textContent?.trim())).toEqual(['Admin', 'Finance']);
+    expect([...el.querySelectorAll<HTMLElement>('tbody .group button.disclosure')].map((g) => g.dataset['category'])).toEqual(['Admin', 'Finance']);
     const opened: string[] = [];
     fixture.componentInstance.openSource.subscribe((id) => opened.push(id));
     (el.querySelector('[data-property="T.Ccy"] button') as HTMLButtonElement).click();
@@ -65,5 +65,32 @@ describe('PropertyGridComponent', () => {
     expect(document.activeElement?.textContent?.trim()).toBe('Value');
     (document.activeElement as HTMLElement).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
     expect(document.activeElement?.getAttribute('role')).toBe('gridcell');
+  });
+
+  it('collapses and expands a category, and all categories at once', async () => {
+    const fixture = await render();
+    const el: HTMLElement = fixture.nativeElement;
+    const header = (c: string) => el.querySelector<HTMLButtonElement>(`button.disclosure[data-category="${c}"]`)!;
+    const rows = () => el.querySelectorAll('[data-property]').length;
+    const button = (id: string) => el.querySelector<HTMLButtonElement>(`[data-testid=${id}]`)!;
+    expect(header('Admin').getAttribute('aria-expanded')).toBe('true');
+    expect(header('Admin').textContent).toContain('(3 properties)');
+    expect(button('expand-all').disabled).toBe(true);
+
+    header('Admin').click();
+    await fixture.whenStable();
+    expect(header('Admin').getAttribute('aria-expanded')).toBe('false');
+    expect(el.querySelector('[data-property="T.Own"]')).toBeNull();
+    expect(rows()).toBe(2);
+
+    button('collapse-all').click();
+    await fixture.whenStable();
+    expect(rows()).toBe(0);
+    expect(button('collapse-all').disabled).toBe(true);
+
+    button('expand-all').click();
+    await fixture.whenStable();
+    expect(rows()).toBe(5);
+    expect(header('Finance').getAttribute('aria-expanded')).toBe('true');
   });
 });

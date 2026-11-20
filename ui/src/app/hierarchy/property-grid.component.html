@@ -1,3 +1,13 @@
+@if (groups().length > 1) {
+  <div class="toolbar" role="group" [attr.aria-label]="t.categoriesLabel">
+    <button type="button" class="toggle-all" data-testid="expand-all" [disabled]="allExpanded()" (click)="expandAll()">
+      {{ t.expandAll }}
+    </button>
+    <button type="button" class="toggle-all" data-testid="collapse-all" [disabled]="allCollapsed()" (click)="collapseAll()">
+      {{ t.collapseAll }}
+    </button>
+  </div>
+}
 <table class="grid" role="grid" [attr.aria-label]="t.gridLabel(nodeName())" (keydown)="onKeydown($event)"
        data-testid="property-grid">
   <thead>
@@ -8,11 +18,19 @@
     </tr>
   </thead>
   @for (group of groups(); track group.category) {
-    <tbody>
+    @let expanded = isExpanded(group.category);
+    <tbody [id]="groupId(group.category)">
       <tr class="group" role="row">
-        <th colspan="3" scope="rowgroup" role="rowheader">{{ group.category }}</th>
+        <th colspan="3" scope="rowgroup" role="rowheader">
+          <button type="button" class="disclosure" [attr.aria-expanded]="expanded" [attr.aria-controls]="groupId(group.category)"
+                  [attr.data-category]="group.category" (click)="toggle(group.category)">
+            <span class="chevron" aria-hidden="true">{{ expanded ? '▾' : '▸' }}</span>
+            {{ group.category }}
+            <span class="count">{{ t.categoryCount(group.rows.length) }}</span>
+          </button>
+        </th>
       </tr>
-      @for (p of group.rows; track p.code) {
+      @for (p of expanded ? group.rows : []; track p.code) {
         @let m = marker(p);
         <tr role="row" [attr.data-property]="p.code">
           <td role="gridcell" tabindex="-1">

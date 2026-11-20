@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed,
 import { IsActiveMatchOptions, NavigationEnd, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
+import { ContextStore } from '../context.store';
 
 export interface NavMenuItem {
   label: string;
@@ -9,6 +10,8 @@ export interface NavMenuItem {
   testId?: string;
   /** A number shown next to the label (e.g. requests waiting). */
   count?: number | null;
+  /** Keep the working context (sandbox, version, as-of date) in the link, e.g. for opening a hierarchy. */
+  keepContext?: boolean;
 }
 
 const MATCH: IsActiveMatchOptions = { paths: 'subset', queryParams: 'ignored', fragment: 'ignored', matrixParams: 'ignored' };
@@ -30,7 +33,7 @@ const MATCH: IsActiveMatchOptions = { paths: 'subset', queryParams: 'ignored', f
       <ul class="nav-menu__list" [id]="id()">
         @for (item of items(); track item.link) {
           <li>
-            <a [routerLink]="item.link" [attr.data-testid]="item.testId ?? null" [attr.aria-current]="isActive(item.link) ? 'page' : null"
+            <a [routerLink]="item.link" [queryParams]="item.keepContext ? context.workspaceParams() : null" [attr.data-testid]="item.testId ?? null" [attr.aria-current]="isActive(item.link) ? 'page' : null"
                (click)="close(false)">
               {{ item.label }}
               @if (item.count !== null && item.count !== undefined) {
@@ -63,6 +66,7 @@ const MATCH: IsActiveMatchOptions = { paths: 'subset', queryParams: 'ignored', f
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NavMenuComponent {
+  protected readonly context = inject(ContextStore);
   readonly label = input.required<string>();
   readonly items = input.required<NavMenuItem[]>();
   readonly testId = input<string | null>(null);

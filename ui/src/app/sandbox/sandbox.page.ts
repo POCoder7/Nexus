@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import type { Finding } from '../api/generated/models';
 import { ItemListComponent } from '../change-request/item-list.component';
 import { Announcer } from '../core/announcer';
 import { ContextStore } from '../core/context.store';
@@ -67,6 +68,32 @@ import { SandboxStore } from './sandbox.store';
         @if (actionError(); as e) {
           <p class="nx-error-text" role="alert" data-testid="sandbox-action-error">{{ e.detail }}</p>
         }
+        <!-- the validation findings of a refused submit (change_request.validation_failed): rule, node and message -->
+        @if (findingErrors().length > 0 || findingWarnings().length > 0) {
+          <section class="findings" aria-labelledby="nx-sandbox-findings" data-testid="sandbox-findings">
+            <h2 id="nx-sandbox-findings">{{ t.findingsTitle }}</h2>
+            @if (findingErrors().length > 0) {
+              <div class="nx-card errors" data-testid="sandbox-finding-errors">
+                <h3>{{ review.errors }}</h3>
+                <ul>
+                  @for (f of findingErrors(); track $index) {
+                    <li>{{ t.finding(f.ruleCode, f.message ?? '') }}</li>
+                  }
+                </ul>
+              </div>
+            }
+            @if (findingWarnings().length > 0) {
+              <div class="nx-card warnings" data-testid="sandbox-finding-warnings">
+                <h3>{{ review.warnings }}</h3>
+                <ul>
+                  @for (f of findingWarnings(); track $index) {
+                    <li>{{ t.finding(f.ruleCode, f.message ?? '') }}</li>
+                  }
+                </ul>
+              </div>
+            }
+          </section>
+        }
 
         @if (store.isOpen()) {
           <nx-sandbox-conflicts [conflicts]="store.conflicts()" [canChange]="store.canChange()" [busy]="store.busy()"
@@ -88,7 +115,7 @@ import { SandboxStore } from './sandbox.store';
           @if (store.items().length === 0) {
             <p class="nx-muted">{{ t.noItems }}</p>
           } @else {
-            <nx-item-list [items]="store.items()" [label]="t.items" />
+            <nx-item-list [items]="store.items()" [findings]="findingErrors()" [label]="t.items" />
           }
         </section>
       } @else {
@@ -106,6 +133,10 @@ import { SandboxStore } from './sandbox.store';
     .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nx-space-4); }
     .confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--nx-space-3); }
     .failures ul { margin: var(--nx-space-2) 0 0; }
+    .findings { display: flex; flex-direction: column; gap: var(--nx-space-3); margin: var(--nx-space-4) 0; }
+    .findings h2, .findings h3 { margin: 0; }
+    .findings ul { margin: var(--nx-space-2) 0 0; }
+    .errors { border-color: var(--nx-color-status-error); }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -123,6 +154,10 @@ export class SandboxPage {
   protected readonly statuses = STRINGS.statuses as Record<string, string>;
   protected readonly confirmDiscard = signal(false);
   protected readonly actionError = signal<UiError | null>(null);
+  protected readonly review = STRINGS.review;
+  /** Findings of the last refused submit; cleared when submit is tried again. */
+  protected readonly findingErrors = signal<Finding[]>([]);
+  protected readonly findingWarnings = signal<Finding[]>([]);
   private readonly zone = computed(() => this.context.me()?.businessTimeZone ?? undefined);
 
   constructor() {
@@ -150,9 +185,20 @@ export class SandboxPage {
   }
 
   protected async submit(): Promise<void> {
+    this.findingErrors.set([]);
+    this.findingWarnings.set([]);
     await this.run(async () => {
-      const request = await this.store.submit();
-      await this.router.navigate(['/requests', request.id]);
+      try {
+        const request = await this.store.submit();
+        await this.router.navigate(['/requests', request.id]);
+      } catch (e) {
+        const error = UiError.from(e);
+        if (error.code === 'change_request.validation_failed') {
+          this.findingErrors.set((error.body?.['errors'] as Finding[] | undefined) ?? []);
+          this.findingWarnings.set((error.body?.['warnings'] as Finding[] | undefined) ?? []);
+        }
+        throw e;
+      }
     }, this.t.submitted);
   }
 

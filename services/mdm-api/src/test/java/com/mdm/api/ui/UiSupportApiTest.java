@@ -300,6 +300,84 @@ class UiSupportApiTest extends PostgresIntegrationTest {
                 .andExpect(status().isNotFound());
     }
 
+    /**
+     * The Add-child dialog's rules and Check (owner, 2026-11-20): the hierarchy's rules in words for a reader, and a check
+     * of one new node that returns the findings it would add and keeps nothing. A synthetic rule that only fires for
+     * codes starting UICHK and longer than 5 characters, so no other test meets it.
+     */
+    @Test
+    void aNewNodeIsCheckedAgainstTheRulesWithoutKeepingAnything() throws Exception {
+        JdbcClient jdbc = ownerJdbc();
+        jdbc.sql("""
+                INSERT INTO mdm.validation_rule (rule_code, rule_name, description, level, severity, engine, expression, hierarchy_id)
+                SELECT 'UI.CHK_LEN', 'UiCheckLength', 'UICHK codes are at most 5 characters.', 'node', 'error', 'sql',
+                       'SELECT a.node_id, NULL::uuid, format(''Code %s is longer than 5 characters'', a.node_name) FROM mdm.node_attr a '
+                       || 'WHERE a.valid_period @> $1 AND upper_inf(a.recorded_period) AND a.node_name LIKE ''UICHK%'' AND length(a.node_name) > 5',
+                       h.hierarchy_id
+                FROM mdm.hierarchy h WHERE h.hierarchy_code = 'UI_H'
+                ON CONFLICT DO NOTHING
+                """).update();
+
+        mvc.perform(get("/api/v1/hierarchies/UI_H/rules").with(asUser(STEWARD)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.code == 'UI.CHK_LEN')].description").value(hasItem("UICHK codes are at most 5 characters.")))
+                .andExpect(jsonPath("$[?(@.code == 'UI.CHK_LEN')].thisHierarchyOnly").value(hasItem(true)))
+                .andExpect(jsonPath("$[*].code").value(not(hasItem("NEXUS.PARENT_IS_LEAF"))));   // guards are not listed
+        mvc.perform(get("/api/v1/hierarchies/UI_OTHER/rules").with(asUser(STEWARD))).andExpect(status().isNotFound());
+
+        int requests = jdbc.sql("SELECT count(*) FROM mdm.change_request").query(Integer.class).single();
+        int nodes = jdbc.sql("SELECT count(*) FROM mdm.node").query(Integer.class).single();
+        String check = """
+                {"versionName":"UI working","item":{"action":"add_node","hierarchyCode":"UI_H","targetParentId":"%s",
+                 "payload":{"nodeKind":"legal_entity","name":"%s","isLeaf":true}},
+                 "properties":[{"code":"UI.Note","value":"Synthetic note"}]}""";
+        mvc.perform(post("/api/v1/change-requests/check-item").with(asUser(STEWARD)).contentType(MediaType.APPLICATION_JSON)
+                        .content(check.formatted(ALPHA, "UICHK-TOO-LONG")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.errors[?(@.ruleCode == 'UI.CHK_LEN')].message").value(hasItem("Code UICHK-TOO-LONG is longer than 5 characters")));
+        mvc.perform(post("/api/v1/change-requests/check-item").with(asUser(STEWARD)).contentType(MediaType.APPLICATION_JSON)
+                        .content(check.formatted(ALPHA, "UICHK")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.errors[?(@.ruleCode == 'UI.CHK_LEN')]").isEmpty());
+        assertThat(jdbc.sql("SELECT count(*) FROM mdm.change_request").query(Integer.class).single()).as("no request kept").isEqualTo(requests);
+        assertThat(jdbc.sql("SELECT count(*) FROM mdm.node").query(Integer.class).single()).as("no node kept").isEqualTo(nodes);
+
+        mvc.perform(post("/api/v1/change-requests/check-item").with(asUser(VIEWER)).contentType(MediaType.APPLICATION_JSON)
+                        .content(check.formatted(ALPHA, "UICHK")))
+                .andExpect(status().isForbidden());   // checking needs the same permission as adding
+    }
+
+    /** ADR-046 D2: the form offers a property only in the hierarchies it is defined for, and says which nodes it is for. */
+    @Test
+    void submitFormListsOnlyTheHierarchysPropertiesWithTheirNodeFilter() throws Exception {
+        JdbcClient jdbc = ownerJdbc();
+        jdbc.sql("""
+                INSERT INTO mdm.property_definition (property_code, label, category_code, data_type, scope, node_filter)
+                VALUES ('UI.OtherLeaf', 'Other hierarchy leaf code', 'Finance', 'string', 'global', 'leaf')
+                ON CONFLICT DO NOTHING
+                """).update();
+        jdbc.sql("""
+                INSERT INTO mdm.property_hierarchy (property_id, hierarchy_id)
+                SELECT p.property_id, h.hierarchy_id FROM mdm.property_definition p, mdm.hierarchy h
+                WHERE p.property_code = 'UI.OtherLeaf' AND h.hierarchy_code = 'UI_OTHER'
+                ON CONFLICT DO NOTHING
+                """).update();
+        jdbc.sql("""
+                INSERT INTO wf.task_property (task_id, property_id, is_required, sort_seq)
+                SELECT t.task_id, p.property_id, false, 3 FROM wf.workflow_task t, mdm.property_definition p
+                WHERE t.task_code = 'UI_SUBMIT' AND p.property_code = 'UI.OtherLeaf'
+                ON CONFLICT DO NOTHING
+                """).update();
+
+        mvc.perform(get("/api/v1/workflow/models/UI_ADD_LEAF/submit-form").param("hierarchy", "UI_H").with(asUser(STEWARD)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.properties[*].code").value(not(hasItem("UI.OtherLeaf"))))
+                .andExpect(jsonPath("$.properties[0].nodeFilter").value("any"));
+        mvc.perform(get("/api/v1/workflow/models/UI_ADD_LEAF/submit-form").with(asUser(STEWARD)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.properties[?(@.code == 'UI.OtherLeaf')].nodeFilter").value(hasItem("leaf")));
+    }
+
     // ------------------------------------------------------------------ request detail
 
     @Test

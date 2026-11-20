@@ -47,7 +47,7 @@ async function raiseLeaf(page: Page, leaf: string, version: string, costCentre: 
   await openNodeBySearch(page, 'E2E Region North');
   await page.getByRole('button', { name: 'Add child' }).click();
   const dialog = page.getByRole('dialog', { name: 'Add a child under E2E Region North' });
-  await dialog.getByLabel('Name').fill(leaf);
+  await dialog.getByLabel(/^Code/).fill(leaf);
   await dialog.getByLabel('Effective from').fill(versionDate);
   await dialog.getByLabel('Cost centre').fill(costCentre);
   await dialog.getByRole('button', { name: 'Add to request' }).click();

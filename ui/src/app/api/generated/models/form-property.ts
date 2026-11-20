@@ -10,6 +10,7 @@ export interface FormProperty {
   label?: string;
   listValues?: Array<string>;
   maxLength?: number;
+  nodeFilter?: string;
   readOnly?: boolean;
   required?: boolean;
   scope?: string;

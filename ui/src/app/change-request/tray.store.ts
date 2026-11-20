@@ -5,6 +5,7 @@ import { ADD_LEAF_MODEL, MAINTAIN_MODEL } from '../core/config';
 import { ContextStore } from '../core/context.store';
 import { STRINGS } from '../core/strings';
 import { UiError } from '../core/ui-error';
+import { nodeLabel } from '../shared/format/node-label';
 
 /** A change that could not be added; retried with the same idempotency key, so a retry never adds it twice. */
 export interface FailedItem {
@@ -18,6 +19,7 @@ export interface NewLeaf {
   parentId: string;
   parentName: string;
   name: string;
+  displayName?: string | null;   // ADR-046 D1: the name is the code; this is what people read
   description: string | null;
   nodeKind: string;
   isLeaf: boolean;
@@ -83,10 +85,11 @@ export class TrayStore {
   async addLeaf(leaf: NewLeaf): Promise<{ nodeId: string; failed: number }> {
     this.busy.set(true);
     try {
-      await this.ensureDraft(STRINGS.addLeaf.requestTitle(leaf.name, leaf.parentName), leaf.effectiveFrom);
+      await this.ensureDraft(STRINGS.addLeaf.requestTitle(nodeLabel(leaf), leaf.parentName), leaf.effectiveFrom);
       const added = await this.add({
         action: 'add_node', hierarchyCode: leaf.hierarchyCode, targetParentId: leaf.parentId,
-        payload: { nodeKind: leaf.nodeKind, name: leaf.name, description: leaf.description ?? undefined, isLeaf: leaf.isLeaf },
+        payload: { nodeKind: leaf.nodeKind, name: leaf.name, displayName: leaf.displayName ?? undefined,
+          description: leaf.description ?? undefined, isLeaf: leaf.isLeaf },
       }, newIdempotencyKey());
       const nodeId = added.nodeId!;
       for (const p of leaf.properties) {
@@ -159,6 +162,21 @@ export class TrayStore {
       this.etag = moved.etag;
     }
     return moved;
+  }
+
+  /**
+   * Removes changes from a draft, one after another (each removal moves the ETag on); returns the last ETag. The tray
+   * follows when it holds this draft.
+   */
+  async removeItems(id: string, etag: string, itemIds: string[]): Promise<string> {
+    let current = etag;
+    for (const itemId of itemIds) {
+      current = await this.api.deleteItem(id, itemId, current);
+    }
+    if (this.request()?.id === id) {
+      await this.reload(id);
+    }
+    return current;
   }
 
   /** Withdraws a draft (the requester only; the database re-checks). The tray empties when it held this draft. */
