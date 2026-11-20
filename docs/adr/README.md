@@ -47,5 +47,6 @@
 | ADR-043 | Build transaction history and request history (AUD-01, AUD-02) ahead of the Phase 5 order | Accepted (repository owner, 2026-11-19; design LLD §18 approved with C-1 to C-5, OD-50) |
 | ADR-044 | Build compares and baselines (5-12) before the formula increments (5-10, 5-11) | Accepted (repository owner, 2026-11-19) |
 | ADR-045 | Build cross-hierarchy search (5-14) before the formula increments; it also finds hierarchies and requests | Accepted (repository owner, 2026-11-20) |
+| ADR-046 | Load the hackathon CSV data set: display names, property applicability, ledgers, one rule catalogue (Phase 4 LLD §17) | Accepted (repository owner, 2026-11-20, with C-1 to C-7; screen and scripts) |
 
 New decisions: copy `ADR_TEMPLATE.md`, take the next number, open a PR.

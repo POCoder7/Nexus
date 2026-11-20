@@ -371,3 +371,257 @@ downstream feeds from `mdm_stage.drm_export_definition.target_system`; cutover i
 
 New dependencies: **none required** (PostgreSQL JDBC `CopyManager`, JDK `HttpClient`). Case files are YAML only if the plan
 approves `jackson-dataformat-yaml` (version-managed by Spring Boot, not yet a project dependency); otherwise they are JSON.
+
+---
+
+## 17. Hackathon CSV format (ADR-046) — approved 2026-11-20 (C-1 to C-7, OD-51)
+
+The hackathon team's data set is 12 CSV files with fixed formats. They are listed in §17.1, and the sample is in
+`data/`, which is git-ignored and synthetic. This section adds an input adapter for that format and the model
+changes the owner decided (ADR-046 D1 to D7). The loader's core is unchanged: staging, profiling, load runs approved
+by a second person, change requests, and reconciliation. Everything not listed here follows §1 to §16.
+
+### 17.1 Files and mapping
+| File | Columns (fixed by the hackathon team) | Goes to |
+|---|---|---|
+| `hierarchies.csv` | hierarchy_code, hierarchy_name, top_node_code, description | `add_hierarchy` items; `hierarchy.description` (D8, C-5) |
+| `nodes.csv` | node_code, node_name, description, node_type (LEAF/LIMB), status (active/inactive) | `add_node`: code → `node_name`, name → `display_name` (D1), LIMB → `allows_children`, inactive → `inactivate_node`; `node_kind` = `structural` |
+| `relationships.csv` | hierarchy_code, parent_code, child_code, sort_order | Blank parent = the hierarchy's top node (must equal `top_node_code`); others → `insert_node` with `sort_order`, parents first (§7.1) |
+| `attribute_definitions.csv` | attribute_code, label, category, data_type, scope, hierarchies, node_filter, required, reference_list, inherited, default_value, derivation, max_length, description | `property_category` (distinct categories); `property_definition`; `property_hierarchy` and `node_filter` (D2); types and scopes lower-cased; inherited Y → `inherit_from_ancestor`. A row with a `derivation` is skipped and reported (D6) |
+| `reference_lists.csv` | list_code, value, label | `property_list_value` for every property naming the list (D3); not loaded for BOOLEAN properties |
+| `attribute_values.csv` | node_code, hierarchy_code, attribute_code, value | `set_property`; blank hierarchy = global; BOOLEAN Y/N → true/false (`ValueTransforms`) |
+| `ledgers.csv` | ledger_id, ledger_name, currency, finance_country | `mdm.ledger` (D4) |
+| `validation_rules.csv` | rule_code, rule_name, description, level, mode, severity, applies_to, core_path | Rule catalogue (D5, §17.5) |
+| `versions.csv` | version_code, version_name, status, description | `create_version` and then `transition_version` (D7, §17.6) |
+| `users.csv` | user_id, display_name, role, groups, notes | `mdm.provision_user` (§17.7); a `svc_` prefix or the CONSUMER role → kind `service` |
+| `groups.csv` | group_code, role, hierarchies | `create_group`, then `add_group_scope` per hierarchy (governed access changes, ADR-042) |
+| `roles.csv` | role, permissions | Not loaded. Checked against `mdm.role`; an unknown role stops the load |
+
+Each file is staged with `COPY` into `mdm_stage.hx_<file>` (all `text` columns, plus `batch_id`) by `nexus_loader`, and
+`intake_batch` records it (§4.2). The profiler adds these findings:
+- duplicate codes;
+- references that don't resolve (node, hierarchy, attribute, list, ledger, group, role);
+- values outside their list;
+- a top node that differs from the relationship row with a blank parent;
+- an unknown level, mode, type or scope.
+
+Any finding of severity `error` blocks `load prepare`.
+
+### 17.2 Display name (D1) — V16
+```sql
+ALTER TABLE mdm.node_attr ADD COLUMN display_name text;      -- NULL = show node_name; not unique; bitemporal with the row
+CREATE INDEX node_attr_display_trgm ON mdm.node_attr USING gin (display_name gin_trgm_ops) WHERE upper_inf(recorded_period);
+```
+- **Change actions.** The `add_node` and `update_node` payloads gain `displayName` (optional). Apply copies it from D,
+  like `description`.
+- **Readers.** The node DTOs (`NodeRepository`, `HierarchyRepository` children, sandbox overlay, history, compare, query
+  rows, search) gain `displayName`. Each reader is listed in the plan.
+- **UI.** Shows "display name · code", falling back to the code alone.
+- **Search.** Matches `display_name` too (the trigram index above).
+- **Unchanged.** DRM export and golden comparisons keep `node_name`.
+
+### 17.3 Property applicability (D2) — V16
+```sql
+CREATE TABLE mdm.property_hierarchy (                        -- no rows for a property = it applies to every hierarchy
+  property_id  uuid NOT NULL REFERENCES mdm.property_definition,
+  hierarchy_id uuid NOT NULL REFERENCES mdm.hierarchy,
+  PRIMARY KEY (property_id, hierarchy_id));
+ALTER TABLE mdm.property_definition
+  ADD COLUMN node_filter text NOT NULL DEFAULT 'any' CHECK (node_filter IN ('any', 'leaf', 'limb'));
+```
+**Guard (C-2).** The `property_value` trigger that already enforces scope, type and list (N2020 to N2023) gains
+N2025 `property.not_applicable`. It refuses a value in three cases:
+- the node's `allows_children` contradicts `node_filter`;
+- a local value names a hierarchy that is not listed for the property;
+- a global value is set on a node that, on the value's start date, is not placed in any listed hierarchy (only checked
+  when hierarchies are listed).
+
+Existing values are untouched, because the check runs on write only. A validation rule (§17.5) reports values that
+later stop applying, for example after a move. The property grid and the definitions API return `appliesTo` and
+`nodeFilter`, and the grid offers only applicable properties.
+
+### 17.4 Ledgers (D4) — V16
+```sql
+CREATE TABLE mdm.ledger (
+  ledger_id       text PRIMARY KEY CHECK (ledger_id ~ '^\S{1,20}$'),
+  ledger_name     text NOT NULL,
+  currency_code   char(3) NOT NULL CHECK (currency_code ~ '^[A-Z]{3}$'),
+  finance_country text NOT NULL,
+  is_active       boolean NOT NULL DEFAULT true);
+```
+`mdm.ledger` is configuration, like `property_definition`:
+- **Who writes it:** the loader under an approved load run, and ADMIN through `PUT /admin/ledgers/{id}`.
+- **Audit:** the existing audit trigger, the same way definitions are audited.
+- **Reads:** `GET /ledgers`, for every role.
+- **Integrity:** the profiler checks that the values of the property that uses the LEDGER list are ledger ids.
+
+### 17.5 One rule catalogue (D5) — V16
+```sql
+ALTER TABLE mdm.validation_rule
+  ADD COLUMN rule_name     text,
+  ADD COLUMN external_code text UNIQUE,                       -- the customer's id, e.g. 'VR07'
+  ADD COLUMN mode          text NOT NULL DEFAULT 'both' CHECK (mode IN ('real_time', 'import', 'both')),
+  ADD COLUMN enforcement   text NOT NULL DEFAULT 'rule' CHECK (enforcement IN ('rule', 'guard')),
+  ADD COLUMN guard_code    text,                              -- SQLSTATE (N2001) or constraint name, for guard rows
+  ADD CHECK ((enforcement = 'guard') = (guard_code IS NOT NULL));
+```
+- **Guard rows (seeded in V16).** One row per data guard: N2001 cycle, N2002 top node, N2003 shared not allowed,
+  N2004 parent is leaf, N2005 remove with children, N2006 node referenced, N2007 parent missing (new code, below),
+  N2020 to N2025 property scope, derived, type, list, node reference and applicability, N3001 stale base, and the
+  `node_attr` name-uniqueness exclusion constraint. Each row has `level` `node` or `hierarchy`, `mode` `real_time`,
+  severity `error`, engine `sql`, and the never-matching expression that `NEXUS.TRIAL_APPLY` already uses.
+- **Governance controls are not in the catalogue.** Maker-checker, human-only decisions and the rest of N1xxx are
+  controls on decisions, not data rules. They stay documented in the specs.
+- **`trg_validation_rule_guard` (new).**
+  - A guard row cannot be deleted, deactivated, or have its `severity`, `level`, `engine`, `expression`, `mode` or
+    `guard_code` changed. Only `rule_name`, `description` and `external_code` can be edited.
+  - No one can insert a row with `enforcement = 'guard'` except the database owner (the migration).
+  - This is a new guard; no existing one is weakened.
+- **N2007.** `apply_require_parent` raises N2007 `hierarchy.parent_missing` instead of the shared N2105. The check is
+  unchanged. The Java error mapping and the tests that expect N2105 for this case are updated.
+- **`validate_change_request` changes.** Through CREATE OR REPLACE, keeping its owner and grants:
+  - the rule loop skips `enforcement = 'guard'`;
+  - it skips `mode = 'import'` unless the request's requester kind is `system_feed`, meaning a load (C-4);
+  - a trial-apply failure is reported under the guard row whose `guard_code` equals the SQLSTATE, or the constraint
+    name for 23P01 and 23505, and falls back to `NEXUS.TRIAL_APPLY`. Nothing else changes.
+- **Loading `validation_rules.csv`.**
+  - Level `FEED` is skipped and reported.
+  - `core_path` = Y rows, and rows in the fixed mapping, label an existing guard row: they set its `external_code`,
+    `rule_name` and `description`. The mapping (in code, reviewed) is VR02 → name uniqueness, VR05 → N2007,
+    VR06 → N2004, VR07 → N2001, VR08 → N2023. A `core_path` = Y row with no mapping stops the load.
+  - Other rows become `enforcement = 'rule'`:
+    - `rule_code` and `external_code` are the CSV code;
+    - level, mode and severity are lower-cased;
+    - `applies_to` ALL → `hierarchy_id` NULL; otherwise the named hierarchy;
+    - the expression comes from the rule library `services/mdm-api/src/main/resources/load/rules/<rule_code>.sql`;
+    - with no library file, the rule loads inactive with the never-matching expression and is reported.
+- **The rule library** follows the existing positional contract `(node_id, hierarchy_id, message)` with `$1` as the
+  business date. The plan lists the hackathon rules it covers: VR01, VR03, VR04 and VR09 to VR17. VR16 and VR17 join
+  `mdm.ledger` and the resolved property values. Rules stay SQL until OD-19 decides CEL.
+- **API and screen.**
+  - `GET /admin/validation-rules` lists every row with its enforcement, for ADMIN and APPROVER.
+  - `PATCH /admin/validation-rules/{code}` lets ADMIN edit: `is_active`, `severity`, `mode`, `expression`,
+    `hierarchy_id` and the labels on rule rows; labels only on guard rows (C-3).
+  - The screen is "Admin › Validation rules", read-only for APPROVER, following UI_STANDARD.
+  - Every edit is audited, and `rule_version` is bumped when the expression changes.
+
+### 17.6 Versions (D7)
+1. Every row in `versions.csv` is created with `create_version(name = version_name, business_as_of = business_today(),
+   base = NULL, description)`. `version_code` is kept as the external key in the load report.
+2. **Target version:** the one named by `load prepare --version`. Otherwise the CSV's single working version, if it
+   names exactly one; otherwise the latest working version. With no working version, the load stops (N2809
+   `load.no_working_version`). The target is shown on the run preview and in the report.
+3. Data requests run with `effective_from` = the target's business date.
+4. After the data requests apply, the run moves each non-working version through `transition_version`. The preparer
+   submits; the run approver finalizes and then expires. The version guard already requires two different ADMINs, so
+   nothing changes there. Finalized and expired versions created this way are pictures of the store at their pin.
+5. **Unknown status:** a status other than working, finalized or expired is a profiling error.
+
+### 17.7 Users, groups and roles
+- `mdm.provision_user(p_login, p_display_name, p_kind, p_actor)` is new. It is ADMIN only, SECURITY DEFINER and
+  audited, and it is the only way to create an `app_user` row outside migrations.
+- Groups, scopes, memberships and direct roles go through the governed access changes (ADR-042 D3) in one access
+  request per run. The approver must differ from the preparer, and nobody grants themselves anything (existing guards).
+- A user whose `groups` is `ALL` gets a direct grant of their role on every hierarchy.
+
+### 17.8 Load run for this format
+The load-run table and lifecycle are §4.3 and §6.1, in migration V16 instead of V11. `kind` gains `'csv_dataset'`. One
+`load prepare --format hackathon --dir data/` produces, in order:
+1. definitions: categories, properties and lists, ledgers, rules;
+2. versions;
+3. one hierarchy request per hierarchy (`add_hierarchy`, then nodes and relationships parents first, then values);
+4. the access request.
+
+The approver approves the manifest once (OD-29 option A). `load apply` applies them in that order, then runs the
+version transitions. The report lists:
+- counts per file and per hierarchy;
+- skipped rows: FEED rules, derived attributes, inactive rules with no expression;
+- profiling findings;
+- the target version.
+
+### 17.8.1 Scripts (owner, 2026-11-20: "Screen and scripts")
+`scripts/load-data.sh` and `scripts/load-data.ps1` match the existing `db-test` and demo scripts, and call the same
+engine as the screen (§17.8.2). Usage: `load-data [--dir data/] [--version <name>] [--approve-as <login>] [--reset]`.
+
+1. Check that the database and the API are up.
+2. Run `load intake` and `load prepare` on the folder.
+3. Print the preview: the target version, counts per file, skipped rows, and errors. Stop on errors.
+4. Wait for the approval on the screen, or, with `--approve-as`, approve as that second ADMIN (C-7).
+5. Run `load apply` and print the reconciliation report.
+
+`--reset` first rebuilds an empty local database, for rehearsing the demo. `--approve-as` and `--reset` refuse to run
+unless `mdm.system_setting('environment_kind')` is `local` or `test`, the same check the generator uses (§3.2). The
+approver must still be a different ADMIN from the preparer, so the two-person rule holds.
+
+### 17.8.2 Screen: Admin › Data loads (UI_STANDARD)
+| Step | Screen | API |
+|---|---|---|
+| Upload | Drop the CSV files or one zip, and pick the target version (default: the latest working one). Unknown file names are listed and ignored | `POST /admin/load-runs` (multipart) → a run in status `staging` |
+| Check | Profile per file: row counts, errors that block the load, warnings, and skipped rows (FEED rules, derived attributes, rules with no expression) | `GET /admin/load-runs/{id}/profile` |
+| Prepare | The run: target version, the requests it will create in order, and counts per hierarchy. Cancel is available until approval | `POST /admin/load-runs/{id}/prepare`; `POST …/cancel` |
+| Approve | A second ADMIN opens the run and approves the manifest hash. The preparer sees the button disabled, with the reason | `POST /admin/load-runs/{id}/approve` (§5) |
+| Apply | Progress per request (polled), then the reconciliation report. Every request links to its request page | `POST /admin/load-runs/{id}/apply`; `GET …/reconciliation` |
+| History | Past runs: status, who prepared, approved and applied, when, and the target version | `GET /admin/load-runs` (paged) |
+
+- **Access.** ADMIN can prepare, approve and apply. APPROVER can only read runs. The navigation entry sits under the
+  Admin menu.
+- **Staging without a second database credential.** The API runs as `nexus_api`, and `mdm_stage` is written only by
+  the loader (CLAUDE.md rule 3). Upload therefore calls `mdm_stage.stage_rows(p_batch, p_file, p_rows jsonb)`, a new
+  SECURITY DEFINER function owned by `nexus_loader` and executable by `nexus_api`. It inserts only into the
+  `mdm_stage.hx_*` tables, in chunks of `STAGE_CHUNK_SIZE`. The scripts keep `COPY` for large files.
+- **Upload limits.** `LOAD_UPLOAD_MAX_BYTES` defaults to 20 MB, and the multipart limit in `application.yml` is set to
+  match. Files are parsed in memory and never written to disk. The parsing uses the JDK only (`java.util.zip`, a CSV
+  reader in code that handles quotes), so no new dependency.
+- **Apply is long-running.** It runs on a virtual thread. The screen polls `GET /admin/load-runs/{id}`, and a second
+  apply on the same run is refused (N2810 `load.already_running`).
+- **Run status.** `load_run.status` gains `staging`, before `prepared`.
+- **Tests.**
+  - Vitest for the store.
+  - Storybook stories for each step, including the error and skipped states (axe).
+  - Playwright `18-data-load`: upload the sample, then prepare as `e2e_admin`; the button is disabled for the
+    preparer; approve and apply as a second admin; check the counts in the report.
+
+### 17.9 Tests
+- **pgTAP `32_hackathon_model`:**
+  - display name history;
+  - N2025 for each of its three cases;
+  - the ledger checks;
+  - each `trg_validation_rule_guard` refusal;
+  - the guard seeds;
+  - N2007;
+  - import-mode rules run only for `system_feed` requests;
+  - findings reported under the guard row.
+- **JUnit:**
+  - intake and profiling of the 12 files, including one broken file per finding kind;
+  - the converter's order and counts;
+  - the full load of the sample into a fresh database, with reconciliation equal to the files;
+  - the rules API, with ADMIN able to edit and APPROVER only to read;
+  - each rule-library rule on the sample (VR17 reports exactly 21230).
+- **Playwright:** the rules screen with axe, and display names in the tree.
+- **Data:** a fixture copy of the `data/` sample under `services/mdm-api/src/test/resources/load/hackathon/` (synthetic,
+  allowed by CLAUDE.md rule 5), because `data/` is git-ignored.
+
+### 17.10 Choices for the reviewer
+| # | Choice | Recommendation |
+|---|---|---|
+| C-1 | Hierarchy list for a property: a join table, or a `uuid[]` column | Join table: real foreign keys, and hierarchies can be checked |
+| C-2 | Applicability enforced at write as a guard (N2025), or reported only as a warning rule | Guard. The owner asked for it to be part of the model |
+| C-3 | Rule edits by ADMIN directly (audited), or through change requests | Directly, audited, for now. Governed rule changes belong with the formula work (5-10, 5-11) |
+| C-4 | Import-mode rules run for requests raised by a load (`system_feed`) | Yes |
+| C-5 | Add `hierarchy.description` | Yes; small, and the CSV has it |
+| C-6 | Order: build H-1 to H-8 now, ahead of 5-5 and the rest of Phase 5 | Yes, for the hackathon; Phase 5 resumes after H-8 |
+| C-7 | The scripts' `--approve-as` (a second ADMIN approves from the command line), local and test only | Yes, for rehearsals; shared environments use the screen |
+
+### 17.11 Work breakdown
+| # | Increment | Size | Items | Tests |
+|---|---|---|---|---|
+| H-1 | Display name: V16 column and index, `add_node`/`update_node`, node readers, UI, search | M | HIE-01, HIE-02 | pgTAP, JUnit, Vitest, Playwright |
+| H-2 | Property applicability: table, column, N2025, definitions API, grid | M | PRP-01, PRP-02 | pgTAP, JUnit, Vitest |
+| H-3 | Ledgers: table, read and admin API | S | PROG | pgTAP, JUnit |
+| H-4 | Rule catalogue: columns, guard seeds, guard trigger, N2007, `validate_change_request`, API, Admin screen | L | VAL-01, VAL-03 | pgTAP, JUnit, Playwright |
+| H-5 | Staging `hx_*` tables, intake, profiler for the 12 files | M | PROG, IMP-01 | JUnit |
+| H-6 | Load run (V16), converter, `provision_user`, version handling, rule library, apply, reconciliation | L | PROG, IMP-01, VER-01, VER-02, SEC-01 | pgTAP, JUnit |
+| H-7 | Scripts `load-data.sh` and `load-data.ps1` (§17.8.1); full load of the sample end to end | S | PROG, IMP-01 | JUnit, script run |
+| H-8 | Admin › Data loads screen and its API (§17.8.2): upload, `stage_rows`, profile, prepare, approve, apply, history; records (data model, BUILD_STATE, test report) | M | IMP-01, PROG | JUnit, Vitest, stories, Playwright |
+
+No new dependencies.
