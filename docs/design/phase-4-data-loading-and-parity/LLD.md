@@ -478,7 +478,7 @@ later stop applying, for example after a move. The property grid and the definit
 - **Gap.** The sandbox overlay's property grid is not filtered yet: nodes added in a sandbox have no live attributes to
   judge them by.
 
-### 17.4 Ledgers (D4) — V16
+### 17.4 Ledgers (D4) — V17
 ```sql
 CREATE TABLE mdm.ledger (
   ledger_id       text PRIMARY KEY CHECK (ledger_id ~ '^\S{1,20}$'),
@@ -493,7 +493,7 @@ CREATE TABLE mdm.ledger (
 - **Reads:** `GET /ledgers`, for every role.
 - **Integrity:** the profiler checks that the values of the property that uses the LEDGER list are ledger ids.
 
-**Built in H-3 (2026-11-20), in V16.**
+**Built in H-3 (2026-11-20), in V17** (moved out of V16 the same day, see §17.11).
 - **Checks on the table.** The id has no spaces and is at most 20 characters, the currency is three upper-case letters,
   and the name and finance country are required.
 - **No deletes.** `nexus_api` may insert and update but not delete; a ledger is retired with `is_active = false`.
@@ -504,7 +504,7 @@ CREATE TABLE mdm.ledger (
 - **Audit actor.** The API sets `mdm.actor_id` for the transaction, so the audit row names the ADMIN. Direct API writes
   did not set it before (e.g. saved queries), which is an existing gap.
 
-### 17.5 One rule catalogue (D5) — V16
+### 17.5 One rule catalogue (D5) — V18
 ```sql
 ALTER TABLE mdm.validation_rule
   ADD COLUMN rule_name     text,
@@ -574,7 +574,7 @@ ALTER TABLE mdm.validation_rule
 - A user whose `groups` is `ALL` gets a direct grant of their role on every hierarchy.
 
 ### 17.8 Load run for this format
-The load-run table and lifecycle are §4.3 and §6.1, in migration V16 instead of V11. `kind` gains `'csv_dataset'`. One
+The load-run table and lifecycle are §4.3 and §6.1, in their own migration file (after V18) instead of V11. `kind` gains `'csv_dataset'`. One
 `load prepare --format hackathon --dir data/` produces, in order:
 1. definitions: categories, properties and lists, ledgers, rules;
 2. versions;
@@ -672,5 +672,7 @@ approver must still be a different ADMIN from the preparer, so the two-person ru
 | H-6 | Load run (V16), converter, `provision_user`, version handling, rule library, apply, reconciliation | L | PROG, IMP-01, VER-01, VER-02, SEC-01 | pgTAP, JUnit |
 | H-7 | Scripts `load-data.sh` and `load-data.ps1` (§17.8.1); full load of the sample end to end | S | PROG, IMP-01 | JUnit, script run |
 | H-8 | Admin › Data loads screen and its API (§17.8.2): upload, `stage_rows`, profile, prepare, approve, apply, history; records (data model, BUILD_STATE, test report) | M | IMP-01, PROG | JUnit, Vitest, stories, Playwright |
+
+**Migrations (2026-11-20).** Each increment from H-2 on has its own migration file (H-2 V16, H-3 V17, H-4 V18, and so on). H-3 was first appended to V16, which the demo database had already run, so Flyway refused to start the kept demo; the ledgers were moved to V17 and V16 restored as applied.
 
 No new dependencies.
