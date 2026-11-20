@@ -632,6 +632,58 @@ version transitions. The report lists:
 - profiling findings;
 - the target version.
 
+**Built in H-6 (2026-11-20), in V20.** Five things differ from the text above. They are recorded here because they
+change how the design is carried out, not what it decides (ADR-046 D7 and D9, OD-29 option A).
+- **Requests are drafted at apply, not at prepare.** Items of a new hierarchy need the hierarchy, which an earlier
+  request creates. So the manifest the approver approves is the SHA-256 of:
+  - the staged files' hashes;
+  - the target version;
+  - the rule library's files.
+
+  It comes with a plan (steps, counts, rules stored inactive, skipped rows). Apply derives the requests from the staged
+  rows deterministically. Each request is drafted, validated (errors stop the run), submitted, decided by the approver
+  as `human_review`, and applied. Only the approver applies the run.
+- **Order of apply.**
+  1. Versions.
+  2. Configuration (`mdm.load_apply_definitions`).
+  3. One `add_hierarchy` request per hierarchy.
+  4. Property and rule scopes (`mdm.load_apply_scopes`).
+  5. One request per hierarchy holding its new nodes, its placements (parents first) and the values whose home it is.
+     Values go with their nodes, because rule VR16 needs a new active leaf to arrive with its finance values. A global
+     value's home is the first hierarchy, in file order, where the node is placed and the attribute applies.
+  6. The access request.
+  7. Version transitions.
+  8. Reconciliation (placements per hierarchy and stored values, staged against applied). A difference fails the run.
+- **Who requests what.** Data requests come from `system.loader` (`system_feed`). The access request comes from the
+  preparer, because V14 lets only an ADMIN propose access. Memberships and roles for the preparer or the approver are
+  skipped and reported: nobody grants themselves access (N1034).
+- **Collisions are checked before prepare.** `mdm_stage.profile_against_nexus` compares the load with Nexus:
+  - existing hierarchies, nodes, attributes, ledgers, rules and versions are errors;
+  - a group with another role is an error;
+  - existing users are reused, and existing groups with the same role are kept (only their missing scopes and members
+    are added);
+  - a `core_path` rule that maps to no guard is an error.
+
+  Core rules map onto guards through `mdm.load_rule_guard_map` (VR02, VR05 to VR08).
+- **Other additions.** `add_node` accepts `active` (default true), for the data set's inactive nodes; no action could
+  make an inactive node before. `mdm.provision_user` (ADMIN only, audited; `app_user` is now audited too). The rule
+  library is `services/mdm-api/src/main/resources/load/rules/` (VR01, VR03, VR04, VR09 to VR17, plus a README).
+- **API.** Under `/api/v1/admin/load-runs`, ADMIN only:
+  - `POST /uploads` (multipart; limit `LOAD_UPLOAD_MAX_BYTES`, default 20 MB);
+  - `GET /{id}/findings`;
+  - `POST /{id}/prepare`, `/approve` (with the manifest hash), `/apply` and `/cancel`;
+  - `GET /{id}`;
+  - `GET` for the list, paged.
+
+  Apply is synchronous for now; H-8 moves it to the background for the screen.
+- **Known limits.**
+  - A hierarchy with more than `max_items_per_change_request` items is split into parts, and VR16 then sees a node
+    without values that are in a later part.
+  - A failed run leaves the requests already applied in place, as the report lists; it is not rolled back across
+    requests.
+  - Rules that apply to ALL hierarchies (VR01, VR03, VR04, VR14, VR15) also check later edits in hierarchies that were
+    not loaded. VR16 and VR17 check only where the finance attributes apply.
+
 ### 17.8.1 Scripts (owner, 2026-11-20: "Screen and scripts")
 `scripts/load-data.sh` and `scripts/load-data.ps1` match the existing `db-test` and demo scripts, and call the same
 engine as the screen (§17.8.2). Usage: `load-data [--dir data/] [--version <name>] [--approve-as <login>] [--reset]`.

@@ -19,6 +19,11 @@ spring:
   autoconfigure:
     # ADR-035: the Camunda client starts only with mdm.workflow.engine=camunda (CamundaEngineConfiguration imports it)
     exclude: io.camunda.zeebe.spring.client.configuration.CamundaAutoConfiguration
+  servlet:
+    multipart:
+      # Data-load uploads (ADR-046, LLD §17.8.2: LOAD_UPLOAD_MAX_BYTES); held in memory, never written to disk by Nexus
+      max-file-size: ${LOAD_UPLOAD_MAX_BYTES:20MB}
+      max-request-size: ${LOAD_UPLOAD_MAX_BYTES:20MB}
   threads:
     virtual:
       enabled: true   # Java 21 virtual threads for request handling
