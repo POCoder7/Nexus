@@ -42,6 +42,7 @@ export type { JsonNode } from './models/json-node';
 export type { KillSwitch } from './models/kill-switch';
 export type { Ledger } from './models/ledger';
 export type { LedgerUpdate } from './models/ledger-update';
+export type { LoadFinding } from './models/load-finding';
 export type { LoadRunView } from './models/load-run-view';
 export type { MeView } from './models/me-view';
 export type { ModelSummary } from './models/model-summary';

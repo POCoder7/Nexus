@@ -39,6 +39,11 @@ export const routes: Routes = [
     path: 'admin/validation-rules', canActivate: [contextGuard], title: 'Validation rules · Nexus',
     loadComponent: () => import('./rules/validation-rules.page').then((m) => m.ValidationRulesPage),
   },
+  { path: 'admin/data-loads', canActivate: [contextGuard], title: 'Data loads · Nexus', loadComponent: () => import('./loads/data-loads.page').then((m) => m.DataLoadsPage) },
+  {
+    path: 'admin/data-loads/:id', canActivate: [contextGuard], title: 'Data load · Nexus',
+    loadComponent: () => import('./loads/data-load.page').then((m) => m.DataLoadPage),
+  },
   { path: 'settings', canActivate: [contextGuard], title: 'Settings · Nexus', loadComponent: () => import('./settings/settings.page').then((m) => m.SettingsPage) },
   { path: '**', title: 'Not found · Nexus', component: NotFoundPage },
 ];

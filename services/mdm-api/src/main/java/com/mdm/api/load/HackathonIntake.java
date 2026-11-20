@@ -36,12 +36,12 @@ public class HackathonIntake {
     public record RejectedFile(String fileName, String reason) {
     }
 
-    public record Finding(String fileName, Integer lineNo, String severity, String kind, String detail) {
+    public record LoadFinding(String fileName, Integer lineNo, String severity, String kind, String detail) {
     }
 
     /** The outcome: what was staged, what was not, and what profiling found (errors block preparing the load). */
     public record IntakeResult(UUID loadId, List<StagedFile> staged, List<RejectedFile> rejected, int errors, int warnings,
-                               List<Finding> findings) {
+                               List<LoadFinding> findings) {
     }
 
     private final JdbcClient jdbc;
@@ -92,20 +92,20 @@ public class HackathonIntake {
         }
         // the file checks, then what the load would collide with in Nexus (both record findings)
         jdbc.sql("SELECT mdm_stage.profile(:load) + mdm_stage.profile_against_nexus(:load)").param("load", loadId).query(Integer.class).single();
-        List<Finding> findings = findings(loadId);
+        List<LoadFinding> findings = findings(loadId);
         int errors = (int) findings.stream().filter(x -> "error".equals(x.severity())).count();
         int warnings = (int) findings.stream().filter(x -> "warning".equals(x.severity())).count();
         return new IntakeResult(loadId, staged, rejected, errors, warnings, findings);
     }
 
     /** What profiling found for a load: errors first, then by file and line. */
-    public List<Finding> findings(UUID loadId) {
+    public List<LoadFinding> findings(UUID loadId) {
         return jdbc.sql("""
                 SELECT file_name, line_no, severity, kind, detail FROM mdm_stage.profile_finding WHERE load_id = :load
                 ORDER BY CASE severity WHEN 'error' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END, file_name NULLS FIRST, line_no NULLS FIRST,
                          finding_id
                 """).param("load", loadId)
-                .query((rs, i) -> new Finding(rs.getString(1), (Integer) rs.getObject(2), rs.getString(3), rs.getString(4), rs.getString(5)))
+                .query((rs, i) -> new LoadFinding(rs.getString(1), (Integer) rs.getObject(2), rs.getString(3), rs.getString(4), rs.getString(5)))
                 .list();
     }
 

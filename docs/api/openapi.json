@@ -976,7 +976,7 @@
           },
           "findings" : {
             "items" : {
-              "$ref" : "#/components/schemas/Finding"
+              "$ref" : "#/components/schemas/LoadFinding"
             },
             "type" : "array"
           },
@@ -1133,6 +1133,27 @@
             "type" : "string"
           },
           "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "LoadFinding" : {
+        "properties" : {
+          "detail" : {
+            "type" : "string"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "lineNo" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "severity" : {
             "type" : "string"
           }
         },
@@ -3314,6 +3335,14 @@
             "format" : "uuid",
             "type" : "string"
           }
+        }, {
+          "in" : "query",
+          "name" : "wait",
+          "required" : false,
+          "schema" : {
+            "default" : true,
+            "type" : "boolean"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -3412,7 +3441,7 @@
               "application/json" : {
                 "schema" : {
                   "items" : {
-                    "$ref" : "#/components/schemas/Finding"
+                    "$ref" : "#/components/schemas/LoadFinding"
                   },
                   "type" : "array"
                 }

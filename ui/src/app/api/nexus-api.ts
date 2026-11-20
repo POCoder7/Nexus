@@ -13,7 +13,7 @@ import type {
   CreateSandbox, PageConflict, PageDiffRow, PageSandboxChild, PageSandboxView, RefreshResult, SandboxItemAdded, SandboxNode,
   SandboxView, PagePropertyDefinitionView, PageSavedQueryView, QueryDefinition, QueryPage, SaveQuery, SavedQueryView,
   PageAuditEntry, PageRequestEvent, CompareRequest, CompareRunView, PageCompareRow, SearchResults,
-  PageValidationRuleView, ValidationRuleEdit, ValidationRuleView,
+  PageValidationRuleView, ValidationRuleEdit, ValidationRuleView, LoadFinding, IntakeResult, LoadRunView, PageLoadRunView,
 } from './generated/models';
 
 /** Transaction-history filters (AUD-01, Phase 5 LLD §18.4): dates are business dates; codes and a login, not ids. */
@@ -183,6 +183,40 @@ export class NexusApi {
   /** {@code type}: normal, baseline or as_of (VER-04). */
   versions(status?: string, cursor?: string, limit = 50, type?: string): Promise<PageVersionView> {
     return this.api.invoke(fn.listVersions, { status, type, cursor, limit });
+  }
+
+  /** Data loads (ADR-046, Phase 4 LLD §17.8.2): stage and check the CSV files (or a zip of them) as a new load. */
+  uploadLoadFiles(files: File[]): Promise<IntakeResult> {
+    return this.api.invoke(fn.uploadLoadFiles, { body: { files } });
+  }
+
+  loadFindings(id: string): Promise<LoadFinding[]> {
+    return this.api.invoke(fn.listLoadFindings, { id });
+  }
+
+  loadRuns(cursor?: string, limit = 20): Promise<PageLoadRunView> {
+    return this.api.invoke(fn.listLoadRuns, { cursor, limit });
+  }
+
+  loadRun(id: string): Promise<LoadRunView> {
+    return this.api.invoke(fn.getLoadRun, { id });
+  }
+
+  prepareLoadRun(id: string, version?: string): Promise<LoadRunView> {
+    return this.api.invoke(fn.prepareLoadRun, { id, body: { version } });
+  }
+
+  approveLoadRun(id: string, manifestSha256: string): Promise<LoadRunView> {
+    return this.api.invoke(fn.approveLoadRun, { id, body: { manifestSha256 } });
+  }
+
+  /** Starts applying in the background; poll loadRun(id). */
+  applyLoadRun(id: string): Promise<LoadRunView> {
+    return this.api.invoke(fn.applyLoadRun, { id, wait: false });
+  }
+
+  cancelLoadRun(id: string): Promise<LoadRunView> {
+    return this.api.invoke(fn.cancelLoadRun, { id });
   }
 
   /** The rule catalogue (ADR-046 D5): rules and database guards; `enforcement` undefined = both. */

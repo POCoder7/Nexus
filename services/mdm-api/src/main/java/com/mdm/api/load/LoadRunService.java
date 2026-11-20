@@ -141,7 +141,24 @@ public class LoadRunService {
 
     // ------------------------------------------------------------------ apply
 
+    /** Applies the run and returns when it is done (scripts, tests). */
     public LoadRunView apply(Actor actor, UUID runId) {
+        run(start(actor, runId));
+        return get(runId);
+    }
+
+    /**
+     * Starts applying the run on a virtual thread and returns at once with the run applying (the screen polls it, LLD
+     * §17.8.2). A second apply is refused, because the run is no longer approved.
+     */
+    public LoadRunView applyInBackground(Actor actor, UUID runId) {
+        Applying a = start(actor, runId);
+        Thread.ofVirtual().name("load-run-" + runId).start(() -> run(a));
+        return get(runId);
+    }
+
+    /** Checks who applies, marks the run applying (once), and gathers what applying needs. */
+    private Applying start(Actor actor, UUID runId) {
         LoadRunView run = get(runId);
         if (!actor.login().equals(run.approvedBy())) {
             throw new RuleException("load.not_approver", "The load is applied by the ADMIN who approved it.");
@@ -154,10 +171,17 @@ public class LoadRunService {
         UUID approver = actor.userId();
         UUID preparer = jdbc.sql("SELECT prepared_by FROM mdm.load_run WHERE load_run_id = :id").param("id", runId).query(UUID.class).single();
         Applying a = new Applying(runId, staged(runId), approver, preparer, userId(LOADER_LOGIN), clock.today());
+        a.targetVersion = run.targetVersion();
+        return a;
+    }
+
+    private void run(Applying a) {
+        UUID runId = a.runId;
+        UUID approver = a.approver;
         ObjectNode report = JsonNodeFactory.instance.objectNode();
         try {
             report.set("versions", createVersions(a));
-            a.versionId = jdbc.sql("SELECT version_id FROM mdm.version WHERE version_name = :n").param("n", run.targetVersion())
+            a.versionId = jdbc.sql("SELECT version_id FROM mdm.version WHERE version_name = :n").param("n", a.targetVersion)
                     .query(UUID.class).single();
             report.set("definitions", mapper.readTree(jdbc.sql("SELECT CAST(mdm.load_apply_definitions(:r, :a, CAST(:lib AS jsonb)) AS text)")
                     .param("r", runId).param("a", approver).param("lib", json(libraryFor(a.s))).query(String.class).single()));
@@ -173,7 +197,6 @@ public class LoadRunService {
             log.error("load_run.failed loadRunId={} reason=\"{}\"", runId, e.getMessage());
             finish(runId, "failed", report, e.getMessage());
         }
-        return get(runId);
     }
 
     private void finish(UUID runId, String status, JsonNode report, String error) {
@@ -192,6 +215,7 @@ public class LoadRunService {
         final Map<String, UUID> nodeIds = new TreeMap<>();
         final Map<String, UUID> hierarchyIds = new TreeMap<>();
         UUID versionId;
+        String targetVersion;
         int seq;
 
         Applying(UUID runId, Staged s, UUID approver, UUID preparer, UUID loader, LocalDate today) {

@@ -16,3 +16,4 @@ export const NODE_KINDS = ['legal_entity', 'structural', 'fund', 'partnership', 
 export const VERSIONS_PAGE = 50;                   // Phase 3 LLD V.6: the Versions page lists 50 at a time
 export const WORKING_VERSIONS_LIMIT = 50;          // the context-bar picker offers the first 50 working versions
 export const VERSION_BASES_LIMIT = 100;            // "Copy from" in the new-version dialog offers the latest 100 versions
+export const LOAD_POLL_MS = 1500;                  // Phase 4 LLD §17.8.2: the Data loads screen polls an applying run

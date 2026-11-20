@@ -68,6 +68,7 @@ export class AppShellComponent {
     { label: STRINGS.nav.sandboxes, link: '/sandboxes' },
     { label: STRINGS.nav.audit, link: '/audit', testId: 'nav-audit' },
     { label: STRINGS.nav.validationRules, link: '/admin/validation-rules', testId: 'nav-validation-rules' },
+    { label: STRINGS.nav.dataLoads, link: '/admin/data-loads', testId: 'nav-data-loads' },
   ];
   protected readonly userItems: NavMenuItem[] = [{ label: STRINGS.nav.settings, link: '/settings' }];
   private readonly api = inject(NexusApi);

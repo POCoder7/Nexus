@@ -7,13 +7,13 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { Finding } from '../../models/finding';
+import { LoadFinding } from '../../models/load-finding';
 
 export interface ListLoadFindings$Params {
   id: string;
 }
 
-export function listLoadFindings(http: HttpClient, rootUrl: string, params: ListLoadFindings$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<Finding>>> {
+export function listLoadFindings(http: HttpClient, rootUrl: string, params: ListLoadFindings$Params, context?: HttpContext): Observable<StrictHttpResponse<Array<LoadFinding>>> {
   const rb = new RequestBuilder(rootUrl, listLoadFindings.PATH, 'get');
   if (params) {
     rb.path('id', params.id, {});
@@ -24,7 +24,7 @@ export function listLoadFindings(http: HttpClient, rootUrl: string, params: List
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<Array<Finding>>;
+      return r as StrictHttpResponse<Array<LoadFinding>>;
     })
   );
 }

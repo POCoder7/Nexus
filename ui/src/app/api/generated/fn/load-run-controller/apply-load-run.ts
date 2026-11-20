@@ -11,12 +11,14 @@ import { LoadRunView } from '../../models/load-run-view';
 
 export interface ApplyLoadRun$Params {
   id: string;
+  wait?: boolean;
 }
 
 export function applyLoadRun(http: HttpClient, rootUrl: string, params: ApplyLoadRun$Params, context?: HttpContext): Observable<StrictHttpResponse<LoadRunView>> {
   const rb = new RequestBuilder(rootUrl, applyLoadRun.PATH, 'post');
   if (params) {
     rb.path('id', params.id, {});
+    rb.query('wait', params.wait, {});
   }
 
   return http.request(

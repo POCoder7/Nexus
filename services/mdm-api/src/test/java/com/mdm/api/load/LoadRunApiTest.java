@@ -105,6 +105,46 @@ class LoadRunApiTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void aZipUploadIsUnpackedAndTheLoadAppliesInTheBackground() throws Exception {
+        grant(PREPARER, "ADMIN", null, null);
+        grant(APPROVER, "ADMIN", null, null);
+        java.io.ByteArrayOutputStream zip = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream z = new java.util.zip.ZipOutputStream(zip)) {
+            for (String[] f : new String[][] {
+                    {"set/hierarchies.csv", "hierarchy_code,hierarchy_name,top_node_code,description\nZIPH,Zip hierarchy,ZIPT,Synthetic\n"},
+                    {"set/nodes.csv", "node_code,node_name,description,node_type,status\nZIPT,Zip top,,LIMB,active\n77001,Zip leaf,,LEAF,active\n"},
+                    {"set/relationships.csv", "hierarchy_code,parent_code,child_code,sort_order\nZIPH,,ZIPT,1\nZIPH,ZIPT,77001,1\n"},
+                    {"set/versions.csv", "version_code,version_name,status,description\nZIPW,ZIP working,working,Synthetic\n"}}) {
+                z.putNextEntry(new java.util.zip.ZipEntry(f[0]));
+                z.write(f[1].getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                z.closeEntry();
+            }
+        }
+        JsonNode staged = json(mvc.perform(multipart("/api/v1/admin/load-runs/uploads")
+                .file(new MockMultipartFile("files", "set.zip", "application/zip", zip.toByteArray())).with(asUser(PREPARER)))
+                .andExpect(status().isCreated()).andReturn());
+        assertThat(staged.get("staged")).hasSize(4);
+        assertThat(staged.get("errors").asInt()).isZero();
+        String id = staged.get("loadId").asText();
+        String manifest = json(mvc.perform(post("/api/v1/admin/load-runs/" + id + "/prepare").with(asUser(PREPARER))
+                .contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isOk()).andReturn()).get("manifestSha256").asText();
+        approve(APPROVER, id, manifest).andExpect(status().isOk());
+
+        mvc.perform(post("/api/v1/admin/load-runs/" + id + "/apply").param("wait", "false").with(asUser(APPROVER)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("applying"));
+        mvc.perform(post("/api/v1/admin/load-runs/" + id + "/apply").param("wait", "false").with(asUser(APPROVER)))
+                .andExpect(status().isUnprocessableEntity());                                       // once only
+        String state = "applying";
+        for (int i = 0; i < 120 && "applying".equals(state); i++) {
+            Thread.sleep(500);
+            state = json(mvc.perform(get("/api/v1/admin/load-runs/" + id).with(asUser(APPROVER))).andReturn()).get("status").asText();
+        }
+        assertThat(state).isEqualTo("applied");
+        assertThat(one(ownerJdbc(), "SELECT count(*)::text FROM mdm.node_attr WHERE node_name IN ('ZIPT', '77001') AND upper_inf(recorded_period)"))
+                .isEqualTo("2");
+    }
+
+    @Test
     void onlyAnAdminLoadsData() throws Exception {
         grant("lr_editor", "EDITOR", null, null);
         mvc.perform(upload("lr_editor")).andExpect(status().isForbidden());

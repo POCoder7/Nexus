@@ -745,6 +745,36 @@ approver must still be a different ADMIN from the preparer, so the two-person ru
   - Playwright `18-data-load`: upload the sample, then prepare as `e2e_admin`; the button is disabled for the
     preparer; approve and apply as a second admin; check the counts in the report.
 
+**Built in H-8 (2026-11-20).**
+- **Screens.**
+  - `/admin/data-loads` (`DataLoadsPage`): the upload, CSV files or one zip, and the history (paged).
+  - `/admin/data-loads/:id` (`DataLoadPage`): checks, prepare (optional version), the plan and manifest, approve,
+    apply, cancel, the requests (each a link to its request page) and the result.
+  - The presentational `LoadRunPanelComponent` shows every state. `loadActions` decides who may approve (anyone but
+    the preparer) and apply (the approver), with a reason for each disabled button.
+  - "Data loads" is in the Admin menu.
+- **Apply in the background.** `POST /{id}/apply?wait=false` starts the run on a virtual thread
+  (`LoadRunService.applyInBackground`), and the page polls `GET /{id}` every `LOAD_POLL_MS` (1.5 s). The default
+  `wait=true` keeps the scripts synchronous. A second apply is refused because the run is no longer approved; there is
+  no separate N2810 code.
+- **Upload.** A zip is unpacked in memory (CSV entries only, folders ignored) and capped at `LOAD_UPLOAD_MAX_BYTES`
+  once unpacked.
+- **Not built as designed.** No `stage_rows` function: staging already goes through `mdm_stage.stage_file`, owned by
+  the loader role (H-5). There is no `staging` run status: a load has no run until it is prepared, and the page shows
+  its checks until then.
+- **Schema fix.** The load finding record is now `LoadFinding`. It had clashed in OpenAPI with the validation report's
+  `Finding`, which typed the load findings wrongly in the client.
+- **Tests.**
+  - Vitest `loadActions` (3).
+  - Storybook "Custom/Data load" (7 states, axe).
+  - JUnit: a zip upload applied in the background, polled, and refused a second time.
+  - Playwright `19-data-load` (2, axe; 18 is the rules screen). It runs last, because the loaded rules apply to every
+    hierarchy afterwards.
+- **Two fixes found by the end-to-end run.** The card layout stretched the Prepare button's host element to the full card
+  width, so a click on its centre missed the visible button; buttons in the panel's cards now keep their own width.
+  The tests click and check buttons by role, as the rest of the suite does: `toBeDisabled` on the `ds-button` host
+  never sees the inner button's `disabled`.
+
 ### 17.9 Tests
 - **pgTAP `32_hackathon_model`:**
   - display name history;
