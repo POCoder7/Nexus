@@ -12,7 +12,8 @@
 #   -ApproveAs <login>   a different ADMIN who approves and applies. Local and test only: it names the user in the
 #                        X-Nexus-User header, which only the local and test profiles accept.
 #   -Version <name>      the working version to load into (default: the files' working version, else the latest one)
-#   -Reset               first rebuild the local demo (scripts\demo-stop.ps1, then scripts\demo.ps1). Asks first unless -Yes.
+#   -Reset               rebuild the local demo instead (scripts\demo-stop.ps1, then scripts\demo.ps1: a fresh database
+#                        with the data set loaded) and stop. Asks first unless -Yes.
 # Environment: NEXUS_API_URL (default http://localhost:8080). Synthetic data only (CLAUDE.md rule 5).
 param([string]$Dir = "data", [string]$As = "u_admin", [string]$ApproveAs = "", [string]$Version = "", [switch]$Reset, [switch]$Yes)
 $ErrorActionPreference = "Stop"
@@ -36,11 +37,12 @@ function Invoke-Nexus([string]$Login, [string]$Method, [string]$Path, $Body = $n
 
 if ($Reset) {
   if (-not $Yes) {
-    $answer = Read-Host "Rebuild the local demo database? Everything in it is replaced by the synthetic seed. [y/N]"
+    $answer = Read-Host "Rebuild the local demo database? Everything in it is replaced by a fresh load of the data set. [y/N]"
     if ($answer -notmatch '^[yY]$') { Write-Host "Not reset."; exit 1 }
   }
   & (Join-Path $PSScriptRoot "demo-stop.ps1")
-  & (Join-Path $PSScriptRoot "demo.ps1")
+  & (Join-Path $PSScriptRoot "demo.ps1")      # a fresh demo loads the data set itself (setup ADMINs, then switched off)
+  exit 0
 }
 
 try { $health = Invoke-RestMethod -Uri "$api/actuator/health" -TimeoutSec 5 } catch { $health = $null }

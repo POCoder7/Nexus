@@ -12,11 +12,12 @@
 #   --approve-as <login>  a different ADMIN who approves and applies. Local and test only: it names the user in the
 #                         X-Nexus-User header, which only the local and test profiles accept.
 #   --version <name>      the working version to load into (default: the files' working version, else the latest one)
-#   --reset               first rebuild the local demo (scripts/demo-stop.sh, then scripts/demo.sh: fresh database
-#                         and synthetic seed). Asks for confirmation unless --yes is given.
+#   --reset               rebuild the local demo instead (scripts/demo-stop.sh, then scripts/demo.sh: a fresh database
+#                         with the data set loaded) and stop. Asks for confirmation unless --yes is given.
 #   --yes                 do not ask before --reset
 # Environment: NEXUS_API_URL (default http://localhost:8080). Synthetic data only (CLAUDE.md rule 5).
 set -euo pipefail
+unset MSYS_NO_PATHCONV               # demo.sh sets it for docker; node here needs Git Bash to convert /tmp paths
 cd "$(dirname "$0")/.."
 
 API="${NEXUS_API_URL:-http://localhost:8080}"
@@ -68,11 +69,12 @@ fail_with() {
 
 if [ "$RESET" = 1 ]; then
   if [ "$YES" = 0 ]; then
-    read -r -p "Rebuild the local demo database? Everything in it is replaced by the synthetic seed. [y/N] " answer
+    read -r -p "Rebuild the local demo database? Everything in it is replaced by a fresh load of the data set. [y/N] " answer
     [ "$answer" = y ] || [ "$answer" = Y ] || { echo "Not reset."; exit 1; }
   fi
   bash scripts/demo-stop.sh
-  bash scripts/demo.sh
+  bash scripts/demo.sh                # a fresh demo loads the data set itself (setup ADMINs, then switched off)
+  exit 0
 fi
 
 curl -s --max-time 5 "$API/actuator/health" | grep -q '"UP"' || { echo "The API at $API is not up. Start it with scripts/demo.sh"; exit 1; }

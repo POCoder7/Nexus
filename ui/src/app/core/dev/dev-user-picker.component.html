@@ -3,8 +3,8 @@
   <input id="nx-dev-user" list="nx-dev-users" autocomplete="off" [ngModel]="value()" (ngModelChange)="value.set($event)"
          name="login" [attr.aria-describedby]="'nx-dev-user-hint'" />
   <datalist id="nx-dev-users">
-    @for (login of logins; track login) {
-      <option [value]="login"></option>
+    @for (u of users(); track u.login) {
+      <option [value]="u.login">{{ u.displayName }}</option>
     }
   </datalist>
   <button type="submit">{{ t.switchUser }}</button>

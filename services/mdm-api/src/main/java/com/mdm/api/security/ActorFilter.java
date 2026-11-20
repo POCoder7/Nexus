@@ -42,7 +42,8 @@ public class ActorFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith("/api/");
+        // DevUsersController: the development user picker reads it before anyone is chosen (local and test only)
+        return !request.getRequestURI().startsWith("/api/") || request.getRequestURI().equals(DevUsersController.PATH);
     }
 
     @Override

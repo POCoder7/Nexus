@@ -1,14 +1,16 @@
 # Windows version of demo.sh: starts the local demo from scratch. A fresh demo database built by the migrations, the
-# synthetic seed, the API (with the in-process workflow worker) and the UI dev server. Synthetic data only.
-# Stop it with scripts\demo-stop.ps1.
+# hackathon data set (ADR-046) loaded through the governed two-ADMIN load, the API (with the in-process workflow worker)
+# and the UI dev server. Synthetic data only. Stop it with scripts\demo-stop.ps1.
 #
-#   scripts\demo.ps1            recreate the demo database, then start everything
-#   scripts\demo.ps1 -Keep      keep the existing demo database (Flyway applies any new migrations); no seed
+#   scripts\demo.ps1            recreate the demo database, load the data set, then start everything
+#   scripts\demo.ps1 -Keep      keep the existing demo database (Flyway applies any new migrations); nothing loaded
 #   scripts\demo.ps1 -Build     rebuild the API jar first (otherwise it is built only when missing)
+#   scripts\demo.ps1 -E2eSeed   load the automated tests' seed (ui/e2e/seed.sql) instead of the data set
 #
-# Overrides (environment): DEMO_DB (nexus_demo), DEMO_API_PORT (8080), DEMO_UI_PORT (4200).
+# The data set comes from data\ (git-ignored), or from the tracked synthetic sample if data\ has no CSV files.
+# Overrides (environment): DEMO_DB (nexus_demo), DEMO_API_PORT (8080), DEMO_UI_PORT (4200), DEMO_DATA (data).
 # Logs and process ids go to .demo\ (git-ignored).
-param([switch]$Keep, [switch]$Build)
+param([switch]$Keep, [switch]$Build, [switch]$E2eSeed)
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
 
@@ -64,10 +66,26 @@ for ($i = 0; $i -lt 90 -and -not $up; $i++) {
 if (-not $up) { throw "The API did not start: see .demo\api.log" }
 Write-Host "API up on http://localhost:$apiPort (migrations applied)"
 
-if (-not $Keep) {
+if (-not $Keep -and $E2eSeed) {
   docker compose exec -T db psql -q -v ON_ERROR_STOP=1 -U nexus -d $db -f /workspace/ui/e2e/seed.sql | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Loading the seed failed" }
-  Write-Host "Loaded the synthetic seed (ui/e2e/seed.sql)"
+  Write-Host "Loaded the synthetic test seed (ui/e2e/seed.sql)"
+} elseif (-not $Keep) {
+  # Only the hackathon data set (ADR-046): two setup ADMINs load it through the governed load, then are switched off.
+  $data = if ($env:DEMO_DATA) { $env:DEMO_DATA } else { "data" }
+  if (-not (Get-ChildItem -Path $data -Filter *.csv -File -ErrorAction SilentlyContinue)) {
+    $data = "services\mdm-api\src\test\resources\load\hackathon"   # data\ is git-ignored
+  }
+  docker compose exec -T db psql -q -v ON_ERROR_STOP=1 -U nexus -d $db -f /workspace/db/demo/setup.sql | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "The demo setup failed" }
+  Write-Host "== Data set from $data"
+  $env:NEXUS_API_URL = "http://localhost:$apiPort"
+  & (Join-Path $PSScriptRoot "load-data.ps1") -Dir $data -As setup_admin1 -ApproveAs setup_admin2 *> .demo\load.log
+  if ($LASTEXITCODE -ne 0) { Get-Content .demo\load.log -Tail 15; throw "The data set did not load: see .demo\load.log" }
+  Get-Content .demo\load.log -Tail 3
+  docker compose exec -T db psql -q -v ON_ERROR_STOP=1 -U nexus -d $db -f /workspace/db/demo/after-load.sql | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "The demo setup after the load failed" }
+  Write-Host "Workflows set up; setup administrators switched off"
 }
 
 Write-Host "== UI"
@@ -81,10 +99,10 @@ if (-not (Test-Url "http://localhost:$uiPort/")) { throw "The UI did not start: 
 Write-Host @"
 
 Demo running: http://localhost:$uiPort   (API http://localhost:$apiPort, database $db)
-Sign in with the "Development user" picker. Synthetic users from ui/e2e/seed.sql:
-  e2e_architect (every change)  e2e_steward (propose)  e2e_approver (approve)  e2e_committer (commit)
-  e2e_viewer (read only)        e2e_vadmin / e2e_vadmin2 / e2e_admin / e2e_admin2 (ADMIN)
-  Roles through groups (ORGTL, ORGTP, AMBUS): u_admin (ADMIN)  u_editor1 / u_approver1 (ORGTL, ORGTP)
-  u_editor2 / u_approver2 (AMBUS)  u_viewer (all three)  svc_dw_consumer (service account: published output only)
+Sign in with the "Development user" picker. The users of data\users.csv (with -E2eSeed: the e2e_* users):
+  u_admin (ADMIN)   u_editor1 (ORGNEXUS, ORGNHYD)   u_editor2 (ORGSPI)   u_editor3 (all three)
+  u_approver1 / u_approver3 approve and commit ORGNEXUS, ORGNHYD   u_approver2 / u_approver4 approve and commit ORGSPI
+  u_viewer / u_auditor (read only)   svc_dw_consumer (service account: published output only)
+  Every edit goes Submit, Approve, Commit; approving and committing are two different people.
 Logs: .demo\api.log, .demo\ui.log    Stop: scripts\demo-stop.ps1
 "@

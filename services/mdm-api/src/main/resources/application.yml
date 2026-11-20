@@ -53,6 +53,8 @@ springdoc:
   api-docs:
     enabled: false
   packages-to-scan: com.mdm.api
+  # development-only endpoints (local and test profiles) are not part of the published API
+  paths-to-exclude: /api/v1/dev/**
   # every endpoint answers JSON (or Problem Details JSON); '*/*' made the generated UI client read bodies as blobs (P-27)
   default-produces-media-type: application/json
 
