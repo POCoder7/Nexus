@@ -35,6 +35,10 @@ export const routes: Routes = [
   },
   { path: 'queries', canActivate: [contextGuard], title: 'Queries · Nexus', loadComponent: () => import('./query/queries.page').then((m) => m.QueriesPage) },
   { path: 'versions', canActivate: [contextGuard], title: 'Versions · Nexus', loadComponent: () => import('./version/versions.page').then((m) => m.VersionsPage) },
+  {
+    path: 'admin/validation-rules', canActivate: [contextGuard], title: 'Validation rules · Nexus',
+    loadComponent: () => import('./rules/validation-rules.page').then((m) => m.ValidationRulesPage),
+  },
   { path: 'settings', canActivate: [contextGuard], title: 'Settings · Nexus', loadComponent: () => import('./settings/settings.page').then((m) => m.SettingsPage) },
   { path: '**', title: 'Not found · Nexus', component: NotFoundPage },
 ];

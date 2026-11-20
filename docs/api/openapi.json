@@ -1657,6 +1657,20 @@
         },
         "type" : "object"
       },
+      "PageValidationRuleView" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ValidationRuleView"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "PageVersionView" : {
         "properties" : {
           "items" : {
@@ -2578,6 +2592,83 @@
         },
         "type" : "object"
       },
+      "ValidationRuleEdit" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "expression" : {
+            "type" : "string"
+          },
+          "externalCode" : {
+            "type" : "string"
+          },
+          "hierarchyCode" : {
+            "type" : "string"
+          },
+          "mode" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "severity" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ValidationRuleView" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "enforcement" : {
+            "type" : "string"
+          },
+          "engine" : {
+            "type" : "string"
+          },
+          "expression" : {
+            "type" : "string"
+          },
+          "externalCode" : {
+            "type" : "string"
+          },
+          "guardCode" : {
+            "type" : "string"
+          },
+          "hierarchyCode" : {
+            "type" : "string"
+          },
+          "level" : {
+            "type" : "string"
+          },
+          "mode" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "severity" : {
+            "type" : "string"
+          },
+          "version" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "VersionEdit" : {
         "properties" : {
           "allowed" : {
@@ -2953,6 +3044,84 @@
           }
         },
         "tags" : [ "ledger-controller" ]
+      }
+    },
+    "/api/v1/admin/validation-rules" : {
+      "get" : {
+        "operationId" : "listValidationRules",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "enforcement",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 200,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageValidationRuleView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "validation-rule-controller" ]
+      }
+    },
+    "/api/v1/admin/validation-rules/{code}" : {
+      "patch" : {
+        "operationId" : "editValidationRule",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ValidationRuleEdit"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ValidationRuleView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "validation-rule-controller" ]
       }
     },
     "/api/v1/admin/workflow-models" : {

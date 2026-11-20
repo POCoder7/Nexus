@@ -554,6 +554,24 @@ ALTER TABLE mdm.validation_rule
   - The screen is "Admin › Validation rules", read-only for APPROVER, following UI_STANDARD.
   - Every edit is audited, and `rule_version` is bumped when the expression changes.
 
+**Built in H-4 (2026-11-20), in V18.**
+- **Guard rows.** 16 rows (N2001 to N2007, N2020 to N2025, N3001, and the node-name and hierarchy-code uniqueness
+  constraints), plus `rule_name` on the three existing system rules.
+- **The protection trigger.** `trg_validation_rule_guard` (N2811 `validation_rule.guard_fixed`) lets everyone except the
+  table owner only relabel a guard row: `rule_name`, `description` and `external_code`. No one but the owner adds,
+  deletes, deactivates or weakens one. `nexus_api` gets column-level UPDATE on the editable columns and no DELETE.
+  Edits are audited, with the ADMIN recorded as actor.
+- **Replaced functions.** `apply_require_parent` (N2007) and `validate_change_request` are replaced in V18 with CREATE
+  OR REPLACE, which keeps their owners and grants. They are not edited in V1 or V11, because the kept demo database has
+  already run those.
+- **Findings under guard rows.** A guard failure found during validation is now reported under the guard's row instead
+  of `NEXUS.TRIAL_APPLY`. `12_validation_submit` was updated to expect `NEXUS.PARENT_IS_LEAF`; the finding (severity,
+  message, node) is unchanged. Configured rules still run only after a clean trial, as before.
+- **Screen.** Admin › Validation rules at `/admin/validation-rules`. ADMIN gets "Edit"; the dialog offers only the
+  labels for a guard. Users without access are told who can see the page.
+- **Not done yet.** The loader's mapping of the hackathon rules (VR02, VR05 to VR08 onto guards; the rule library for
+  the rest) comes with H-6.
+
 ### 17.6 Versions (D7)
 1. Every row in `versions.csv` is created with `create_version(name = version_name, business_as_of = business_today(),
    base = NULL, description)`. `version_code` is kept as the external key in the load report.

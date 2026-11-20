@@ -13,6 +13,7 @@ import type {
   CreateSandbox, PageConflict, PageDiffRow, PageSandboxChild, PageSandboxView, RefreshResult, SandboxItemAdded, SandboxNode,
   SandboxView, PagePropertyDefinitionView, PageSavedQueryView, QueryDefinition, QueryPage, SaveQuery, SavedQueryView,
   PageAuditEntry, PageRequestEvent, CompareRequest, CompareRunView, PageCompareRow, SearchResults,
+  PageValidationRuleView, ValidationRuleEdit, ValidationRuleView,
 } from './generated/models';
 
 /** Transaction-history filters (AUD-01, Phase 5 LLD §18.4): dates are business dates; codes and a login, not ids. */
@@ -182,6 +183,16 @@ export class NexusApi {
   /** {@code type}: normal, baseline or as_of (VER-04). */
   versions(status?: string, cursor?: string, limit = 50, type?: string): Promise<PageVersionView> {
     return this.api.invoke(fn.listVersions, { status, type, cursor, limit });
+  }
+
+  /** The rule catalogue (ADR-046 D5): rules and database guards; `enforcement` undefined = both. */
+  validationRules(enforcement?: string, cursor?: string, limit = 100): Promise<PageValidationRuleView> {
+    return this.api.invoke(fn.listValidationRules, { enforcement, cursor, limit });
+  }
+
+  /** ADMIN: edit a rule; a database guard accepts only its name, description and external code. */
+  editValidationRule(code: string, body: ValidationRuleEdit): Promise<ValidationRuleView> {
+    return this.api.invoke(fn.editValidationRule, { code, body });
   }
 
   /** QRY-02: start a compare (or get a reusable one); poll it with compare(). */

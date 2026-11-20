@@ -84,8 +84,8 @@ SELECT is((SELECT string_agg(rule_code || ':' || node_id, ',') FROM findings
 SELECT pg_temp.validate('00000000-0000-0000-0000-000000000cd3');
 SELECT is((SELECT rule_code || ':' || left(message, 14) || ':' || node_id FROM findings
            WHERE cr = '00000000-0000-0000-0000-000000000cd3' AND severity = 'error'),
-  'NEXUS.TRIAL_APPLY:N2004 (item 1):00000000-0000-0000-0000-000000000c07',
-  'A guard failure in the trial is an error finding on the item''s node');
+  'NEXUS.PARENT_IS_LEAF:N2004 (item 1):00000000-0000-0000-0000-000000000c07',   -- under the guard's own row since V18 (ADR-046 D5)
+  'A guard failure in the trial is an error finding on the item''s node, under the guard''s catalogue row');
 
 UPDATE mdm.validation_rule SET is_active = true WHERE rule_code = 'V.BROKEN';
 SELECT pg_temp.validate('00000000-0000-0000-0000-000000000cd1');

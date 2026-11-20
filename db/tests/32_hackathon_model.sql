@@ -1,7 +1,7 @@
 -- pgTAP: model changes for the hackathon CSV load (ADR-046, Phase 4 LLD §17). H-1: node display names and hierarchy
 -- descriptions. Synthetic data only.
 BEGIN;
-SELECT plan(23);
+SELECT plan(35);
 
 -- Fixture ------------------------------------------------------------------------------------------------------
 INSERT INTO mdm.app_user (user_id, login, display_name, kind) VALUES
@@ -152,6 +152,76 @@ SET LOCAL ROLE nexus_api;
 SELECT lives_ok($$UPDATE mdm.ledger SET is_active = false WHERE ledger_id = 'XL100'$$, 'The API may retire a ledger');
 SELECT throws_ok($$DELETE FROM mdm.ledger WHERE ledger_id = 'XL100'$$, '42501', NULL, '… but never delete one');
 RESET ROLE;
+
+-- One rule catalogue (D5, H-4) ------------------------------------------------------------------------------------
+SELECT is((SELECT count(*)::int FROM mdm.validation_rule WHERE enforcement = 'guard'), 16,
+  'Every data guard has a catalogue row');
+SET LOCAL ROLE nexus_api;
+SELECT lives_ok($$UPDATE mdm.validation_rule SET external_code = 'VR07', rule_name = 'NO_CYCLES',
+                   description = 'A node cannot be moved under itself or one of its descendants.'
+                 WHERE rule_code = 'NEXUS.HIERARCHY_CYCLE'$$, 'A guard row can be relabelled');
+SELECT throws_ok($$UPDATE mdm.validation_rule SET is_active = false WHERE rule_code = 'NEXUS.HIERARCHY_CYCLE'$$,
+  'N2811', NULL, '… but never switched off');
+SELECT throws_ok($$UPDATE mdm.validation_rule SET severity = 'warning' WHERE rule_code = 'NEXUS.PARENT_IS_LEAF'$$,
+  'N2811', NULL, '… or weakened');
+SELECT lives_ok($$UPDATE mdm.validation_rule SET is_active = false WHERE rule_code = 'NEXUS.VERSION_DATE'$$,
+  'A configured rule can be switched off');
+SELECT throws_ok($$DELETE FROM mdm.validation_rule WHERE rule_code = 'NEXUS.VERSION_DATE'$$, '42501', NULL,
+  '… but not deleted through the API');
+RESET ROLE;
+UPDATE mdm.validation_rule SET is_active = true WHERE rule_code = 'NEXUS.VERSION_DATE';
+
+-- N2007: a parent that is not in the hierarchy (Y_H's top under X_H)
+SELECT pg_temp.approved('00000000-0000-0000-0000-000000003247', 'insert_node', '00000000-0000-0000-0000-000000003231',
+  '00000000-0000-0000-0000-000000003226', '00000000-0000-0000-0000-000000003225', '{}');
+SELECT is(pg_temp.apply('00000000-0000-0000-0000-000000003247'), -1, 'Placing under a parent outside the hierarchy fails');
+SELECT is((SELECT left(apply_error, 5) FROM mdm.change_request WHERE change_request_id = '00000000-0000-0000-0000-000000003247'),
+  'N2007', '… with its own code, N2007');
+
+-- Findings under the guard's row, and rules by mode. Drafts by a person and by a load (system_feed).
+INSERT INTO mdm.app_user (user_id, login, display_name, kind)
+VALUES ('00000000-0000-0000-0000-000000003203', 'x_loader', 'Loader', 'system_feed');
+INSERT INTO mdm.node (node_id, node_kind) VALUES ('00000000-0000-0000-0000-000000003227', 'structural');
+INSERT INTO mdm.change_request (change_request_id, version_id, title, requester_id, requester_kind, effective_from) VALUES
+  ('00000000-0000-0000-0000-000000003248', '00000000-0000-0000-0000-000000003211', 'X draft by a person',
+   '00000000-0000-0000-0000-000000003201', 'human', '2030-07-01'),
+  ('00000000-0000-0000-0000-000000003249', '00000000-0000-0000-0000-000000003211', 'X draft by a load',
+   '00000000-0000-0000-0000-000000003203', 'system_feed', '2030-07-01');
+INSERT INTO mdm.change_item (change_request_id, seq, action, hierarchy_id, node_id, target_parent_id, payload) VALUES
+  -- under a leaf (N2004)
+  ('00000000-0000-0000-0000-000000003248', 1, 'insert_node', '00000000-0000-0000-0000-000000003231',
+   '00000000-0000-0000-0000-000000003226', '00000000-0000-0000-0000-000000003222', '{}'),
+  -- a second node named 10110 (the name-uniqueness constraint)
+  ('00000000-0000-0000-0000-000000003249', 1, 'add_node', '00000000-0000-0000-0000-000000003231',
+   '00000000-0000-0000-0000-000000003227', '00000000-0000-0000-0000-000000003221', '{"name": "10110", "isLeaf": true}');
+INSERT INTO mdm.validation_rule (rule_code, description, level, severity, engine, expression, mode) VALUES
+  ('X.REAL_TIME', 'Runs for people', 'node', 'warning', 'sql',
+   $q$SELECT a.node_id, NULL::uuid, 'real-time rule ran' FROM mdm.node_attr a WHERE a.valid_period @> $1 AND upper_inf(a.recorded_period)$q$,
+   'real_time'),
+  ('X.IMPORT', 'Runs for loads', 'node', 'warning', 'sql',
+   $q$SELECT a.node_id, NULL::uuid, 'import rule ran' FROM mdm.node_attr a WHERE a.valid_period @> $1 AND upper_inf(a.recorded_period)$q$,
+   'import');
+
+SELECT is((SELECT string_agg(DISTINCT v.rule_code, ',' ORDER BY v.rule_code)
+           FROM mdm.validate_change_request('00000000-0000-0000-0000-000000003248', '2030-07-01') v WHERE v.rule_code <> 'NEXUS.VERSION_DATE'),
+  'NEXUS.PARENT_IS_LEAF', 'A person''s draft: the guard failure under its own row (rules run only after a clean trial)');
+DELETE FROM mdm.change_item WHERE change_request_id = '00000000-0000-0000-0000-000000003248';
+INSERT INTO mdm.change_item (change_request_id, seq, action, hierarchy_id, node_id, target_parent_id, payload) VALUES
+  ('00000000-0000-0000-0000-000000003248', 1, 'insert_node', '00000000-0000-0000-0000-000000003231',
+   '00000000-0000-0000-0000-000000003226', '00000000-0000-0000-0000-000000003221', '{}');
+SELECT is((SELECT string_agg(DISTINCT v.rule_code, ',' ORDER BY v.rule_code)
+           FROM mdm.validate_change_request('00000000-0000-0000-0000-000000003248', '2030-07-01') v WHERE v.rule_code <> 'NEXUS.VERSION_DATE'),
+  'X.REAL_TIME', 'A person''s clean draft runs the real-time rule only');
+SELECT is((SELECT string_agg(DISTINCT v.rule_code, ',' ORDER BY v.rule_code)
+           FROM mdm.validate_change_request('00000000-0000-0000-0000-000000003249', '2030-07-01') v WHERE v.rule_code <> 'NEXUS.VERSION_DATE'),
+  'NEXUS.NODE_NAME_UNIQUE', 'A load''s draft: a duplicate name is reported under the uniqueness row (the trial stops there)');
+DELETE FROM mdm.change_item WHERE change_request_id = '00000000-0000-0000-0000-000000003249';
+INSERT INTO mdm.change_item (change_request_id, seq, action, hierarchy_id, node_id, target_parent_id, payload) VALUES
+  ('00000000-0000-0000-0000-000000003249', 1, 'add_node', '00000000-0000-0000-0000-000000003231',
+   '00000000-0000-0000-0000-000000003227', '00000000-0000-0000-0000-000000003221', '{"name": "10130", "isLeaf": true}');
+SELECT is((SELECT string_agg(DISTINCT v.rule_code, ',' ORDER BY v.rule_code)
+           FROM mdm.validate_change_request('00000000-0000-0000-0000-000000003249', '2030-07-01') v WHERE v.rule_code <> 'NEXUS.VERSION_DATE'),
+  'X.IMPORT', 'A load''s clean draft runs the import rule only');
 
 SELECT * FROM finish();
 ROLLBACK;
