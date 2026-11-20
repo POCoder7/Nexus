@@ -90,7 +90,8 @@ public class HackathonIntake {
                 rejected.add(new RejectedFile(name, reason(e)));
             }
         }
-        jdbc.sql("SELECT mdm_stage.profile(:load)").param("load", loadId).query(Integer.class).single();
+        // the file checks, then what the load would collide with in Nexus (both record findings)
+        jdbc.sql("SELECT mdm_stage.profile(:load) + mdm_stage.profile_against_nexus(:load)").param("load", loadId).query(Integer.class).single();
         List<Finding> findings = findings(loadId);
         int errors = (int) findings.stream().filter(x -> "error".equals(x.severity())).count();
         int warnings = (int) findings.stream().filter(x -> "warning".equals(x.severity())).count();

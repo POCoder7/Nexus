@@ -22,6 +22,9 @@ for beneficial-ownership analysis, and AI assistance under human approval.
    ([details](docs/DEVELOPER_SETUP.md#which-databases-are-built-from-scratch)).
 5. Try the whole app with synthetic data: `scripts\demo.ps1` or `scripts/demo.sh` builds a fresh demo database, starts
    the API and the UI, and prints the users to sign in as; `scripts\demo-stop.ps1` or `scripts/demo-stop.sh` stops it.
+6. Load the hackathon CSV data set (ADR-046) into the running demo: `scripts/load-data.sh --approve-as e2e_admin` or
+   `scripts\load-data.ps1 -ApproveAs e2e_admin` uploads and checks `data/`, prepares the load as `u_admin` and approves
+   and applies it as a second ADMIN. Without the approver option it stops after preparing, for another ADMIN to approve.
 
 Full setup: [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md) · Working rules: [CLAUDE.md](CLAUDE.md) ·
 Contributing: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) · Data model: [docs/data-model.md](docs/data-model.md) ·

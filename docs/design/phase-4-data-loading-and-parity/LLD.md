@@ -698,6 +698,25 @@ engine as the screen (§17.8.2). Usage: `load-data [--dir data/] [--version <nam
 unless `mdm.system_setting('environment_kind')` is `local` or `test`, the same check the generator uses (§3.2). The
 approver must still be a different ADMIN from the preparer, so the two-person rule holds.
 
+**Built in H-7 (2026-11-20).**
+- **Options.** `scripts/load-data.sh` and `scripts/load-data.ps1` take: `--dir`/`-Dir` (default `data/`),
+  `--as`/`-As` (preparer, default `u_admin`), `--approve-as`/`-ApproveAs`, `--version`/`-Version`, and
+  `--reset`/`-Reset` (asks first unless `--yes`/`-Yes`). They print each staged file, every finding with its line, the
+  plan and the manifest, then each request with its status, the reconciliation, and the access left for another ADMIN.
+  The bash script uses Node.js for JSON (no `jq`); the PowerShell one uses `curl.exe` for the multipart upload.
+- **How local-only is enforced.** There is no `environment_kind` setting yet, so `--approve-as` is local and test only
+  for a different reason: it names the approver in the `X-Nexus-User` header, which only the `local` and `test`
+  profiles accept (`LocalDevActor`). In any other environment the call is unauthenticated and refused.
+- **`--reset`** rebuilds the local demo (`demo-stop`, then `demo`: fresh database and synthetic seed) after asking.
+- **Collision notices at upload.** `HackathonIntake` now also runs `profile_against_nexus` at upload, so "already
+  exists" errors and "kept" notices show before prepare.
+- **Run.** The bash script was run against a throwaway API (port 8091, its own database with the synthetic seed):
+  - prepare only;
+  - then the full load with a second ADMIN: 7 requests applied, reconciliation clean, 184/184 values;
+  - the seed's existing users and groups were reused.
+
+  The PowerShell script has not been run: this session's tooling refused running it with an execution-policy override.
+
 ### 17.8.2 Screen: Admin › Data loads (UI_STANDARD)
 | Step | Screen | API |
 |---|---|---|
