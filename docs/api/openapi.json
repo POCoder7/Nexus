@@ -649,6 +649,23 @@
         },
         "type" : "object"
       },
+      "Governance" : {
+        "properties" : {
+          "accessAwaiting" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "applyFailed" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "overdueStages" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "Grant" : {
         "properties" : {
           "categoryCodes" : {
@@ -801,6 +818,15 @@
       },
       "HomeView" : {
         "properties" : {
+          "drafts" : {
+            "items" : {
+              "$ref" : "#/components/schemas/WorklistRow"
+            },
+            "type" : "array"
+          },
+          "governance" : {
+            "$ref" : "#/components/schemas/Governance"
+          },
           "hierarchies" : {
             "items" : {
               "$ref" : "#/components/schemas/HierarchyCard"
@@ -810,6 +836,12 @@
           "hierarchyCount" : {
             "format" : "int64",
             "type" : "integer"
+          },
+          "inFlight" : {
+            "items" : {
+              "$ref" : "#/components/schemas/WorklistRow"
+            },
+            "type" : "array"
           },
           "policySummary" : {
             "items" : {

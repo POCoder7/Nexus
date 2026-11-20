@@ -1501,3 +1501,27 @@ the Phase 3 Home layout (Phase 3 LLD §13) and the side navigation; no decision 
   scope, §18.5) and `recentActivity` (requests the user can see, `ChangeRequestService.canSee`'s rule in SQL).
 - **Tests:** Vitest for the header menus; stories with axe for the snapshot cards and header; the Playwright journeys that
   use Home (01, 05, 06, 07) follow the new layout.
+
+### 21.1 Revised Home (owner, 2026-11-20: "lets make the change now")
+After the first build, a UX review found the Home repeated one number four times (bell, nav count, banner, card), showed
+counts instead of the work itself, repeated the navigation in "Quick actions" and hierarchies in two places, and gave every
+role the same page. The owner approved the proposed layout, which replaces the Home part of §21 (the header and navigation
+stay, plus the search):
+- **Header search:** "Find a node or request" moves from Home into the header, on every page. A request id opens the
+  request; other text searches node names in the last hierarchy used (else the first readable one), and the results say
+  which hierarchy was searched (search across hierarchies is QRY-03).
+- **Greeting:** "Good morning, {name}", the name of the page and the business date.
+- **Left column, what to do:**
+  - **Your work**, in tabs that follow the role: Needs your decision (for those who can decide, or who have items
+    assigned), Your drafts and In flight (for those who can propose). Each tab lists the top five items with their stage
+    and due time (overdue marked), opening the request (a draft opens its review page), and "View all in your worklist";
+  - **What changed recently:** one line of counts for the last 7 days, then the last requests applied or rejected, with
+    who and when.
+- **Right column, where to go:** **Continue where you left off** (the last hierarchy used, the latest draft, up to three
+  open sandboxes, and "New sandbox"); **Your hierarchies** (a compact list with open requests, "All hierarchies" and, for
+  those allowed, "New hierarchy"); **Governance** for ADMINs (stages overdue, requests that could not be applied, access
+  changes awaiting a second ADMIN).
+- The commit-policy panel stays below for policy roles. Removed: the attention banner, the four count cards, quick
+  actions, the expandable hierarchy details.
+- **API:** `GET /home` gains `drafts` and `inFlight` (the worklist's drafted and submitted views, top 5) and `governance`
+  (ADMIN only, else null).

@@ -1,60 +1,74 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { NexusApi } from '../api/nexus-api';
-import type { HomeView, SearchHit } from '../api/generated/models';
+import type { HomeView, WorklistRow } from '../api/generated/models';
 import { Announcer } from '../core/announcer';
 import { ContextStore } from '../core/context.store';
-import { PreferencesStore } from '../core/preferences.store';
 import { STRINGS } from '../core/strings';
 import { UiError } from '../core/ui-error';
-import { DsBadgeComponent, DsButtonComponent, DsDialog, DsTableDirective, DsTone } from '../shared/ds';
+import { DsBadgeComponent, DsButtonComponent, DsDialog, DsTab, DsTableDirective, DsTabsComponent } from '../shared/ds';
 import { NodeChangeData, NodeChangeDialogComponent } from '../hierarchy/node-change-dialog.component';
-import { NxDatePipe, NxInstantPipe } from '../shared/format/nx-date.pipe';
+import { formatBusinessDate, NxInstantPipe } from '../shared/format/nx-date.pipe';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+type WorkTab = 'decide' | 'drafts' | 'inFlight';
 
 /**
- * Home (OD-27, LLD §12.2; NEW-10; layout Phase 5 LLD §21): the attention banner, search, the snapshot cards, quick actions,
- * hierarchy details, recent activity and, for
- * policy roles only, the shadow-mode summary. One bounded call (`GET /home`); each section has its own empty and error
- * state. In a historical view the quick actions are hidden.
+ * Home (OD-27; NEW-10; layout Phase 5 LLD §21.1). Two columns: on the left what to do (the user's work in tabs, with the
+ * actual items, and what changed recently); on the right where to go (continue where you left off, the user's
+ * hierarchies, and for ADMINs the governance health). Sections follow the user's role: someone who only reads sees
+ * what changed and their hierarchies, with no empty work tabs. Search is in the header. One bounded call (`GET /home`).
  */
 @Component({
   selector: 'nx-home-page',
-  imports: [RouterLink, DsButtonComponent, DsBadgeComponent, DsTableDirective, NxDatePipe, NxInstantPipe],
+  imports: [RouterLink, DsButtonComponent, DsBadgeComponent, DsTableDirective, DsTabsComponent, NxInstantPipe],
   templateUrl: './home.page.html',
   styleUrl: './home.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomePage {
   private readonly api = inject(NexusApi);
-  private readonly router = inject(Router);
   private readonly announcer = inject(Announcer);
   protected readonly context = inject(ContextStore);
-  private readonly prefs = inject(PreferencesStore);
+  private readonly dialog = inject(DsDialog);
   protected readonly t = STRINGS.home;
   protected readonly common = STRINGS.common;
-  protected readonly statuses = STRINGS.statuses;
-  protected readonly overdue = STRINGS.worklist.overdue;
   protected readonly change = STRINGS.change;
-  private readonly dialog = inject(DsDialog);
 
   protected readonly home = signal<HomeView | null>(null);
   protected readonly error = signal<UiError | null>(null);
-  protected readonly query = signal('');
-  protected readonly hits = signal<SearchHit[] | null>(null);
-  protected readonly searchError = signal<string | null>(null);
+  protected readonly tab = signal<string>('');
 
-  /** Search targets the last hierarchy used, else the first one listed. */
-  protected readonly searchHierarchy = computed(() =>
-    this.prefs.lastHierarchy() ?? this.home()?.hierarchies?.[0]?.code ?? null);
-  protected readonly assignedCount = computed(() => this.home()?.worklist?.counts?.['assigned'] ?? 0);
-  protected readonly statusCounts = computed(() => Object.entries(this.home()?.requests?.countsByStatus ?? {}));
-  /** Not yet closed: draft, submitted, in review or approved (waiting to be applied). */
-  protected readonly openRequests = computed(() =>
-    ['draft', 'submitted', 'in_review', 'approved'].reduce((n, s) => n + this.statusCount(s), 0));
-  /** Hierarchy details rows that are open. */
-  protected readonly expanded = signal(new Set<string>());
+  /** "Good morning, …" by the browser's clock; the date is the server's business day. */
+  protected readonly greeting = computed(() => {
+    const hour = new Date().getHours();
+    const part = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+    return this.t.greeting(this.t.dayParts[part], this.context.displayName() ?? '');
+  });
+  protected readonly today = computed(() => formatBusinessDate(this.context.businessToday()));
+
+  /** The work tabs this user can have (§21.1): decisions for deciders, drafts and in-flight for proposers. */
+  protected readonly tabs = computed<DsTab[]>(() => {
+    const h = this.home();
+    const list: { id: WorkTab; n: number }[] = [];
+    if (this.context.can('DECIDE') || this.assigned() > 0) list.push({ id: 'decide', n: this.assigned() });
+    if (this.context.can('PROPOSE')) {
+      list.push({ id: 'drafts', n: this.count('drafted') });
+      list.push({ id: 'inFlight', n: this.count('submitted') });
+    }
+    return h ? list.map((x) => ({ id: x.id, label: `${this.t.workTabs[x.id]} (${x.n})` })) : [];
+  });
+  protected readonly currentTab = computed(() => (this.tab() || this.tabs()[0]?.id || 'decide') as WorkTab);
+  protected readonly items = computed<WorklistRow[]>(() => {
+    const h = this.home();
+    switch (this.currentTab()) {
+      case 'drafts': return h?.drafts ?? [];
+      case 'inFlight': return h?.inFlight ?? [];
+      default: return h?.worklist?.top ?? [];
+    }
+  });
+  protected readonly lastHierarchy = computed(() => (this.home()?.hierarchies ?? []).find((c) => c.lastUsed) ?? null);
+  protected readonly latestDraft = computed(() => this.home()?.drafts?.[0] ?? null);
+  protected readonly sandboxes = computed(() => this.context.mySandboxes().slice(0, 3));
   protected readonly timeZone = () => this.context.me()?.businessTimeZone ?? undefined;
 
   constructor() {
@@ -71,62 +85,30 @@ export class HomePage {
     }
   }
 
-  /** A worklist view's count (assigned, claimed, overdue…). */
+  protected assigned(): number {
+    return this.count('assigned');
+  }
+
+  /** A worklist view's count (assigned, drafted, submitted…). */
   protected count(view: string): number {
     return this.home()?.worklist?.counts?.[view] ?? 0;
   }
 
-  /** The user's requests in one status. */
-  protected statusCount(status: string): number {
-    return this.home()?.requests?.countsByStatus?.[status] ?? 0;
+  /** "Approve · due in 2 d", "Approve · overdue" or the stage with no due date. */
+  protected stageAndDue(row: WorklistRow): string {
+    let due: string = this.t.noDueDate;
+    if (row.isOverdue) {
+      due = this.t.overdueWord;
+    } else if (row.dueAt) {
+      const hours = Math.max(1, Math.round((Date.parse(row.dueAt) - Date.now()) / 3_600_000));
+      due = this.t.dueIn(hours < 48 ? this.t.hoursShort(hours) : this.t.daysShort(Math.round(hours / 24)));
+    }
+    return this.t.stageAndDue(row.stageLabel ?? this.t.workTabs['drafts'], due);
   }
 
-  protected toggle(code: string): void {
-    this.expanded.update((s) => {
-      const next = new Set(s);
-      if (next.has(code)) {
-        next.delete(code);
-      } else {
-        next.add(code);
-      }
-      return next;
-    });
-  }
-
-  protected expandAll(open: boolean): void {
-    this.expanded.set(open ? new Set((this.home()?.hierarchies ?? []).map((h) => h.code ?? '')) : new Set());
-  }
-
-  protected tone(status: string | undefined): DsTone {
-    switch (status) {
-      case 'applied': return 'success';
-      case 'rejected': case 'apply_failed': return 'error';
-      case 'draft': return 'info';
-      default: return 'pending';
-    }
-  }
-
-  protected async search(event: Event): Promise<void> {
-    event.preventDefault();
-    const text = this.query().trim();
-    this.searchError.set(null);
-    this.hits.set(null);
-    if (UUID.test(text)) {
-      await this.router.navigate(['/requests', text]);
-      return;
-    }
-    const code = this.searchHierarchy();
-    if (!code || text.length < 2) {
-      this.searchError.set(STRINGS.hierarchy.searchTooShort);
-      return;
-    }
-    try {
-      const page = await this.api.search(code, text, this.context.slice(), 10);
-      this.hits.set(page.items ?? []);
-      this.announcer.polite((page.items ?? []).length ? `${(page.items ?? []).length}` : this.t.noResults);
-    } catch (e) {
-      this.searchError.set(UiError.from(e).detail);
-    }
+  /** A draft opens its review page; anything else opens the request. */
+  protected link(row: WorklistRow): unknown[] {
+    return this.currentTab() === 'drafts' ? ['/requests', row.changeRequestId, 'review'] : ['/requests', row.changeRequestId];
   }
 
   /** Create a hierarchy (scope extension): an `add_hierarchy` item in the draft request, governed like any change. */
@@ -136,9 +118,5 @@ export class HomePage {
       this.dialog.open<boolean, NodeChangeData, NodeChangeDialogComponent>(NodeChangeDialogComponent,
         { mode: 'hierarchy', hierarchyCode: null, businessToday: today }, 'nx-change-title');
     }
-  }
-
-  protected openHit(hit: SearchHit): void {
-    void this.router.navigate(['/hierarchies', this.searchHierarchy()], { queryParams: { node: hit.nodeId }, queryParamsHandling: 'merge' });
   }
 }

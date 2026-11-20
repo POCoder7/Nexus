@@ -258,10 +258,15 @@ class UiSupportApiTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.hierarchyCount").value(1))
                 .andExpect(jsonPath("$.recentChanges.days").value(7))
                 .andExpect(jsonPath("$.recentChanges.nodesChanged").isNumber())
-                .andExpect(jsonPath("$.recentActivity.length()").value(lessThanOrEqualTo(5)));
+                .andExpect(jsonPath("$.recentActivity.length()").value(lessThanOrEqualTo(5)))
+                // §21.1: the work tabs, and governance for ADMINs only
+                .andExpect(jsonPath("$.drafts.length()").value(lessThanOrEqualTo(5)))
+                .andExpect(jsonPath("$.inFlight.length()").value(lessThanOrEqualTo(5)))
+                .andExpect(jsonPath("$.governance").value(nullValue()));
         mvc.perform(get("/api/v1/home").with(asUser(POLICY)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.policySummary").isArray())
+                .andExpect(jsonPath("$.governance.overdueStages").isNumber())   // an ADMIN sees governance (§21.1)
                 .andExpect(jsonPath("$.hierarchies.length()").value(lessThanOrEqualTo(10)));
     }
 

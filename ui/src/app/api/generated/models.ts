@@ -24,6 +24,7 @@ export type { DecisionView } from './models/decision-view';
 export type { DiffRow } from './models/diff-row';
 export type { Finding } from './models/finding';
 export type { FormProperty } from './models/form-property';
+export type { Governance } from './models/governance';
 export type { Grant } from './models/grant';
 export type { HierarchyCard } from './models/hierarchy-card';
 export type { HierarchySummary } from './models/hierarchy-summary';

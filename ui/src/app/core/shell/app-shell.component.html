@@ -1,5 +1,6 @@
 <a class="skip" href="#main">{{ t.skipToContent }}</a>
 <ds-header [appName]="t.appName" [tagline]="t.tagline" [environment]="envName">
+  <nx-header-search />
   <!-- the bell: requests that need the user's attention (no notification service yet, GOV-08), opening the worklist -->
   <a routerLink="/worklist" class="bell" data-testid="attention-bell"
      [attr.aria-label]="t.nav.attention(worklistCount() ?? 0)">

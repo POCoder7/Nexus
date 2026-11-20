@@ -1,36 +1,8 @@
 <section class="nx-page home">
-  <h1>{{ t.title }}</h1>
-
-  @if (assignedCount() > 0) {
-    <a routerLink="/worklist" class="attention" data-testid="home-attention">
-      <span><strong>{{ t.attention(assignedCount()) }}</strong> <span class="nx-muted">{{ t.attentionHint }}</span></span>
-      <span aria-hidden="true">→</span>
-    </a>
-  }
-
-  <form class="search" role="search" (submit)="search($event)">
-    <label for="nx-home-search">{{ t.searchLabel }}</label>
-    <div class="search__row">
-      <input id="nx-home-search" type="search" autocomplete="off" [value]="query()" (input)="query.set($any($event.target).value)"
-             aria-describedby="nx-home-search-hint" />
-      <ds-button type="submit" variant="primary">{{ t.search }}</ds-button>
-    </div>
-    <span id="nx-home-search-hint" class="nx-muted">{{ t.searchHint(searchHierarchy()) }}</span>
-    @if (searchError(); as se) {
-      <p class="nx-error-text" role="status">{{ se }}</p>
-    }
-    @if (hits(); as list) {
-      @if (list.length === 0) {
-        <p class="nx-muted" role="status">{{ t.noResults }}</p>
-      } @else {
-        <ul class="nx-list" data-testid="home-search-results">
-          @for (h of list; track h.nodeId) {
-            <li><a href="#" (click)="$event.preventDefault(); openHit(h)">{{ h.name }}</a></li>
-          }
-        </ul>
-      }
-    }
-  </form>
+  <header class="greeting">
+    <h1>{{ greeting() }}</h1>
+    <p class="nx-muted">{{ t.title }} · {{ today() }}</p>
+  </header>
 
   @if (error(); as e) {
     <div class="nx-card" role="alert">
@@ -39,148 +11,135 @@
     </div>
   }
 
-  <h2 id="home-snapshot">{{ t.snapshotTitle }}</h2>
-  <p class="nx-muted intro">{{ t.snapshotIntro }}</p>
-  <div class="snapshot" role="list" aria-labelledby="home-snapshot">
-    <section class="nx-card stat" role="listitem" aria-labelledby="home-card-attention" data-testid="home-worklist">
-      <h3 id="home-card-attention">{{ t.cardAttention }}</h3>
-      @if (home(); as h) {
-        <p class="stat__main">{{ t.cardAttentionMain(assignedCount()) }}</p>
-        <p class="nx-muted">{{ t.assignedToYou(assignedCount()) }}</p>
-        <p class="nx-muted">{{ t.claimedByYou(count('claimed')) }}</p>
-        <p class="nx-muted">{{ t.overdueCount(count('overdue')) }}</p>
-      } @else {
-        <div class="nx-skeleton" aria-hidden="true"></div>
-      }
-      <a routerLink="/worklist">{{ t.openWorklist }}</a>
-    </section>
-
-    <section class="nx-card stat" role="listitem" aria-labelledby="home-card-requests" data-testid="home-requests">
-      <h3 id="home-card-requests">{{ t.cardRequests }}</h3>
-      @if (home(); as h) {
-        <p class="stat__main">{{ t.cardRequestsMain(openRequests()) }}</p>
-        <p class="nx-muted">{{ t.inReview(statusCount('submitted') + statusCount('in_review')) }}</p>
-        <p class="nx-muted">{{ t.drafts(statusCount('draft')) }}</p>
-      } @else {
-        <div class="nx-skeleton" aria-hidden="true"></div>
-      }
-      <a routerLink="/worklist" [queryParams]="{ view: 'submitted' }">{{ t.viewRequests }}</a>
-    </section>
-
-    <section class="nx-card stat" role="listitem" aria-labelledby="home-card-hierarchies">
-      <h3 id="home-card-hierarchies">{{ t.cardHierarchies }}</h3>
-      @if (home(); as h) {
-        <p class="stat__main">{{ t.cardHierarchiesMain(h.hierarchyCount ?? 0) }}</p>
-        @for (c of (h.hierarchies ?? []).slice(0, 2); track c.code) {
-          <p class="nx-muted">{{ c.name }}</p>
-        }
-      } @else {
-        <div class="nx-skeleton" aria-hidden="true"></div>
-      }
-      <a routerLink="/browse">{{ t.browse }}</a>
-    </section>
-
-    <section class="nx-card stat" role="listitem" aria-labelledby="home-card-changes" data-testid="home-changes">
-      <h3 id="home-card-changes">{{ t.cardChanges }}</h3>
-      @if (home()?.recentChanges; as rc) {
-        <p class="stat__main">{{ t.cardChangesMain(rc.nodesChanged ?? 0) }}</p>
-        <p class="nx-muted">{{ t.changesPeriod(rc.days ?? 7) }}</p>
-        <p class="nx-muted">{{ t.requestsApplied(rc.requestsApplied ?? 0) }}</p>
-      } @else {
-        <div class="nx-skeleton" aria-hidden="true"></div>
-      }
-      <a routerLink="/audit">{{ t.viewActivity }}</a>
-    </section>
-  </div>
-
-  @if (!context.isHistorical()) {
-    <h2 id="home-quick">{{ t.quickActions }}</h2>
-    <nav class="quick" aria-labelledby="home-quick">
-      <a class="quick__action" routerLink="/browse"><span aria-hidden="true">⌘ </span>{{ t.browse }}</a>
-      <a class="quick__action" routerLink="/compare"><span aria-hidden="true">⇄ </span>{{ t.compareVersions }}</a>
-      <a class="quick__action" routerLink="/sandboxes"><span aria-hidden="true">⧉ </span>{{ t.createSandbox }}</a>
-      <a class="quick__action" routerLink="/worklist"><span aria-hidden="true">☰ </span>{{ t.openWorklist }}</a>
-      @if (context.canEverywhere('PROPOSE')) {
-        <ds-button (pressed)="newHierarchy()">{{ change.newHierarchy }}</ds-button>
-      }
-    </nav>
-  }
-
-  <section aria-labelledby="home-hierarchies" data-testid="home-hierarchies">
-    <div class="section-head">
-      <h2 id="home-hierarchies">{{ t.detailsTitle }}</h2>
-      @if ((home()?.hierarchies ?? []).length > 0) {
-        <span class="toggles">
-          <ds-button variant="link" (pressed)="expandAll(true)">{{ t.expandAll }}</ds-button>
-          <ds-button variant="link" (pressed)="expandAll(false)">{{ t.collapseAll }}</ds-button>
-        </span>
-      }
-    </div>
-    @if (home(); as h) {
-      @if ((h.hierarchies ?? []).length === 0) {
-        <p class="nx-muted">{{ t.hierarchiesEmpty }}</p>
-      } @else {
-        <ul class="details">
-          @for (c of h.hierarchies ?? []; track c.code) {
-            <li>
-              <button type="button" class="details__row" [attr.aria-expanded]="expanded().has(c.code ?? '')"
-                      [attr.aria-controls]="'home-h-' + c.code" (click)="toggle(c.code ?? '')">
-                <span aria-hidden="true">{{ expanded().has(c.code ?? '') ? '▾' : '▸' }}</span>
-                <strong>{{ c.name }}</strong>
-                <span class="nx-muted">{{ t.detailsRow(c.code ?? '', c.openRequests ?? 0, t.statusActive) }}</span>
-                @if (c.lastUsed) {
-                  <ds-badge tone="neutral">{{ t.lastUsed }}</ds-badge>
+  <div class="columns">
+    <!-- what to do -->
+    <div class="col col--main">
+      @if (tabs().length > 0) {
+        <section class="nx-card" aria-labelledby="home-work" data-testid="home-worklist">
+          <h2 id="home-work">{{ t.workTitle }}</h2>
+          <ds-tabs [tabs]="tabs()" [label]="t.workTitle" idPrefix="nx-home-work" [(selected)]="tab">
+            @if (items().length === 0) {
+              <p class="nx-muted" data-testid="home-work-empty">{{ t.workEmpty[currentTab()] }}</p>
+            } @else {
+              <ul class="work" data-testid="home-work-items">
+                @for (w of items(); track w.rowId ?? w.changeRequestId) {
+                  <li>
+                    <a [routerLink]="link(w)" class="work__title">{{ w.title }}</a>
+                    <span class="work__stage" [class.work__stage--overdue]="w.isOverdue">
+                      @if (w.isOverdue) {
+                        <span aria-hidden="true">⚠ </span>
+                      }
+                      {{ stageAndDue(w) }}
+                    </span>
+                    @if (w.isUrgent) {
+                      <ds-badge tone="warning">{{ t.urgent }}</ds-badge>
+                    }
+                  </li>
                 }
-              </button>
-              @if (expanded().has(c.code ?? '')) {
-                <div class="details__body" [id]="'home-h-' + c.code">
-                  @if (c.purpose) {
-                    <p class="nx-muted">{{ t.purpose }}: {{ c.purpose }}</p>
-                  }
-                  <a [routerLink]="['/hierarchies', c.code]" queryParamsHandling="merge">{{ t.openHierarchy }}</a>
-                  <a routerLink="/compare" [queryParams]="{ lh: c.code, rh: c.code }">{{ t.compareHierarchy }}</a>
-                  <a routerLink="/audit" [queryParams]="{ hierarchy: c.code }">{{ t.auditHierarchy }}</a>
-                </div>
-              }
-            </li>
-          }
-        </ul>
+              </ul>
+            }
+            <a routerLink="/worklist" class="more">{{ t.viewWorklist }} →</a>
+          </ds-tabs>
+        </section>
       }
-    } @else {
-      <div class="nx-skeleton" aria-hidden="true"></div>
-    }
-  </section>
 
-  <section aria-labelledby="home-activity" data-testid="home-activity">
-    <div class="section-head">
-      <h2 id="home-activity">{{ t.activityTitle }}</h2>
-      <a routerLink="/audit">{{ t.viewActivity }}</a>
-    </div>
-    @if (home(); as h) {
-      @if ((h.recentActivity ?? []).length === 0) {
-        <p class="nx-muted">{{ t.activityEmpty }}</p>
-      } @else {
-        <ul class="activity">
-          @for (a of h.recentActivity ?? []; track a.changeRequestId) {
-            <li>
-              <span class="activity__icon" [class.activity__icon--rejected]="a.status === 'rejected'" aria-hidden="true">
-                {{ a.status === 'rejected' ? '✕' : '✓' }}
-              </span>
-              <span class="activity__text">
-                <a [routerLink]="['/requests', a.changeRequestId]">
-                  {{ a.status === 'rejected' ? t.activityRejected(a.title ?? '') : t.activityApplied(a.title ?? '') }}
-                </a>
-                <span class="nx-muted">{{ t.activityPeople(a.requestedBy ?? '', a.decisionBasis === 'approved_policy' ? t.byPolicy : (a.decidedBy ?? '')) }}</span>
-              </span>
-              <span class="nx-muted activity__when">{{ a.at | nxInstant: timeZone() }}</span>
-            </li>
+      <section class="nx-card" aria-labelledby="home-activity-title" data-testid="home-activity">
+        <div class="section-head">
+          <h2 id="home-activity-title">{{ t.changedTitle }}</h2>
+          <a routerLink="/audit">{{ t.viewActivity }} →</a>
+        </div>
+        @if (home(); as h) {
+          @if (h.recentChanges; as rc) {
+            <p class="nx-muted" data-testid="home-changes">{{ t.changedLine(rc.days ?? 7, rc.nodesChanged ?? 0, rc.requestsApplied ?? 0) }}</p>
           }
-        </ul>
+          @if ((h.recentActivity ?? []).length === 0) {
+            <p class="nx-muted">{{ t.activityEmpty }}</p>
+          } @else {
+            <ul class="activity">
+              @for (a of h.recentActivity ?? []; track a.changeRequestId) {
+                <li>
+                  <span class="activity__icon" [class.activity__icon--rejected]="a.status === 'rejected'" aria-hidden="true">
+                    {{ a.status === 'rejected' ? '✕' : '✓' }}
+                  </span>
+                  <span class="activity__text">
+                    <a [routerLink]="['/requests', a.changeRequestId]">
+                      {{ a.status === 'rejected' ? t.activityRejected(a.title ?? '') : t.activityApplied(a.title ?? '') }}
+                    </a>
+                    <span class="nx-muted">{{ t.activityPeople(a.requestedBy ?? '', a.decisionBasis === 'approved_policy' ? t.byPolicy : (a.decidedBy ?? '')) }}</span>
+                  </span>
+                  <span class="nx-muted activity__when">{{ a.at | nxInstant: timeZone() }}</span>
+                </li>
+              }
+            </ul>
+          }
+        } @else {
+          <div class="nx-skeleton" aria-hidden="true"></div>
+        }
+      </section>
+    </div>
+
+    <!-- where to go -->
+    <div class="col col--side">
+      <section class="nx-card" aria-labelledby="home-continue" data-testid="home-continue">
+        <h2 id="home-continue">{{ t.continueTitle }}</h2>
+        @if (lastHierarchy() || latestDraft() || sandboxes().length > 0) {
+          <ul class="links">
+            @if (lastHierarchy(); as c) {
+              <li><a [routerLink]="['/hierarchies', c.code]" queryParamsHandling="merge">▸ {{ t.continueHierarchy(c.name ?? c.code ?? '') }}</a></li>
+            }
+            @if (latestDraft(); as d) {
+              <li><a [routerLink]="['/requests', d.changeRequestId, 'review']">▸ {{ t.continueDraft(d.title ?? '') }}</a></li>
+            }
+            @for (s of sandboxes(); track s.id) {
+              <li><a [routerLink]="['/sandboxes', s.id]">▸ {{ t.continueSandbox(s.name ?? '') }}</a></li>
+            }
+          </ul>
+        } @else {
+          <p class="nx-muted">{{ t.continueEmpty }}</p>
+        }
+        @if (!context.isHistorical() && context.can('PROPOSE')) {
+          <a routerLink="/sandboxes" class="more">{{ t.newSandbox }} →</a>
+        }
+      </section>
+
+      <section class="nx-card" aria-labelledby="home-hierarchies-title" data-testid="home-hierarchies">
+        <h2 id="home-hierarchies-title">{{ t.hierarchiesTitle }}</h2>
+        @if (home(); as h) {
+          @if ((h.hierarchies ?? []).length === 0) {
+            <p class="nx-muted">{{ t.hierarchiesEmpty }}</p>
+          } @else {
+            <ul class="links">
+              @for (c of h.hierarchies ?? []; track c.code) {
+                <li class="hierarchy">
+                  <a [routerLink]="['/hierarchies', c.code]" queryParamsHandling="merge">{{ c.name }}</a>
+                  <span class="nx-muted">{{ t.openRequests(c.openRequests ?? 0) }}</span>
+                </li>
+              }
+            </ul>
+          }
+          <div class="actions">
+            <a routerLink="/browse">{{ t.allHierarchies }} →</a>
+            @if (!context.isHistorical() && context.canEverywhere('PROPOSE')) {
+              <ds-button (pressed)="newHierarchy()">{{ change.newHierarchy }}</ds-button>
+            }
+          </div>
+        } @else {
+          <div class="nx-skeleton" aria-hidden="true"></div>
+        }
+      </section>
+
+      @if (home()?.governance; as g) {
+        <section class="nx-card" aria-labelledby="home-health" data-testid="home-health">
+          <h2 id="home-health">{{ t.governanceHealth }}</h2>
+          <ul class="links">
+            <li [class.alert]="(g.overdueStages ?? 0) > 0"><a routerLink="/worklist" [queryParams]="{ view: 'overdue' }">{{ t.overdueStages(g.overdueStages ?? 0) }}</a></li>
+            <li [class.alert]="(g.applyFailed ?? 0) > 0">{{ t.applyFailed(g.applyFailed ?? 0) }}</li>
+            <li [class.alert]="(g.accessAwaiting ?? 0) > 0"><a routerLink="/worklist">{{ t.accessAwaiting(g.accessAwaiting ?? 0) }}</a></li>
+          </ul>
+        </section>
       }
-    } @else {
-      <div class="nx-skeleton" aria-hidden="true"></div>
-    }
-  </section>
+    </div>
+  </div>
 
   @if (home()?.policySummary; as rows) {
     <section class="nx-card" aria-labelledby="home-governance" data-testid="home-governance">

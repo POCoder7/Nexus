@@ -15,6 +15,7 @@ import { DEV_TOOLS } from '../dev/dev-identity.providers';
 import { PreferencesStore } from '../preferences.store';
 import { STRINGS } from '../strings';
 import { UiError } from '../ui-error';
+import { HeaderSearchComponent } from './header-search.component';
 import { NavMenuComponent, NavMenuItem } from './nav-menu.component';
 
 /**
@@ -25,7 +26,7 @@ import { NavMenuComponent, NavMenuItem } from './nav-menu.component';
 @Component({
   selector: 'nx-app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgComponentOutlet, DsHeaderComponent, DsDateInputComponent,
-    DsButtonComponent, DsToastHostComponent, ChangeRequestTrayComponent, VersionPickerComponent, NavMenuComponent],
+    DsButtonComponent, DsToastHostComponent, ChangeRequestTrayComponent, VersionPickerComponent, NavMenuComponent, HeaderSearchComponent],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

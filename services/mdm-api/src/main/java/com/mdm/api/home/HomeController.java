@@ -58,6 +58,13 @@ public class HomeController {
     public record RecentChanges(int days, long nodesChanged, long requestsApplied) {
     }
 
+    /**
+     * ADMIN only (Phase 5 LLD §21.1): stages past their due time, requests whose apply failed, and access changes waiting
+     * for a second ADMIN. Null for everyone else.
+     */
+    public record Governance(long overdueStages, long applyFailed, long accessAwaiting) {
+    }
+
     /** A request applied or rejected recently that the user can see (Phase 5 LLD §21). */
     public record ActivityItem(UUID changeRequestId, String title, String status, Instant at, String requestedBy, String decidedBy,
                                String decisionBasis) {
@@ -69,7 +76,9 @@ public class HomeController {
      */
     public record HomeView(WorklistSummary worklist, MyRequests requests, List<HierarchyCard> hierarchies,
                            List<ShadowSummaryRow> policySummary, long hierarchyCount, RecentChanges recentChanges,
-                           List<ActivityItem> recentActivity) {
+                           List<ActivityItem> recentActivity,
+                           /* the work tabs (§21.1): the user's drafts and their requests in flight, top 5 each */
+                           List<WorklistRow> drafts, List<WorklistRow> inFlight, Governance governance) {
     }
 
     private final JdbcClient jdbc;
@@ -95,7 +104,10 @@ public class HomeController {
     public HomeView getHome(Actor actor) {
         WorklistQuery.WorklistPage assigned = worklist.page(actor, "assigned", null, null, WORKLIST_TOP, null);
         return new HomeView(new WorklistSummary(assigned.items(), assigned.counts()), myRequests(actor), hierarchies(actor),
-                isPolicyRole(actor) ? shadowSummary() : null, hierarchyCount(actor), recentChanges(actor), recentActivity(actor));
+                isPolicyRole(actor) ? shadowSummary() : null, hierarchyCount(actor), recentChanges(actor), recentActivity(actor),
+                worklist.page(actor, "drafted", null, null, WORKLIST_TOP, null).items(),
+                worklist.page(actor, "submitted", null, null, WORKLIST_TOP, null).items(),
+                entitlements.hasAny(actor, Permission.ADMIN_SYSTEM) ? governance() : null);
     }
 
     private MyRequests myRequests(Actor actor) {
@@ -187,6 +199,17 @@ public class HomeController {
                         rs.getString("status"), instant(rs.getTimestamp("at")), rs.getString("requested_by"), rs.getString("decided_by"),
                         rs.getString("decision_basis")))
                 .list();
+    }
+
+    /** ADMIN's governance health (§21.1): counted across every hierarchy, since an ADMIN reads them all. */
+    private Governance governance() {
+        return jdbc.sql("""
+                SELECT (SELECT count(*) FROM wf.v_sla_status WHERE stage_overdue) AS overdue,
+                       (SELECT count(*) FROM mdm.change_request WHERE status = 'apply_failed') AS failed,
+                       (SELECT count(DISTINCT cr.change_request_id) FROM mdm.change_request cr
+                        JOIN mdm.change_item ci ON ci.change_request_id = cr.change_request_id
+                        WHERE cr.status = 'submitted' AND mdm.is_access_action(ci.action)) AS access
+                """).query((rs, i) -> new Governance(rs.getLong("overdue"), rs.getLong("failed"), rs.getLong("access"))).single();
     }
 
     private static Instant instant(Timestamp t) {
