@@ -1,0 +1,19 @@
+attribute_code,label,category,data_type,scope,hierarchies,node_filter,required,reference_list,inherited,default_value,derivation,max_length,description
+GL_COMPANY,Oracle GL Company,Finance,STRING,GLOBAL,ORGNEXUS;ORGNHYD;ORGSPI,LEAF,Y,,N,,,4,Oracle general ledger company. Required on active leaves (VR16).
+LEDGER_ID,Oracle Operating Ledger,Finance,STRING,GLOBAL,ORGNEXUS;ORGNHYD;ORGSPI,LEAF,Y,LEDGER,N,,,4,Operating ledger. See ledgers.csv for the ledger currency.
+ACCOUNTING_CURRENCY,Oracle Accounting Currency,Finance,STRING,GLOBAL,ORGNEXUS;ORGNHYD;ORGSPI,LEAF,Y,CURRENCY,N,,,3,Accounting currency. Must match the currency of the ledger (VR17).
+FINANCE_COUNTRY,Finance Country,Finance,STRING,GLOBAL,ORGNEXUS;ORGNHYD;ORGSPI,LEAF,N,FINANCE_COUNTRY,N,,,40,Finance country grouping.
+HEADCOUNT_INDICATOR,Headcount Indicator,HR,BOOLEAN,GLOBAL,ORGNEXUS;ORGNHYD;ORGSPI,LEAF,N,YES_NO,N,,,1,Whether the cost center carries headcount.
+HR_SOLUTIONS_INDICATOR,HR Solutions Indicator,HR,BOOLEAN,GLOBAL,ORGNEXUS;ORGNHYD;ORGSPI,ANY,N,YES_NO,N,,,1,Whether HR Solutions supports the organization.
+TIME_KEEPING_ACCESS,Time Keeping Access Indicator,HR,BOOLEAN,GLOBAL,ORGNEXUS;ORGNHYD;ORGSPI,ANY,N,YES_NO,Y,Y,,1,Inherited from the nearest ancestor in ORGNEXUS.
+STANDARD_WEEKLY_HOURS,Standard Weekly Hours,HR,DECIMAL,GLOBAL,ORGNEXUS;ORGNHYD;ORGSPI,ANY,N,WEEKLY_HOURS,Y,40,,5,Inherited from the nearest ancestor in ORGNEXUS.
+INCLUDE_IN_WORKDAY,Include in Workday,HR,STRING,GLOBAL,ORGNEXUS;ORGNHYD;ORGSPI,ANY,N,WORKDAY,N,WDN,,3,Whether the organization is sent to Workday.
+PENDING_INACTIVATION,Pending Inactivation,Lifecycle,BOOLEAN,GLOBAL,ORGNEXUS;ORGNHYD;ORGSPI,ANY,N,YES_NO,N,N,,1,Flagged for inactivation.
+TBM_FLAG,TBM Flag,Reporting,BOOLEAN,GLOBAL,ORGNEXUS;ORGNHYD;ORGSPI,ANY,N,YES_NO,N,N,,1,Included in Technology Business Management reporting.
+ORIGINATING_AM_DIVISION,Originating AM Org Division,Reporting,STRING,GLOBAL,ORGNEXUS;ORGNHYD;ORGSPI,ANY,N,AM_DIVISION,N,,,40,Asset Management division the organization originated in.
+DEPARTMENT_LEGACY_CODE,Department Legacy Code,Legacy,STRING,GLOBAL,ORGNEXUS;ORGNHYD;ORGSPI,ANY,N,,N,,,20,Code in the legacy department system.
+INCLUDE_IN_REPORTING,Include in Reporting,Reporting,BOOLEAN,LOCAL,ORGNEXUS;ORGNHYD;ORGSPI,ANY,N,YES_NO,N,Y,,1,Synthetic hierarchy-specific (local) flag.
+OC,Operating Company,System,STRING,GLOBAL,ORGNEXUS,ANY,N,,N,,node_code of the level-2 ancestor in ORGNEXUS,5,Derived. Not stored; calculated.
+BG,Business Group,System,STRING,GLOBAL,ORGNEXUS,ANY,N,,N,,node_code of the level-3 ancestor in ORGNEXUS,5,Derived. Not stored; calculated.
+BU,Business Unit,System,STRING,GLOBAL,ORGNEXUS,ANY,N,,N,,node_code of the level-4 ancestor in ORGNEXUS,5,Derived. Not stored; calculated.
+FULL_NAME,Full Name,System,STRING,GLOBAL,ORGNEXUS;ORGNHYD;ORGSPI,ANY,N,,N,,node_code + ' - ' + node_name,70,Derived display name. Not stored; calculated.

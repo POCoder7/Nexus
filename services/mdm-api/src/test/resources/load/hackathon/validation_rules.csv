@@ -1,0 +1,19 @@
+rule_code,rule_name,description,level,mode,severity,applies_to,core_path
+VR00,FEED_FORMAT,"Feed row action must be ADD, UPDATE, MOVE or INACTIVATE and required columns must be present.",FEED,IMPORT,ERROR,ALL,N
+VR01,NAME_REQUIRED,node_name must not be blank.,NODE,BOTH,ERROR,ALL,N
+VR02,CODE_UNIQUE,node_code must be unique within a version (including within a single feed file).,VERSION,BOTH,ERROR,ALL,Y
+VR03,NAME_LENGTH,node_name must be at most 60 characters.,NODE,BOTH,ERROR,ALL,N
+VR04,ValidOrganizationNodeCharacterLimit,Organization leaf codes must be exactly 5 characters and limb codes cannot exceed 5 characters.,NODE,BOTH,ERROR,ALL,N
+VR05,PARENT_EXISTS,The parent node must exist in the target hierarchy.,NODE,REAL_TIME,ERROR,ALL,Y
+VR06,PARENT_IS_LIMB,The parent node must be a LIMB (leaves cannot have children).,NODE,REAL_TIME,ERROR,ALL,Y
+VR07,NO_CYCLES,A node cannot be moved under itself or one of its descendants.,HIERARCHY,REAL_TIME,ERROR,ALL,Y
+VR08,REFERENCE_VALUE,Values of attributes with a reference list must exist in that list.,NODE,BOTH,ERROR,ALL,N
+VR09,ValidOrgOCIsLvl2,Nodes at level 2 must be OCs: code is OC followed by 3 numbers. OC codes may only be used at level 2.,HIERARCHY,BOTH,ERROR,ORGNEXUS,N
+VR10,ValidOrgBGIsLvl3,Limbs at level 3 are BGs: code must be exactly 2 uppercase letters.,HIERARCHY,BOTH,ERROR,ORGNEXUS,N
+VR11,ValidOrgBUIsLvl4,Limbs at level 4 are BUs: code must be exactly 3 uppercase letters.,HIERARCHY,BOTH,ERROR,ORGNEXUS,N
+VR12,ValidOrgLeafNodeGrtrThnLvl4,Leaf nodes must be below level 4 (level 5 or deeper).,HIERARCHY,BOTH,ERROR,ORGNEXUS,N
+VR13,ValidOrgLimbNodeGrtrThnLvl4,Limb codes below level 4 must be 4 or 5 characters long.,HIERARCHY,BOTH,ERROR,ORGNEXUS,N
+VR14,ValidOrgLimbsNot5NumericCharacters,Limb codes must not be 5 numeric characters (that format is reserved for cost centers).,NODE,BOTH,ERROR,ALL,N
+VR15,INACTIVATE_LIMB_WITH_ACTIVE_CHILDREN,A limb with active children cannot be inactive.,HIERARCHY,BOTH,ERROR,ALL,N
+VR16,FINANCE_REQUIRED_ACTIVE_LEAF,"Active leaves must have GL_COMPANY, LEDGER_ID and ACCOUNTING_CURRENCY.",NODE,BOTH,ERROR,ALL,N
+VR17,LEDGER_CURRENCY_MATCH,ACCOUNTING_CURRENCY should equal the currency of the node's ledger (ledgers.csv).,NODE,BOTH,WARNING,ALL,N

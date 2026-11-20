@@ -1,0 +1,5 @@
+version_code,version_name,status,description
+FY2024,FY 2024-25 Final,expired,Year-end structure for FY 2024-25
+FY2025,FY 2025-26 Final,finalized,Year-end structure for FY 2025-26
+FY2026_Q2,FY 2026-27 Q2 Close,finalized,Structure at the Q2 close
+FY2026_WORK,FY 2026-27 Working,working,Current working version; the sample nodes load here

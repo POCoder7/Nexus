@@ -1,0 +1,60 @@
+node_code,node_name,description,node_type,status
+ORGNX,Nexus Organization,Top node of ORGNEXUS,LIMB,active
+OC100,Corporate Center,Operating company for group functions,LIMB,active
+OC200,Asset Management,Operating company for asset management,LIMB,active
+OC300,Wealth Services,Operating company for private banking,LIMB,active
+CF,Corporate Finance,Business group,LIMB,active
+TS,Technology Services,Business group,LIMB,active
+EQ,Equities,Business group,LIMB,active
+FI,Fixed Income,Business group,LIMB,active
+PB,Private Banking,Business group,LIMB,active
+FPA,Financial Planning,Business unit,LIMB,active
+ACC,Accounting,Business unit,LIMB,active
+INF,Infrastructure,Business unit,LIMB,active
+APP,Applications,Business unit,LIMB,active
+EQR,Equity Research,Business unit,LIMB,active
+EQT,Equity Trading,Business unit,LIMB,active
+FIR,Rates,Business unit,LIMB,active
+FIC,Credit,Business unit,LIMB,active
+PBN,Private Banking North,Business unit,LIMB,active
+PBS,Private Banking South,Business unit,LIMB,active
+APDV,Application Development,Grouping below a business unit,LIMB,active
+CRIG,Investment Grade Credit,Grouping below a business unit,LIMB,active
+CRHY,High Yield Credit,Grouping below a business unit,LIMB,active
+10110,FP and A Group,Cost center,LEAF,active
+10120,FP and A Regional,Cost center,LEAF,active
+10210,General Accounting,Cost center,LEAF,active
+10220,Tax,Cost center,LEAF,active
+10230,Regulatory Reporting,Cost center (pending inactivation),LEAF,active
+11110,Data Centers,Cost center,LEAF,active
+11120,Network Services,Cost center,LEAF,active
+11130,End User Computing,Cost center,LEAF,active
+11210,Front Office Applications,Cost center,LEAF,active
+11220,Back Office Applications,Cost center,LEAF,active
+11230,Application Support,Cost center,LEAF,active
+20110,Equity Research Americas,Cost center,LEAF,active
+20120,Equity Research Europe,Cost center,LEAF,active
+20210,Equity Trading Desk,Cost center,LEAF,active
+20220,Equity Derivatives,Cost center,LEAF,active
+21110,Government Rates,Cost center,LEAF,active
+21120,Inflation Linked,Cost center,LEAF,active
+21210,IG Credit Trading,Cost center,LEAF,active
+21220,IG Credit Research,Cost center,LEAF,active
+21230,High Yield Trading,Cost center,LEAF,active
+30110,PB North Advisory,Cost center,LEAF,active
+30120,PB North Lending,Cost center,LEAF,active
+30210,PB South Advisory,Cost center,LEAF,active
+30220,PB South Lending,Cost center (closed),LEAF,inactive
+ORGNH,Nexus Hyd Organization,Top node of ORGNHYD,LIMB,active
+TPAM,Americas,Planning region,LIMB,active
+TPEU,Europe,Planning region,LIMB,active
+TPAMC,Americas Corporate,Planning group,LIMB,active
+TPAMB,Americas Business,Planning group,LIMB,active
+TPEUC,Europe Corporate,Planning group,LIMB,active
+TPEUB,Europe Business,Planning group,LIMB,active
+ORGSP,Spices Org Alternate hierarchy,Top node of ORGSPI,LIMB,active
+AMEQ,AM Equities,Division,LIMB,active
+AMFI,AM Fixed Income,Division,LIMB,active
+AMFIR,AM Rates,Division group,LIMB,active
+AMFIC,AM Credit,Division group,LIMB,active
+AMSUP,AM Support,Shared support cost centers,LIMB,active

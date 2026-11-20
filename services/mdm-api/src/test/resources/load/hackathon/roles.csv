@@ -1,0 +1,6 @@
+role,permissions
+VIEWER,"Browse hierarchies, attributes, versions and audit; no changes"
+EDITOR,"VIEWER + create draft changes, import feeds, submit change requests for hierarchies of their groups"
+APPROVER,"VIEWER + approve or reject submitted change requests for hierarchies of their groups"
+ADMIN,"Everything: users, groups, attribute and rule definitions, workflow override, publish"
+CONSUMER,"Read published output only; no access to working versions"

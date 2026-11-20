@@ -1,0 +1,4 @@
+ledger_id,ledger_name,currency,finance_country
+L100,US Primary Ledger,USD,USA
+L200,UK Primary Ledger,GBP,GBR
+L300,EU Primary Ledger,EUR,DEU

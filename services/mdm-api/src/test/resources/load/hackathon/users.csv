@@ -1,0 +1,11 @@
+user_id,display_name,role,groups,notes
+u_admin,Administrator,ADMIN,ALL,Can do Everything
+u_editor1,Org Editor One,EDITOR,ORG_EDITORS,Edits ORGNEXUS and ORGNHYD
+u_editor2,AM Editor One,EDITOR,AM_EDITORS,Edits ORGSPI
+u_editor3,Org and AM Editor,EDITOR,ORG_EDITORS;AM_EDITORS,Edits all three hierarchies
+u_approver1,Org Approver One,APPROVER,ORG_APPROVERS,Approves ORGNEXUS and ORGNHYD
+u_approver2,AM Approver One,APPROVER,AM_APPROVERS,Approves ORGSPI
+u_approver3,Org Approver Two,APPROVER,ORG_APPROVERS,Second Org approver for cover
+u_viewer,Read Only Viewer,VIEWER,ALL_VIEWERS,Browses all hierarchies
+u_auditor,Audit Viewer,VIEWER,ALL_VIEWERS,Reviews history and audit
+svc_dw_consumer,Data Warehouse Feed,CONSUMER,DOWNSTREAM,Service account; reads published output only

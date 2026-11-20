@@ -407,6 +407,32 @@ Each file is staged with `COPY` into `mdm_stage.hx_<file>` (all `text` columns, 
 
 Any finding of severity `error` blocks `load prepare`.
 
+**Built in H-5 (2026-11-20), in V19.**
+- **Formats as data.** `mdm_stage.hx_file` holds each file's name, staging table, columns in order, whether it is
+  required (hierarchies, nodes and relationships are) and its load order.
+- **Staging tables.** One `hx_*` table per file: every column is `text`, trimmed, with blank stored as NULL, plus
+  `batch_id` and the file's line number (the header is line 1). `intake_batch` records each file per load (`load_id`)
+  with its SHA-256. Staging a file again replaces the earlier copy.
+- **Writes go through the loader role.** `nexus_loader` (new group role) owns `mdm_stage.stage_file` and
+  `mdm_stage.profile`; both are SECURITY DEFINER and callable by `nexus_api`. The API cannot write the staging tables
+  itself.
+- **Refusals.** An unknown file is N2812 `load.unknown_file`; a header that differs from the format is N2813
+  `load.header_mismatch`. A row with the wrong number of fields is not staged and becomes a `row_width` error.
+- **Profiling.** Findings go to `profile_finding` with file, line, severity, kind and detail:
+  - required fields;
+  - duplicates (codes, placements, values);
+  - enumerations (types, scopes, levels, modes, severities, statuses, roles);
+  - references between files;
+  - the top node;
+  - a LEAF parent (VR06);
+  - value scope, Y/N for booleans, list values (VR08) and derived values;
+  - notices: skipped derived attributes and FEED rules, several working versions, ledgers missing from the LEDGER list,
+    and unplaced nodes.
+- **Java.** `HackathonIntake` stages each file on its own, so a rejected file does not stop the others, then profiles
+  the load. `CsvReader` is RFC 4180 with the JDK only. The sample is a tracked test fixture in
+  `src/test/resources/load/hackathon/` (synthetic); it stages with no errors and 5 skip notices.
+- **Not done yet.** An HTTP endpoint for intake comes with the load runs and the screen (H-6, H-8).
+
 ### 17.2 Display name (D1) — V16
 ```sql
 ALTER TABLE mdm.node_attr ADD COLUMN display_name text;      -- NULL = show node_name; not unique; bitemporal with the row

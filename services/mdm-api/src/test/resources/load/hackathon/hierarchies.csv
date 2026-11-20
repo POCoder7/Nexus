@@ -1,0 +1,4 @@
+hierarchy_code,hierarchy_name,top_node_code,description
+ORGNEXUS,Nexus Organization,ORGNX,Primary organization hierarchy: OC (level 2) > BG (level 3) > BU (level 4) > cost centers
+ORGNHYD,Nexus Hyd Organization,ORGNH,Alternate view of the same cost centers by planning region
+ORGSPI,Spices Org Alternate hierarchy,ORGSP,Alternate view of the Asset Management cost centers by division

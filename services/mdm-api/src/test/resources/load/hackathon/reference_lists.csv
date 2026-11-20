@@ -1,0 +1,21 @@
+list_code,value,label
+LEDGER,L100,US Primary Ledger
+LEDGER,L200,UK Primary Ledger
+LEDGER,L300,EU Primary Ledger
+CURRENCY,USD,US Dollar
+CURRENCY,GBP,Pound Sterling
+CURRENCY,EUR,Euro
+FINANCE_COUNTRY,USA,United States
+FINANCE_COUNTRY,GBR,United Kingdom
+FINANCE_COUNTRY,DEU,Germany
+YES_NO,Y,Yes
+YES_NO,N,No
+WEEKLY_HOURS,35,35 hours
+WEEKLY_HOURS,37.5,37.5 hours
+WEEKLY_HOURS,40,40 hours
+WORKDAY,WDY,Sent to Workday
+WORKDAY,WDN,Not sent to Workday
+WORKDAY,WDP,Pending set-up in Workday
+AM_DIVISION,EQUITIES,Equities
+AM_DIVISION,FIXED_INCOME,Fixed Income
+AM_DIVISION,MULTI_ASSET,Multi Asset
