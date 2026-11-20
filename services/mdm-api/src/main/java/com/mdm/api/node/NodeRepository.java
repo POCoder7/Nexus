@@ -82,6 +82,12 @@ public class NodeRepository {
                        CAST(:asOf AS date),
                        coalesce(CAST(:rec AS timestamptz), now())) x
                 JOIN mdm.property_definition pd ON pd.property_id = x.property_id
+                -- only properties that apply here (ADR-046 D2); a value stored here is always shown, even if it no
+                -- longer applies, so it can be seen and cleared
+                WHERE x.provenance = 'stored'
+                   OR mdm.property_applies(x.property_id, CAST(:id AS uuid),
+                        (SELECT h.hierarchy_id FROM mdm.hierarchy h WHERE h.hierarchy_code = CAST(:code AS text)),
+                        CAST(:asOf AS date))
                 ORDER BY pd.category_code NULLS LAST, pd.label
                 """)
                 .param("id", nodeId)

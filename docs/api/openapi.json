@@ -1732,6 +1732,12 @@
       },
       "PropertyDefinitionView" : {
         "properties" : {
+          "appliesTo" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "category" : {
             "type" : "string"
           },
@@ -1761,6 +1767,9 @@
               "type" : "string"
             },
             "type" : "array"
+          },
+          "nodeFilter" : {
+            "type" : "string"
           },
           "origin" : {
             "type" : "string"

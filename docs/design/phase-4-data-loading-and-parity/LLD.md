@@ -462,6 +462,22 @@ Existing values are untouched, because the check runs on write only. A validatio
 later stop applying, for example after a move. The property grid and the definitions API return `appliesTo` and
 `nodeFilter`, and the grid offers only applicable properties.
 
+**Built in H-2 (2026-11-20), in V16.**
+- **One definition of "applies".** `mdm.property_applies(property, node, hierarchy, date)` is the single definition,
+  used by both the guard and the grid. Its hierarchy argument is the value's own hierarchy, or the hierarchy the node is
+  viewed in. NULL means "placed in any listed hierarchy".
+- **Separate trigger.** The guard is its own trigger, `property_value_applies`, rather than an edit to V1's
+  `trg_property_value_check`. It checks a value on its first day.
+- **Re-stated rows are not checked again.** These are rows `apply_fact` closes and re-inserts in the same instant, with
+  the same value inside the old period. So tightening a definition never blocks changes to other periods. An earlier
+  attempt keyed this on the `mdm.apply_date` setting, but that setting stays set for the rest of the transaction.
+- **Blanks.** An explicit blank (JSON null) is always allowed.
+- **The grid.** It still shows a value stored on the node even when the property no longer applies, so the value can
+  be seen and cleared. Applicability is judged against the current belief, even when the grid shows an earlier recorded
+  time.
+- **Gap.** The sandbox overlay's property grid is not filtered yet: nodes added in a sandbox have no live attributes to
+  judge them by.
+
 ### 17.4 Ledgers (D4) — V16
 ```sql
 CREATE TABLE mdm.ledger (

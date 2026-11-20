@@ -27,10 +27,15 @@ public class PropertyDefinitionController {
 
     private static final Set<String> ORIGINS = Set.of("stored", "derived", "system");
 
-    /** A definition. For a derived property, its engine, its expression and the original DRM formula it replaces. */
+    /**
+     * A definition. For a derived property, its engine, its expression and the original DRM formula it replaces.
+     * {@code nodeFilter} (any, leaf, limb) and {@code appliesTo} (hierarchy codes; empty = every hierarchy) say where it
+     * may hold a value (ADR-046 D2).
+     */
     public record PropertyDefinitionView(String code, String label, String category, String dataType, String scope,
                                          String origin, String inheritance, String derivationEngine, String derivationExpr,
-                                         String drmFormulaOrig, List<String> listValues) {
+                                         String drmFormulaOrig, List<String> listValues,
+                                         String nodeFilter, List<String> appliesTo) {
     }
 
     private final JdbcClient jdbc;
@@ -62,7 +67,10 @@ public class PropertyDefinitionController {
                        pd.origin::text AS origin, pd.inheritance::text AS inheritance, pd.derivation_engine, pd.derivation_expr,
                        pd.drm_formula_orig,
                        (SELECT array_agg(lv.list_value ORDER BY lv.sort_seq NULLS LAST, lv.list_value) FROM mdm.property_list_value lv
-                        WHERE lv.property_id = pd.property_id AND lv.is_active) AS list_values
+                        WHERE lv.property_id = pd.property_id AND lv.is_active) AS list_values,
+                       pd.node_filter,
+                       (SELECT array_agg(h.hierarchy_code ORDER BY h.hierarchy_code) FROM mdm.property_hierarchy ph
+                        JOIN mdm.hierarchy h ON h.hierarchy_id = ph.hierarchy_id WHERE ph.property_id = pd.property_id) AS applies_to
                 FROM mdm.property_definition pd
                 WHERE (CAST(:origin AS text) IS NULL OR pd.origin::text = :origin)
                   AND (CAST(:after AS text) IS NULL OR pd.property_code COLLATE "C" > CAST(:after AS text) COLLATE "C")
@@ -72,10 +80,12 @@ public class PropertyDefinitionController {
                 .param("origin", origin).param("after", after == null ? null : after.get(0)).param("limit", limit + 1)
                 .query((rs, i) -> {
                     java.sql.Array lv = rs.getArray("list_values");
+                    java.sql.Array at = rs.getArray("applies_to");
                     return new PropertyDefinitionView(rs.getString("property_code"), rs.getString("label"),
                             rs.getString("category_code"), rs.getString("data_type"), rs.getString("scope"), rs.getString("origin"),
                             rs.getString("inheritance"), rs.getString("derivation_engine"), rs.getString("derivation_expr"),
-                            rs.getString("drm_formula_orig"), lv == null ? List.of() : Arrays.asList((String[]) lv.getArray()));
+                            rs.getString("drm_formula_orig"), lv == null ? List.of() : Arrays.asList((String[]) lv.getArray()),
+                            rs.getString("node_filter"), at == null ? List.of() : Arrays.asList((String[]) at.getArray()));
                 })
                 .list();
         return Page.of(rows, limit, d -> cursors.encode(d.code()));
