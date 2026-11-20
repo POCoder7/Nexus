@@ -28,6 +28,8 @@ CREATE INDEX node_attr_name_trgm ON mdm.node_attr USING gin (node_name public.gi
   WHERE upper_inf(recorded_period);
 CREATE INDEX node_attr_description_trgm ON mdm.node_attr USING gin (description public.gin_trgm_ops)
   WHERE upper_inf(recorded_period) AND description IS NOT NULL;
+CREATE INDEX node_attr_display_trgm ON mdm.node_attr USING gin (display_name public.gin_trgm_ops)   -- ADR-046 D1
+  WHERE upper_inf(recorded_period) AND display_name IS NOT NULL;
 
 -- PRP-09 / SEC-03 edit side (ADR-036): a grant may be limited to property categories. The column is
 -- mdm.user_role.category_codes, defined in V8 since ADR-042 (groups' scopes have it too, and V8's effective_grants reads it).

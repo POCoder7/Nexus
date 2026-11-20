@@ -46,11 +46,11 @@ public class SearchController {
     }
 
     /**
-     * A node in one hierarchy (a node placed in three hierarchies is three hits). {@code matched}: name, description or
-     * identifier; {@code parentName}: its primary parent there (null for the top); {@code shared}: it also has a shared
+     * A node in one hierarchy (a node placed in three hierarchies is three hits). {@code matched}: name, displayName, description
+     * or identifier; {@code parentName}: its primary parent there (null for the top); {@code shared}: it also has a shared
      * placement in that hierarchy.
      */
-    public record NodeHit(UUID nodeId, String name, String description, String matched, String hierarchyCode,
+    public record NodeHit(UUID nodeId, String name, String displayName, String description, String matched, String hierarchyCode,
                           String hierarchyName, String parentName, boolean shared) {
     }
 
@@ -139,24 +139,26 @@ public class SearchController {
         if (several) {
             // every word must appear (full text, 'simple': no stemming); names and descriptions together
             if (fields.contains("name") || fields.contains("description")) {
-                match.append(" OR to_tsvector('simple', a.node_name || ' ' || coalesce(a.description, '')) @@ plainto_tsquery('simple', :q)");
+                match.append(" OR to_tsvector('simple', a.node_name || ' ' || coalesce(a.display_name, '') || ' ' || coalesce(a.description, '')) @@ plainto_tsquery('simple', :q)");
             }
         } else {
-            if (fields.contains("name")) match.append(" OR a.node_name ILIKE :like");
+            if (fields.contains("name")) match.append(" OR a.node_name ILIKE :like OR a.display_name ILIKE :like");
             if (fields.contains("description")) match.append(" OR a.description ILIKE :like");
         }
         String identifiers = fields.contains("identifier") ? """
                   UNION ALL
-                  SELECT i.node_id, a.node_name, a.description, 0 AS rank, 'identifier' AS matched
+                  SELECT i.node_id, a.node_name, a.display_name, a.description, 0 AS rank, 'identifier' AS matched
                   FROM mdm.node_identifier i
                   JOIN mdm.node_attr a ON a.node_id = i.node_id AND a.valid_period @> CAST(:on AS date) AND %s
                   WHERE lower(i.identifier_value) = lower(:q) AND i.valid_period @> CAST(:on AS date) AND %s
                 """.formatted(slice.recorded("a"), slice.recorded("i")) : "";
         String sql = """
                 WITH matched AS (
-                  SELECT a.node_id, a.node_name, a.description,
-                         CASE WHEN lower(a.node_name) = lower(:q) THEN 1 WHEN lower(a.node_name) LIKE :prefix THEN 2 ELSE 3 END AS rank,
-                         CASE WHEN a.node_name ILIKE :like THEN 'name' ELSE 'description' END AS matched
+                  SELECT a.node_id, a.node_name, a.display_name, a.description,
+                         CASE WHEN lower(a.node_name) = lower(:q) OR lower(a.display_name) = lower(:q) THEN 1
+                              WHEN lower(a.node_name) LIKE :prefix OR lower(a.display_name) LIKE :prefix THEN 2 ELSE 3 END AS rank,
+                         CASE WHEN a.node_name ILIKE :like THEN 'name' WHEN a.display_name ILIKE :like THEN 'displayName'
+                              ELSE 'description' END AS matched
                   FROM mdm.node_attr a
                   WHERE a.valid_period @> CAST(:on AS date) AND %s AND (%s)
                   %s
@@ -171,7 +173,7 @@ public class SearchController {
                      OR EXISTS (SELECT 1 FROM mdm.hierarchy_relationship r WHERE r.hierarchy_id = h.hierarchy_id
                                 AND r.child_node_id = b.node_id AND r.valid_period @> CAST(:on AS date) AND %s)
                 )
-                SELECT p.node_id, p.node_name, p.description, p.matched, p.hierarchy_code, p.hierarchy_name, p.rank,
+                SELECT p.node_id, p.node_name, p.display_name, p.description, p.matched, p.hierarchy_code, p.hierarchy_name, p.rank,
                        (SELECT pa.node_name FROM mdm.hierarchy_relationship r
                         JOIN mdm.node_attr pa ON pa.node_id = r.parent_node_id AND pa.valid_period @> CAST(:on AS date) AND %s
                         WHERE r.hierarchy_id = p.hierarchy_id AND r.child_node_id = p.node_id AND r.is_primary
@@ -193,7 +195,7 @@ public class SearchController {
                 .param("cn", after == null ? null : after.get(1)).param("ci", after == null ? null : after.get(2))
                 .param("ch", after == null ? null : after.get(3)).param("limit", limit + 1)
                 .query((rs, i) -> new Object[] {new NodeHit(rs.getObject("node_id", UUID.class), rs.getString("node_name"),
-                        rs.getString("description"), rs.getString("matched"), rs.getString("hierarchy_code"),
+                        rs.getString("display_name"), rs.getString("description"), rs.getString("matched"), rs.getString("hierarchy_code"),
                         rs.getString("hierarchy_name"), rs.getString("parent_name"), rs.getBoolean("shared")), rs.getInt("rank")})
                 .list();
         boolean more = rows.size() > limit;

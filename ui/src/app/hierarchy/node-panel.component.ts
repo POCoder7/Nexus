@@ -1,3 +1,4 @@
+import { nodeLabel } from '../shared/format/node-label';
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 import type { NodeDetail, NodeRef, PropertyValue } from '../api/generated/models';
 import { STRINGS } from '../core/strings';
@@ -21,6 +22,8 @@ import { PropertyGridComponent } from './property-grid.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NodePanelComponent {
+  /** "display name · code" (ADR-046 D1). */
+  protected readonly label = nodeLabel;
   readonly detail = input<NodeDetail | null>(null);
   readonly path = input<NodeRef[]>([]);
   readonly sourceNames = input<Record<string, string>>({});

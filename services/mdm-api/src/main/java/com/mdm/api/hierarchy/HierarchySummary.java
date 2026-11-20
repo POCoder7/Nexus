@@ -11,6 +11,8 @@ public record HierarchySummary(
         String group,
         UUID topNodeId,
         String topNodeName,
+        String topNodeDisplayName,   // ADR-046 D1
+        String description,         // ADR-046 D8
         UUID hierarchyId,
         @JsonIgnore int sortKey) {
 }

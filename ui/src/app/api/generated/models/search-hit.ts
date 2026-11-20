@@ -3,6 +3,7 @@
 
 import { NodeRef } from '../models/node-ref';
 export interface SearchHit {
+  displayName?: string;
   name?: string;
   nodeId?: string;
   path?: Array<NodeRef>;

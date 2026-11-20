@@ -23,6 +23,8 @@ public class HierarchyRepository {
             rs.getString("hierarchy_group"),
             rs.getObject("top_node_id", UUID.class),
             rs.getString("top_node_name"),
+            rs.getString("top_node_display_name"),
+            rs.getString("description"),
             rs.getObject("hierarchy_id", UUID.class),
             rs.getInt("sort_key"));
 
@@ -34,8 +36,8 @@ public class HierarchyRepository {
 
     private static String select(Slice slice) {
         return """
-                SELECT h.hierarchy_id, h.hierarchy_code, h.hierarchy_name, h.purpose, h.hierarchy_group,
-                       h.top_node_id, a.node_name AS top_node_name, coalesce(h.sort_seq, %d) AS sort_key
+                SELECT h.hierarchy_id, h.hierarchy_code, h.hierarchy_name, h.description, h.purpose, h.hierarchy_group,
+                       h.top_node_id, a.node_name AS top_node_name, a.display_name AS top_node_display_name, coalesce(h.sort_seq, %d) AS sort_key
                 FROM mdm.hierarchy h
                 LEFT JOIN mdm.node_attr a
                        ON a.node_id = h.top_node_id
@@ -86,7 +88,7 @@ public class HierarchyRepository {
     }
 
     /** A node with its name, as one step of a path or a search hit. */
-    public record NodeRef(UUID nodeId, String name) {
+    public record NodeRef(UUID nodeId, String name, String displayName) {
     }
 
     /**
@@ -96,9 +98,10 @@ public class HierarchyRepository {
      */
     public List<NodeRef> search(UUID hierarchyId, String text, Slice slice, List<String> after, int limit) {
         return jdbc.sql("""
-                SELECT a.node_id, a.node_name
+                SELECT a.node_id, a.node_name, a.display_name
                 FROM mdm.node_attr a
-                WHERE (a.node_name ILIKE :pattern ESCAPE '\\' OR a.description ILIKE :pattern ESCAPE '\\')
+                WHERE (a.node_name ILIKE :pattern ESCAPE '\\' OR a.display_name ILIKE :pattern ESCAPE '\\'
+                       OR a.description ILIKE :pattern ESCAPE '\\')
                   AND a.valid_period @> CAST(:asOf AS date)
                   AND %s
                   AND (a.node_id = (SELECT top_node_id FROM mdm.hierarchy WHERE hierarchy_id = :h)
@@ -117,7 +120,7 @@ public class HierarchyRepository {
                 .param("afterName", after == null ? null : after.get(0))
                 .param("afterId", after == null ? null : after.get(1))
                 .param("limit", limit + 1)
-                .query((rs, i) -> new NodeRef(rs.getObject("node_id", UUID.class), rs.getString("node_name")))
+                .query((rs, i) -> new NodeRef(rs.getObject("node_id", UUID.class), rs.getString("node_name"), rs.getString("display_name")))
                 .list();
     }
 
@@ -138,7 +141,7 @@ public class HierarchyRepository {
                    AND r.valid_period @> CAST(:asOf AS date) AND %s
                   WHERE up.depth < 1000
                 )
-                SELECT up.node_id, a.node_name
+                SELECT up.node_id, a.node_name, a.display_name
                 FROM up
                 LEFT JOIN mdm.node_attr a ON a.node_id = up.node_id AND a.valid_period @> CAST(:asOf AS date) AND %s
                 ORDER BY up.depth DESC
@@ -147,7 +150,7 @@ public class HierarchyRepository {
                 .param("h", hierarchyId)
                 .param("asOf", slice.asOf())
                 .param("rec", slice.recBind())
-                .query((rs, i) -> new NodeRef(rs.getObject("node_id", UUID.class), rs.getString("node_name")))
+                .query((rs, i) -> new NodeRef(rs.getObject("node_id", UUID.class), rs.getString("node_name"), rs.getString("display_name")))
                 .list();
         UUID top = jdbc.sql("SELECT top_node_id FROM mdm.hierarchy WHERE hierarchy_id = :h").param("h", hierarchyId)
                 .query(UUID.class).single();
@@ -204,7 +207,7 @@ public class HierarchyRepository {
      */
     public List<ChildNode> findChildren(String hierarchyCode, UUID parentId, Slice slice, List<String> after, int limit) {
         return jdbc.sql("""
-                SELECT r.child_node_id, a.node_name, a.description,
+                SELECT r.child_node_id, a.node_name, a.display_name, a.description,
                        coalesce(a.is_active, false) AS is_active,
                        r.is_primary, r.sort_order,
                        EXISTS (SELECT 1 FROM mdm.hierarchy_relationship c
@@ -239,6 +242,7 @@ public class HierarchyRepository {
                 .query((rs, i) -> new ChildNode(
                         rs.getObject("child_node_id", UUID.class),
                         rs.getString("node_name"),
+                        rs.getString("display_name"),
                         rs.getString("description"),
                         rs.getBoolean("is_active"),
                         rs.getBoolean("is_primary"),

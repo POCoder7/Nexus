@@ -214,6 +214,7 @@ INSERT INTO demo_node VALUES
   ('00000000-0000-0000-0000-00000000d101', 'ORGTL', 'Demo Legal Region A',    'structural',   true,  '00000000-0000-0000-0000-00000000d100', 1),
   ('00000000-0000-0000-0000-00000000d102', 'ORGTL', 'Demo Legal Entity A1',   'legal_entity', false, '00000000-0000-0000-0000-00000000d101', 1),
   ('00000000-0000-0000-0000-00000000d103', 'ORGTL', 'Demo Legal Entity A2',   'legal_entity', false, '00000000-0000-0000-0000-00000000d101', 2),
+  ('00000000-0000-0000-0000-00000000d104', 'ORGTL', '91110',                  'structural',   false, '00000000-0000-0000-0000-00000000d101', 3),   -- a coded node with a display name (ADR-046)
   ('00000000-0000-0000-0000-00000000d200', 'ORGTP', 'Demo Org Profit Top',    'structural',   true,  NULL, 1),
   ('00000000-0000-0000-0000-00000000d201', 'ORGTP', 'Demo Profit Centre P1',  'structural',   true,  '00000000-0000-0000-0000-00000000d200', 1),
   ('00000000-0000-0000-0000-00000000d202', 'ORGTP', 'Demo Profit Centre P2',  'structural',   true,  '00000000-0000-0000-0000-00000000d200', 2),
@@ -221,8 +222,9 @@ INSERT INTO demo_node VALUES
   ('00000000-0000-0000-0000-00000000d301', 'AMBUS', 'Demo Business Line B1',  'structural',   true,  '00000000-0000-0000-0000-00000000d300', 1),
   ('00000000-0000-0000-0000-00000000d302', 'AMBUS', 'Demo Business Line B2',  'structural',   true,  '00000000-0000-0000-0000-00000000d300', 2);
 INSERT INTO mdm.node (node_id, node_kind) SELECT id, kind FROM demo_node;
-INSERT INTO mdm.node_attr (node_id, node_name, description, allows_children, valid_period)
-SELECT id, name, 'Synthetic demo node', limb, daterange('2020-01-01', NULL) FROM demo_node;
+INSERT INTO mdm.node_attr (node_id, node_name, display_name, description, allows_children, valid_period)
+SELECT id, name, CASE WHEN name = '91110' THEN 'Demo Cost Centre' END, 'Synthetic demo node', limb, daterange('2020-01-01', NULL)
+FROM demo_node;
 INSERT INTO mdm.hierarchy (hierarchy_code, hierarchy_name, purpose, top_node_id, allow_shared_nodes, requires_workflow, sort_seq) VALUES
   ('ORGTL', 'Demo Org Legal',    'legal_consolidation', '00000000-0000-0000-0000-00000000d100', false, false, 11),
   ('ORGTP', 'Demo Org Profit',   'management',          '00000000-0000-0000-0000-00000000d200', false, false, 12),

@@ -14,7 +14,10 @@
     </div>
   } @else if (detail(); as d) {
     <header class="head">
-      <h2 class="nx-identifier" data-testid="node-name">{{ d.name }}</h2>
+      <h2 [class.nx-identifier]="!d.displayName" data-testid="node-name">{{ d.displayName ?? d.name }}</h2>
+      @if (d.displayName) {
+        <p class="nx-identifier nx-muted" data-testid="node-code">{{ d.name }}</p>
+      }
       <div class="facts">
         <span>{{ t.kind }}: {{ d.kind }}</span>
         <ds-badge [tone]="d.allowsChildren ? 'neutral' : 'info'">{{ d.allowsChildren ? t.limb : t.leaf }}</ds-badge>
@@ -70,9 +73,9 @@
           @for (p of path(); track p.nodeId; let last = $last) {
             <li>
               @if (last) {
-                <span aria-current="location">{{ p.name }}</span>
+                <span aria-current="location">{{ label(p) }}</span>
               } @else {
-                <button type="button" class="link" (click)="openNode.emit(p.nodeId!)">{{ p.name }}</button>
+                <button type="button" class="link" (click)="openNode.emit(p.nodeId!)">{{ label(p) }}</button>
               }
             </li>
           }

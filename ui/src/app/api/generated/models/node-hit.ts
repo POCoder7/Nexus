@@ -3,6 +3,7 @@
 
 export interface NodeHit {
   description?: string;
+  displayName?: string;
   hierarchyCode?: string;
   hierarchyName?: string;
   matched?: string;

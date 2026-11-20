@@ -74,7 +74,7 @@ export class NodeStore {
       this.changedCodes.set(new Set((s.properties ?? []).filter((p) => p.changed).map((p) => p.code!)));
     }
     return {
-      nodeId: s.nodeId, kind: s.kind, name: s.name, description: s.description, active: s.active,
+      nodeId: s.nodeId, kind: s.kind, name: s.name, displayName: s.displayName, description: s.description, active: s.active,
       allowsChildren: s.allowsChildren,
       properties: (s.properties ?? []).map((p) => ({ code: p.code, label: p.label, dataType: p.dataType, scope: p.scope,
         value: p.value, provenance: p.provenance, sourceNodeId: p.sourceNodeId, category: p.category })),

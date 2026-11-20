@@ -7,6 +7,7 @@ import java.util.UUID;
 public record ChildNode(
         UUID nodeId,
         String name,
+        String displayName,   // ADR-046 D1; null = show the name
         String description,
         boolean active,
         boolean primary,

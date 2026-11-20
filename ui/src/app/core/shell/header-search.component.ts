@@ -1,3 +1,4 @@
+import { nodeLabel } from '../../shared/format/node-label';
 import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { NexusApi } from '../../api/nexus-api';
@@ -49,7 +50,7 @@ const REQUESTS_SHOWN = 3;
                   @for (n of (r.nodes?.items ?? []).slice(0, nodesShown); track n.nodeId + '-' + n.hierarchyCode) {
                     <li>
                       <a [routerLink]="['/hierarchies', n.hierarchyCode]" [queryParams]="{ node: n.nodeId }" queryParamsHandling="merge"
-                         (click)="close()">{{ n.name }}</a>
+                         (click)="close()">{{ label(n) }}</a>
                       <span class="nx-muted"> {{ t.inHierarchy(n.hierarchyCode ?? '') }}</span>
                     </li>
                   }
@@ -92,6 +93,8 @@ const REQUESTS_SHOWN = 3;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HeaderSearchComponent {
+  /** "display name · code" (ADR-046 D1). */
+  protected readonly label = nodeLabel;
   private readonly api = inject(NexusApi);
   private readonly router = inject(Router);
   private readonly context = inject(ContextStore);

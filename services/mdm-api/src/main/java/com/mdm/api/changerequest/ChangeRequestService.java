@@ -347,7 +347,11 @@ public class ChangeRequestService {
         return cr;
     }
 
-    /** The requester, or someone who can read every hierarchy its items touch (a request with no items is private). */
+    /**
+     * The requester, or someone who can read every hierarchy its items touch (a request with no items is private). An item
+     * with no hierarchy (add_hierarchy, drafted with an all-hierarchies scope) needs a read grant on every hierarchy, the
+     * same rule Home, search and audit already apply; before ADR-046 such a request could not be seen by any approver.
+     */
     private boolean canSee(Actor actor, ChangeRequestView cr) {
         if (actor.userId().equals(cr.requesterId())) {
             return true;
@@ -355,8 +359,12 @@ public class ChangeRequestService {
         if (repository.hasAccessItems(cr.id())) {
             return entitlements.hasAny(actor, Permission.ADMIN_SYSTEM);   // access changes: ADMINs only (ADR-042)
         }
+        boolean unscoped = repository.hasItemsWithoutHierarchy(cr.id());
+        if (unscoped && entitlements.readableHierarchies(actor).isPresent()) {
+            return false;
+        }
         List<UUID> hierarchies = repository.itemHierarchies(cr.id());
-        return !hierarchies.isEmpty() && hierarchies.stream().allMatch(h -> entitlements.canRead(actor, h));
+        return (unscoped || !hierarchies.isEmpty()) && hierarchies.stream().allMatch(h -> entitlements.canRead(actor, h));
     }
 
     /**

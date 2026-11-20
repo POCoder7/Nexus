@@ -1,3 +1,4 @@
+import { nodeLabel } from '../shared/format/node-label';
 import { ChangeDetectionStrategy, Component, OnDestroy, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { Router } from '@angular/router';
 import { NexusApi } from '../api/nexus-api';
@@ -31,6 +32,8 @@ import { TrayStore } from '../change-request/tray.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HierarchyWorkspacePage implements OnDestroy {
+  /** "display name · code" (ADR-046 D1). */
+  protected readonly label = nodeLabel;
   /** Route parameter and query parameter (component input binding). */
   readonly code = input.required<string>();
   readonly node = input<string | undefined>();
@@ -164,7 +167,7 @@ export class HierarchyWorkspacePage implements OnDestroy {
   }
 
   protected hitPath(hit: SearchHit): string {
-    return (hit.path ?? []).slice(0, -1).map((p) => p.name).join(' › ');
+    return (hit.path ?? []).slice(0, -1).map((p) => nodeLabel(p)).join(' › ');
   }
 
   private async runSearch(text: string): Promise<void> {

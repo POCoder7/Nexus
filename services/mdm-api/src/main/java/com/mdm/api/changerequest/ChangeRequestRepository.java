@@ -242,6 +242,12 @@ public class ChangeRequestRepository {
                 .param("cr", requestId).query(Boolean.class).single();
     }
 
+    /** Items that belong to no hierarchy yet (add_hierarchy). */
+    public boolean hasItemsWithoutHierarchy(UUID requestId) {
+        return jdbc.sql("SELECT EXISTS (SELECT 1 FROM mdm.change_item WHERE change_request_id = :cr AND hierarchy_id IS NULL)")
+                .param("cr", requestId).query(Boolean.class).single();
+    }
+
     public List<UUID> itemHierarchies(UUID requestId) {
         return jdbc.sql("SELECT DISTINCT hierarchy_id FROM mdm.change_item WHERE change_request_id = :cr AND hierarchy_id IS NOT NULL")
                 .param("cr", requestId).query(UUID.class).list();

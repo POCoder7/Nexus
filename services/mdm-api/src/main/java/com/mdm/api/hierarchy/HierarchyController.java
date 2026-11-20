@@ -79,7 +79,7 @@ public class HierarchyController {
     public static final int SEARCH_MAX_LIMIT = 50;
 
     /** A search hit with its primary path from the top node, so the tree can reveal it (Phase 3 LLD §7.2). */
-    public record SearchHit(UUID nodeId, String name, List<NodeRef> path) {
+    public record SearchHit(UUID nodeId, String name, String displayName, List<NodeRef> path) {
     }
 
     public record NodePath(List<NodeRef> path) {
@@ -110,7 +110,7 @@ public class HierarchyController {
         Page<NodeRef> hits = Page.of(repository.search(hierarchyId, text, slice, cursors.decode(cursor, 2), limit), limit,
                 n -> cursors.encode(n.name(), n.nodeId().toString()));
         return new Page<>(hits.items().stream()
-                .map(n -> new SearchHit(n.nodeId(), n.name(), repository.primaryPath(hierarchyId, n.nodeId(), slice)))
+                .map(n -> new SearchHit(n.nodeId(), n.name(), n.displayName(), repository.primaryPath(hierarchyId, n.nodeId(), slice)))
                 .toList(), hits.nextCursor());
     }
 

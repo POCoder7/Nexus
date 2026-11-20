@@ -5,6 +5,7 @@ export interface SandboxChild {
   active?: boolean;
   changed?: boolean;
   description?: string;
+  displayName?: string;
   hasChildren?: boolean;
   name?: string;
   nodeId?: string;

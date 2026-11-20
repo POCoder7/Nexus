@@ -3,10 +3,12 @@
 
 export interface HierarchySummary {
   code?: string;
+  description?: string;
   group?: string;
   hierarchyId?: string;
   name?: string;
   purpose?: string;
+  topNodeDisplayName?: string;
   topNodeId?: string;
   topNodeName?: string;
 }

@@ -15,7 +15,7 @@
           @for (hit of hits(); track hit.nodeId; let i = $index) {
             <li [id]="'nx-hit-' + i" role="option" [attr.aria-selected]="i === activeHit()" [class.active]="i === activeHit()"
                 (click)="choose(hit)" (mousedown)="$event.preventDefault()">
-              <span class="hit-name">{{ hit.name }}</span>
+              <span class="hit-name">{{ label(hit) }}</span>
               <span class="hit-path">{{ hitPath(hit) }}</span>
             </li>
           }

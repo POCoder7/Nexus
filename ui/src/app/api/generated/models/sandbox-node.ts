@@ -8,6 +8,7 @@ export interface SandboxNode {
   allowsChildren?: boolean;
   changed?: boolean;
   description?: string;
+  displayName?: string;
   kind?: string;
   name?: string;
   nodeId?: string;

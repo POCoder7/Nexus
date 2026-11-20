@@ -330,7 +330,7 @@ GRANT INSERT, DELETE ON mdm.compare_row TO nexus_api;
 -- words use full text with the 'simple' configuration (no stemming, so results stay predictable, OD-21).
 -- =============================================================================
 CREATE INDEX node_attr_fts ON mdm.node_attr
-  USING gin (to_tsvector('simple', node_name || ' ' || coalesce(description, '')))
+  USING gin (to_tsvector('simple', node_name || ' ' || coalesce(display_name, '') || ' ' || coalesce(description, '')))
   WHERE upper_inf(recorded_period);
 -- identifiers match by exact value, ignoring case
 CREATE INDEX node_identifier_value_lower ON mdm.node_identifier (lower(identifier_value)) WHERE upper_inf(recorded_period);

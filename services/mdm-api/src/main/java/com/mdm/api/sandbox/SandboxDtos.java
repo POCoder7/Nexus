@@ -45,7 +45,7 @@ public final class SandboxDtos {
     }
 
     /** A child row of the overlay tree; {@code changed} marks what differs from the sandbox's base on that date. */
-    public record SandboxChild(UUID nodeId, String name, String description, boolean active, boolean primary,
+    public record SandboxChild(UUID nodeId, String name, String displayName, String description, boolean active, boolean primary,
                                BigDecimal sortOrder, boolean hasChildren, boolean changed) {
     }
 
@@ -57,7 +57,7 @@ public final class SandboxDtos {
     }
 
     /** Node detail in the overlay. {@code placements} are listed when a hierarchy is given. */
-    public record SandboxNode(UUID nodeId, String kind, String name, String description, boolean active,
+    public record SandboxNode(UUID nodeId, String kind, String name, String displayName, String description, boolean active,
                               boolean allowsChildren, boolean changed, List<SandboxPlacement> placements,
                               List<SandboxProperty> properties) {
     }

@@ -420,6 +420,28 @@ CREATE INDEX node_attr_display_trgm ON mdm.node_attr USING gin (display_name gin
 - **Search.** Matches `display_name` too (the trigram index above).
 - **Unchanged.** DRM export and golden comparisons keep `node_name`.
 
+**Built in H-1 (2026-11-20).**
+- **Migrations.** The columns, index and handler changes were made in place: V1 (`node_attr.display_name`,
+  `hierarchy.description`, `apply_add_node`, `apply_update_node`, `apply_add_hierarchy`), V10 (trigram index), V12
+  (sandbox delta column, capture, overlay reads) and V13 (the full-text index also covers `display_name`). This follows
+  the project's "edit Vn" convention (CR-07; rule 6 allows it, because no shared environment exists, OD-44), instead of
+  copying five sandbox functions and their grants into V16. V16 starts with H-2.
+- **Sandbox reads.** `sandbox_children` and `sandbox_node` return `display_name` as their last column, so readers that
+  use column positions keep working.
+- **What reads the display name.** The display name is part of the stale-base check (`expected.displayName`). It is
+  read back by:
+  - node detail;
+  - the children page;
+  - the hierarchy summary (`topNodeDisplayName`, `description`);
+  - in-tree search and paths;
+  - search across hierarchies (`matched = displayName`);
+  - the sandbox overlay and its diff.
+
+  History, compare and query rows still show `node_name`; they follow in H-7.
+- **Defect fixed.** A request whose only item is `add_hierarchy` was visible to its requester alone, so nobody could
+  decide it. `ChangeRequestService.canSee` now applies the rule that Home, search and audit already use: an item with
+  no hierarchy is visible to people who can read every hierarchy. Nothing else became visible to anyone.
+
 ### 17.3 Property applicability (D2) — V16
 ```sql
 CREATE TABLE mdm.property_hierarchy (                        -- no rows for a property = it applies to every hierarchy

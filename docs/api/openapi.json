@@ -237,6 +237,9 @@
           "description" : {
             "type" : "string"
           },
+          "displayName" : {
+            "type" : "string"
+          },
           "hasChildren" : {
             "type" : "boolean"
           },
@@ -742,6 +745,9 @@
           "code" : {
             "type" : "string"
           },
+          "description" : {
+            "type" : "string"
+          },
           "group" : {
             "type" : "string"
           },
@@ -753,6 +759,9 @@
             "type" : "string"
           },
           "purpose" : {
+            "type" : "string"
+          },
+          "topNodeDisplayName" : {
             "type" : "string"
           },
           "topNodeId" : {
@@ -1156,6 +1165,9 @@
           "description" : {
             "type" : "string"
           },
+          "displayName" : {
+            "type" : "string"
+          },
           "kind" : {
             "type" : "string"
           },
@@ -1178,6 +1190,9 @@
       "NodeHit" : {
         "properties" : {
           "description" : {
+            "type" : "string"
+          },
+          "displayName" : {
             "type" : "string"
           },
           "hierarchyCode" : {
@@ -1218,6 +1233,9 @@
       },
       "NodeRef" : {
         "properties" : {
+          "displayName" : {
+            "type" : "string"
+          },
           "name" : {
             "type" : "string"
           },
@@ -2036,6 +2054,9 @@
           "description" : {
             "type" : "string"
           },
+          "displayName" : {
+            "type" : "string"
+          },
           "hasChildren" : {
             "type" : "boolean"
           },
@@ -2085,6 +2106,9 @@
             "type" : "boolean"
           },
           "description" : {
+            "type" : "string"
+          },
+          "displayName" : {
             "type" : "string"
           },
           "kind" : {
@@ -2274,6 +2298,9 @@
       },
       "SearchHit" : {
         "properties" : {
+          "displayName" : {
+            "type" : "string"
+          },
           "name" : {
             "type" : "string"
           },

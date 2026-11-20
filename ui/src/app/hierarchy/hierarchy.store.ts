@@ -5,6 +5,7 @@ import { CHILDREN_PAGE, REVEAL_MAX_PAGES } from '../core/config';
 import { STRINGS } from '../core/strings';
 import { UiError } from '../core/ui-error';
 import { ChildrenState, FlatTreeRow, TreeNode } from './tree.model';
+import { nodeLabel } from '../shared/format/node-label';
 
 /** A children row, live or in a sandbox (the sandbox row adds `changed`). */
 type ChildRow = ChildNode & { changed?: boolean };
@@ -95,7 +96,7 @@ export class HierarchyStore {
       }
       this.hierarchy.set(h);
       if (h.topNodeId) {
-        this.putNodes([{ id: h.topNodeId, name: h.topNodeName ?? h.name ?? code, hasChildren: true, active: true }]);
+        this.putNodes([{ id: h.topNodeId, name: h.topNodeName ? nodeLabel({ name: h.topNodeName, displayName: h.topNodeDisplayName }) : h.name ?? code, hasChildren: true, active: true }]);
         await this.expand(h.topNodeId);
       }
     } catch (e) {
@@ -150,7 +151,7 @@ export class HierarchyStore {
         return;
       }
       const items = page.items ?? [];
-      this.putNodes(items.map((c) => ({ id: c.nodeId!, name: c.name ?? c.nodeId!, hasChildren: !!c.hasChildren, active: c.active !== false })));
+      this.putNodes(items.map((c) => ({ id: c.nodeId!, name: c.name ? nodeLabel(c) : c.nodeId!, hasChildren: !!c.hasChildren, active: c.active !== false })));
       const current = this.children().get(parentId)!;
       const seen = new Set(current.placements.map((p) => p.id));
       const added = items.filter((c) => !seen.has(c.nodeId!))
@@ -197,7 +198,7 @@ export class HierarchyStore {
         pages++;
       }
       if (c && !c.placements.some((p) => p.id === next.nodeId)) {
-        this.putNodes([{ id: next.nodeId!, name: next.name ?? name ?? next.nodeId!, hasChildren: i + 1 < path.length - 1, active: true }]);
+        this.putNodes([{ id: next.nodeId!, name: next.name ? nodeLabel(next) : name ?? next.nodeId!, hasChildren: i + 1 < path.length - 1, active: true }]);
         if (!c.pinned.includes(next.nodeId!)) {
           this.patchChildren(ancestor, { pinned: [...c.pinned, next.nodeId!] });
         }

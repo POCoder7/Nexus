@@ -7,6 +7,7 @@ public record NodeDetail(
         UUID nodeId,
         String kind,
         String name,
+        String displayName,   // ADR-046 D1; null = show the name
         String description,
         boolean active,
         boolean allowsChildren,

@@ -6,6 +6,7 @@ export interface NodeDetail {
   active?: boolean;
   allowsChildren?: boolean;
   description?: string;
+  displayName?: string;
   kind?: string;
   name?: string;
   nodeId?: string;

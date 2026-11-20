@@ -24,6 +24,17 @@ test.describe('All hierarchies', () => {
     await expect(page.getByTestId('node-name')).toHaveText('Demo Legal Region A');
   });
 
+  test('a coded node reads as "display name · code" in the tree, and the panel shows both (ADR-046)', async ({ page }) => {
+    await signInAs(page, 'u_viewer');
+    await page.goto('/hierarchies/ORGTL');
+    const tree = page.getByTestId('hierarchy-tree');
+    await tree.getByRole('treeitem', { name: 'Demo Legal Region A' }).locator('.twisty').click();
+    await tree.getByRole('treeitem', { name: 'Demo Cost Centre · 91110' }).click();
+    await expect(page.getByTestId('node-name')).toHaveText('Demo Cost Centre');
+    await expect(page.getByTestId('node-code')).toHaveText('91110');
+    await expectAccessible(page);
+  });
+
   test('editing follows the rights in the node\'s own hierarchy', async ({ page }) => {
     await signInAs(page, 'u_editor1');   // EDITOR on ORGTL and ORGTP through ORG_EDITORS
     await page.goto('/browse');

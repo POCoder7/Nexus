@@ -4,6 +4,7 @@
 export interface ChildNode {
   active?: boolean;
   description?: string;
+  displayName?: string;
   hasChildren?: boolean;
   name?: string;
   nodeId?: string;

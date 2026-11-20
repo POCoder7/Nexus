@@ -164,7 +164,7 @@ public class SandboxRepository {
     public List<SandboxChild> children(UUID sandboxId, UUID hierarchyId, UUID parentId, LocalDate asOf, List<String> after,
                                        int limit) {
         return jdbc.sql("""
-                SELECT child_node_id, node_name, description, is_active, is_primary, sort_order, has_children, changed
+                SELECT child_node_id, node_name, display_name, description, is_active, is_primary, sort_order, has_children, changed
                 FROM mdm.sandbox_children(:s, :h, :p, CAST(:asOf AS date), CAST(:afterSort AS numeric),
                                           CAST(:afterName AS text), CAST(:afterId AS uuid), :limit)
                 """)
@@ -174,7 +174,7 @@ public class SandboxRepository {
                 .param("afterId", after == null ? null : UUID.fromString(after.get(2)))
                 .param("limit", limit + 1)
                 .query((rs, i) -> new SandboxChild(rs.getObject("child_node_id", UUID.class), rs.getString("node_name"),
-                        rs.getString("description"), rs.getBoolean("is_active"), rs.getBoolean("is_primary"),
+                        rs.getString("display_name"), rs.getString("description"), rs.getBoolean("is_active"), rs.getBoolean("is_primary"),
                         rs.getBigDecimal("sort_order"), rs.getBoolean("has_children"), rs.getBoolean("changed")))
                 .list();
     }
@@ -182,7 +182,7 @@ public class SandboxRepository {
     /** Node detail in the overlay; empty when the node identity does not exist. */
     public Optional<SandboxNode> node(UUID sandboxId, UUID nodeId, UUID hierarchyId, LocalDate asOf) {
         return jdbc.sql("""
-                SELECT n.node_id, n.node_kind::text AS node_kind, a.node_name, a.description,
+                SELECT n.node_id, n.node_kind::text AS node_kind, a.node_name, a.display_name, a.description,
                        coalesce(a.is_active, false) AS is_active, coalesce(a.allows_children, false) AS allows_children,
                        coalesce(a.changed, false) AS changed
                 FROM mdm.node n
@@ -191,8 +191,8 @@ public class SandboxRepository {
                 """)
                 .param("s", sandboxId).param("n", nodeId).param("asOf", asOf)
                 .query((rs, i) -> new SandboxNode(rs.getObject("node_id", UUID.class), rs.getString("node_kind"),
-                        rs.getString("node_name"), rs.getString("description"), rs.getBoolean("is_active"),
-                        rs.getBoolean("allows_children"), rs.getBoolean("changed"),
+                        rs.getString("node_name"), rs.getString("display_name"), rs.getString("description"),
+                        rs.getBoolean("is_active"), rs.getBoolean("allows_children"), rs.getBoolean("changed"),
                         hierarchyId == null ? List.of() : placements(sandboxId, hierarchyId, nodeId, asOf),
                         properties(sandboxId, nodeId, hierarchyId, asOf)))
                 .optional();
@@ -243,8 +243,8 @@ public class SandboxRepository {
                   WHERE d.sandbox_id = :s
                   UNION ALL
                   SELECT 'attributes', d.op, d.node_id, NULL, NULL, NULL, d.valid_period,
-                         jsonb_build_object('name', d.node_name, 'description', d.description, 'active', d.is_active,
-                                            'allowsChildren', d.allows_children)::text,
+                         jsonb_build_object('name', d.node_name, 'displayName', d.display_name, 'description', d.description,
+                                            'active', d.is_active, 'allowsChildren', d.allows_children)::text,
                          concat_ws('|', d.node_id::text, '2', coalesce(lower(d.valid_period)::text, ''), d.op)
                   FROM mdm.sandbox_delta_node_attr d
                   WHERE d.sandbox_id = :s

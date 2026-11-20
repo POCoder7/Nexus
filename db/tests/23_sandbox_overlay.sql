@@ -138,7 +138,8 @@ SELECT d.d AS as_of, p.node_id AS parent_id, c.ord, c.child_node_id, c.node_name
        c.is_primary, c.sort_order, c.has_children, c.changed
 FROM as_of_dates d CROSS JOIN h1_nodes p
 CROSS JOIN LATERAL mdm.sandbox_children(pg_temp.id('f0f1'), pg_temp.id('d0d1'), p.node_id, d.d, NULL, NULL, NULL, 1000)
-  WITH ORDINALITY AS c(child_node_id, node_name, description, is_active, is_primary, sort_order, has_children, changed, ord);
+  WITH ORDINALITY AS c(child_node_id, node_name, description, is_active, is_primary, sort_order, has_children, changed,
+                       display_name, ord);
 CREATE TEMP TABLE ov_attr AS
 SELECT d.d AS as_of, n.node_id, a.node_name, a.description, a.is_active, a.allows_children, a.changed
 FROM as_of_dates d CROSS JOIN (SELECT node_id FROM h1_nodes UNION ALL SELECT pg_temp.id('c00b')) n

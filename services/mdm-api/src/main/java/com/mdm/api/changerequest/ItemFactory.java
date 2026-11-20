@@ -37,13 +37,13 @@ public class ItemFactory {
             "update_node", "add_hierarchy", "set_property", "clear_property");
 
     private static final Map<String, Set<String>> ALLOWED_PAYLOAD = Map.of(
-            "add_node", Set.of("nodeKind", "name", "description", "isLeaf", "sortOrder"),
+            "add_node", Set.of("nodeKind", "name", "displayName", "description", "isLeaf", "sortOrder"),
             "insert_node", Set.of("sortOrder"),
             "move_node", Set.of("sortOrder"),
             "remove_node", Set.of("cascade"),
             "delete_node", Set.of(),
-            "update_node", Set.of("name", "description"),
-            "add_hierarchy", Set.of("code", "name", "purpose", "group", "allowSharedNodes", "sortSeq", "topNode"),
+            "update_node", Set.of("name", "displayName", "description"),
+            "add_hierarchy", Set.of("code", "name", "description", "purpose", "group", "allowSharedNodes", "sortSeq", "topNode"),
             "set_property", Set.of("value", "validTo"),
             "clear_property", Set.of());
 
@@ -200,8 +200,8 @@ public class ItemFactory {
         if (!inHierarchy(node, h, d)) {
             throw new RuleException("change_item.not_in_hierarchy", "The node is not in " + h.code() + " on " + d + ".");
         }
-        if ("update_node".equals(action) && !payload.has("name") && !payload.has("description")) {
-            throw ItemValidationException.field("payload", "update_node needs name or description");
+        if ("update_node".equals(action) && !payload.has("name") && !payload.has("displayName") && !payload.has("description")) {
+            throw ItemValidationException.field("payload", "update_node needs name, displayName or description");
         }
         String[] attrs = attributesAfterEarlier(node, d, earlier);
         if (attrs == null) {
@@ -209,11 +209,8 @@ public class ItemFactory {
         }
         ObjectNode expected = payload.putObject("expected");
         expected.put("name", attrs[0]);
-        if (attrs[1] == null) {
-            expected.putNull("description");
-        } else {
-            expected.put("description", attrs[1]);
-        }
+        putOrNull(expected, "description", attrs[1]);
+        putOrNull(expected, "displayName", attrs[2]);
         return new NewItem(action, h.id(), node, null, null, payload, List.of(new Scope(h.id(), node)));
     }
 
@@ -335,13 +332,13 @@ public class ItemFactory {
         return new Placement(primary, new LinkedHashSet<>(parents));
     }
 
-    /** {name, description} on {@code d}, after earlier update_node items of the request; null if the node has no attributes. */
+    /** {name, description, displayName} on {@code d}, after earlier update_node items of the request; null if the node has no attributes. */
     private String[] attributesAfterEarlier(UUID node, LocalDate d, List<ItemView> earlier) {
         String[] attrs = jdbc.sql("""
-                SELECT node_name, description FROM mdm.node_attr
+                SELECT node_name, description, display_name FROM mdm.node_attr
                 WHERE node_id = :n AND valid_period @> CAST(:d AS date) AND upper_inf(recorded_period)
                 """).param("n", node).param("d", d)
-                .query((rs, i) -> new String[] {rs.getString("node_name"), rs.getString("description")}).optional().orElse(null);
+                .query((rs, i) -> new String[] {rs.getString("node_name"), rs.getString("description"), rs.getString("display_name")}).optional().orElse(null);
         for (ItemView e : earlier) {
             if ("update_node".equals(e.action()) && node.equals(e.nodeId()) && attrs != null) {
                 if (e.payload().has("name")) {
@@ -350,9 +347,20 @@ public class ItemFactory {
                 if (e.payload().has("description")) {
                     attrs[1] = e.payload().get("description").isNull() ? null : e.payload().get("description").asText();
                 }
+                if (e.payload().has("displayName")) {
+                    attrs[2] = e.payload().get("displayName").isNull() ? null : e.payload().get("displayName").asText();
+                }
             }
         }
         return attrs;
+    }
+
+    private static void putOrNull(ObjectNode node, String field, String value) {
+        if (value == null) {
+            node.putNull(field);
+        } else {
+            node.put(field, value);
+        }
     }
 
     private ObjectNode payloadOf(ItemCommand cmd, String action) {

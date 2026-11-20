@@ -355,6 +355,8 @@ CREATE TABLE node (
 CREATE TABLE node_attr (
   node_id           uuid NOT NULL REFERENCES node,
   node_name         text NOT NULL,             -- DRM node name, the business key in exports
+  -- The name people read when the business key is a code (ADR-046 D1): not unique, NULL = show node_name.
+  display_name      text,
   description       text,
   is_active         boolean NOT NULL DEFAULT true,
   allows_children   boolean NOT NULL DEFAULT true,   -- DRM leaf/limb designation
@@ -408,6 +410,7 @@ CREATE TABLE hierarchy (
   hierarchy_id       uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   hierarchy_code     text NOT NULL UNIQUE,      -- keep DRM hierarchy names during the parallel run
   hierarchy_name     text NOT NULL,
+  description        text,                      -- ADR-046 D8
   purpose            text CHECK (purpose IN ('legal_consolidation', 'management', 'regulatory', 'tax', 'other')),
   hierarchy_group    text,
   top_node_id        uuid NOT NULL REFERENCES node,
@@ -1119,6 +1122,7 @@ BEGIN
   END IF;
   v_rows := apply_fact('node_attr', NULL, jsonb_build_object('node_id', p_item.node_id),
               jsonb_build_object('node_name', p_item.payload ->> 'name',
+                                 'display_name', p_item.payload ->> 'displayName',
                                  'description', p_item.payload ->> 'description',
                                  'is_active', true,
                                  'allows_children', NOT coalesce((p_item.payload ->> 'isLeaf')::boolean, false)),
@@ -1288,8 +1292,12 @@ BEGIN
   END IF;
   PERFORM apply_expect(p_item, 'name', to_jsonb(v_attr.node_name));
   PERFORM apply_expect(p_item, 'description', to_jsonb(v_attr.description));
+  PERFORM apply_expect(p_item, 'displayName', to_jsonb(v_attr.display_name));
   IF p_item.payload ? 'name' THEN
     v_values := v_values || jsonb_build_object('node_name', p_item.payload -> 'name');
+  END IF;
+  IF p_item.payload ? 'displayName' THEN
+    v_values := v_values || jsonb_build_object('display_name', p_item.payload -> 'displayName');
   END IF;
   IF p_item.payload ? 'description' THEN
     v_values := v_values || jsonb_build_object('description', p_item.payload -> 'description');
@@ -1311,11 +1319,13 @@ BEGIN
       USING ERRCODE = 'N2105', HINT = 'apply.item_invalid';
   END IF;
   v_rows := apply_fact('node_attr', NULL, jsonb_build_object('node_id', p_item.node_id),
-              jsonb_build_object('node_name', v_top ->> 'name', 'description', v_top ->> 'description',
-                                 'is_active', true, 'allows_children', true),
+              jsonb_build_object('node_name', v_top ->> 'name', 'display_name', v_top ->> 'displayName',
+                                 'description', v_top ->> 'description', 'is_active', true, 'allows_children', true),
               NULL, false);
-  INSERT INTO mdm.hierarchy (hierarchy_code, hierarchy_name, purpose, hierarchy_group, top_node_id, allow_shared_nodes, sort_seq)
-  VALUES (p_item.payload ->> 'code', p_item.payload ->> 'name', p_item.payload ->> 'purpose', p_item.payload ->> 'group',
+  INSERT INTO mdm.hierarchy (hierarchy_code, hierarchy_name, description, purpose, hierarchy_group, top_node_id,
+                             allow_shared_nodes, sort_seq)
+  VALUES (p_item.payload ->> 'code', p_item.payload ->> 'name', p_item.payload ->> 'description',
+          p_item.payload ->> 'purpose', p_item.payload ->> 'group',
           p_item.node_id, coalesce((p_item.payload ->> 'allowSharedNodes')::boolean, false),
           (p_item.payload ->> 'sortSeq')::int);
   RETURN v_rows + 1;

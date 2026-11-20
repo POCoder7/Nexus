@@ -38,6 +38,7 @@ CREATE TABLE mdm.sandbox_delta_node_attr (
   sandbox_id      uuid NOT NULL REFERENCES mdm.change_request ON DELETE CASCADE,
   node_id         uuid NOT NULL,
   node_name       text NOT NULL,
+  display_name    text,                     -- ADR-046 D1
   description     text,
   is_active       boolean NOT NULL,
   allows_children boolean NOT NULL,
@@ -116,8 +117,8 @@ BEGIN
       WHERE d.sandbox_id = v_s AND d.op = '+' AND d.node_id = (p_row ->> 'node_id')::uuid AND d.valid_period = v_valid;
     ELSE
       INSERT INTO mdm.sandbox_delta_node_attr
-        (sandbox_id, node_id, node_name, description, is_active, allows_children, valid_period, op)
-      VALUES (v_s, (p_row ->> 'node_id')::uuid, p_row ->> 'node_name', p_row ->> 'description',
+        (sandbox_id, node_id, node_name, display_name, description, is_active, allows_children, valid_period, op)
+      VALUES (v_s, (p_row ->> 'node_id')::uuid, p_row ->> 'node_name', p_row ->> 'display_name', p_row ->> 'description',
               (p_row ->> 'is_active')::boolean, (p_row ->> 'allows_children')::boolean, v_valid, p_op);
     END IF;
   ELSIF p_table = 'property_value' THEN
@@ -211,15 +212,15 @@ LANGUAGE sql STABLE SET search_path = mdm, public AS $$
 $$;
 
 CREATE FUNCTION mdm.sandbox_attr_of(p_sandbox uuid, p_recorded timestamptz, p_node uuid, p_as_of date)
-RETURNS TABLE (node_name text, description text, is_active boolean, allows_children boolean)
+RETURNS TABLE (node_name text, display_name text, description text, is_active boolean, allows_children boolean)
 LANGUAGE sql STABLE SET search_path = mdm, public AS $$
-  SELECT a.node_name, a.description, a.is_active, a.allows_children
+  SELECT a.node_name, a.display_name, a.description, a.is_active, a.allows_children
   FROM mdm.node_attr a
   WHERE a.node_id = p_node AND a.valid_period @> p_as_of AND a.recorded_period @> p_recorded
     AND NOT EXISTS (SELECT 1 FROM mdm.sandbox_delta_node_attr x
                     WHERE x.sandbox_id = p_sandbox AND x.node_id = p_node AND x.valid_period @> p_as_of)
   UNION ALL
-  SELECT x.node_name, x.description, x.is_active, x.allows_children
+  SELECT x.node_name, x.display_name, x.description, x.is_active, x.allows_children
   FROM mdm.sandbox_delta_node_attr x
   WHERE x.sandbox_id = p_sandbox AND x.node_id = p_node AND x.op = '+' AND x.valid_period @> p_as_of
 $$;
@@ -373,8 +374,8 @@ BEGIN
                           AND x.node_id <> n.node_id AND x.valid_period && n.valid_period
                          WHERE n.op = '+') THEN
         INSERT INTO mdm.sandbox_delta_node_attr
-          (sandbox_id, node_id, node_name, description, is_active, allows_children, valid_period, op)
-        SELECT p_sandbox, n.node_id, n.node_name, n.description, n.is_active, n.allows_children, n.valid_period, n.op
+          (sandbox_id, node_id, node_name, display_name, description, is_active, allows_children, valid_period, op)
+        SELECT p_sandbox, n.node_id, n.node_name, n.display_name, n.description, n.is_active, n.allows_children, n.valid_period, n.op
         FROM jsonb_populate_recordset(NULL::mdm.sandbox_delta_node_attr, t.attr) n;
         INSERT INTO mdm.sandbox_delta_value (sandbox_id, node_id, property_id, hierarchy_key, value, valid_period, op)
         SELECT p_sandbox, (e ->> 'node_id')::uuid, (e ->> 'property_id')::uuid, (e ->> 'hierarchy_key')::uuid,
@@ -394,8 +395,8 @@ BEGIN
   SELECT p_sandbox, r.hierarchy_id, r.parent_node_id, r.child_node_id, r.is_primary, r.sort_order, r.valid_period, r.op
   FROM jsonb_populate_recordset(NULL::mdm.sandbox_delta_relationship, t.rel) r;
   INSERT INTO mdm.sandbox_delta_node_attr
-    (sandbox_id, node_id, node_name, description, is_active, allows_children, valid_period, op)
-  SELECT p_sandbox, n.node_id, n.node_name, n.description, n.is_active, n.allows_children, n.valid_period, n.op
+    (sandbox_id, node_id, node_name, display_name, description, is_active, allows_children, valid_period, op)
+  SELECT p_sandbox, n.node_id, n.node_name, n.display_name, n.description, n.is_active, n.allows_children, n.valid_period, n.op
   FROM jsonb_populate_recordset(NULL::mdm.sandbox_delta_node_attr, t.attr) n;
   INSERT INTO mdm.sandbox_delta_value (sandbox_id, node_id, property_id, hierarchy_key, value, valid_period, op)
   SELECT p_sandbox, (e ->> 'node_id')::uuid, (e ->> 'property_id')::uuid, (e ->> 'hierarchy_key')::uuid,
@@ -485,7 +486,8 @@ CREATE FUNCTION mdm.sandbox_children(p_sandbox uuid, p_hierarchy uuid, p_parent 
                                      p_after_sort numeric DEFAULT NULL, p_after_name text DEFAULT NULL,
                                      p_after_id uuid DEFAULT NULL, p_limit int DEFAULT 100)
 RETURNS TABLE (child_node_id uuid, node_name text, description text, is_active boolean, is_primary boolean,
-               sort_order numeric, has_children boolean, changed boolean)
+               sort_order numeric, has_children boolean, changed boolean,
+               display_name text)                                   -- last, so positional readers keep working (ADR-046)
 LANGUAGE plpgsql STABLE SET search_path = mdm, public AS $$
 #variable_conflict use_column
 DECLARE
@@ -503,10 +505,12 @@ BEGIN
                      WHERE r.hierarchy_id = p_hierarchy AND r.parent_node_id = p_parent AND r.child_node_id = c.child_node_id
                        AND r.is_primary = c.is_primary AND r.sort_order = c.sort_order
                        AND r.valid_period @> p_as_of AND r.recorded_period @> v_b)
-         OR (a.node_name, a.description, a.is_active) IS DISTINCT FROM (b.node_name, b.description, b.is_active)
+         OR (a.node_name, a.display_name, a.description, a.is_active)
+            IS DISTINCT FROM (b.node_name, b.display_name, b.description, b.is_active),
+         a.display_name
   FROM mdm.sandbox_children_of(p_sandbox, v_b, p_hierarchy, p_parent, p_as_of) c
   LEFT JOIN LATERAL (SELECT * FROM mdm.sandbox_attr_of(p_sandbox, v_b, c.child_node_id, p_as_of) LIMIT 1) a ON true
-  LEFT JOIN LATERAL (SELECT n.node_name, n.description, n.is_active FROM mdm.node_attr n
+  LEFT JOIN LATERAL (SELECT n.node_name, n.display_name, n.description, n.is_active FROM mdm.node_attr n
                      WHERE n.node_id = c.child_node_id AND n.valid_period @> p_as_of AND n.recorded_period @> v_b
                      LIMIT 1) b ON true
   WHERE p_after_sort IS NULL
@@ -517,7 +521,8 @@ END $$;
 
 -- Node detail: the node's attributes on the date, if it exists then.
 CREATE FUNCTION mdm.sandbox_node(p_sandbox uuid, p_node uuid, p_as_of date)
-RETURNS TABLE (node_name text, description text, is_active boolean, allows_children boolean, changed boolean)
+RETURNS TABLE (node_name text, description text, is_active boolean, allows_children boolean, changed boolean,
+               display_name text)                                   -- last, so positional readers keep working (ADR-046)
 LANGUAGE plpgsql STABLE SET search_path = mdm, public AS $$
 #variable_conflict use_column
 DECLARE
@@ -530,10 +535,11 @@ BEGIN
 
   RETURN QUERY
   SELECT a.node_name, a.description, a.is_active, a.allows_children,
-         (a.node_name, a.description, a.is_active, a.allows_children)
-           IS DISTINCT FROM (b.node_name, b.description, b.is_active, b.allows_children)
+         (a.node_name, a.display_name, a.description, a.is_active, a.allows_children)
+           IS DISTINCT FROM (b.node_name, b.display_name, b.description, b.is_active, b.allows_children),
+         a.display_name
   FROM mdm.sandbox_attr_of(p_sandbox, v_b, p_node, p_as_of) a
-  LEFT JOIN LATERAL (SELECT n.node_name, n.description, n.is_active, n.allows_children FROM mdm.node_attr n
+  LEFT JOIN LATERAL (SELECT n.node_name, n.display_name, n.description, n.is_active, n.allows_children FROM mdm.node_attr n
                      WHERE n.node_id = p_node AND n.valid_period @> p_as_of AND n.recorded_period @> v_b
                      LIMIT 1) b ON true;
 END $$;

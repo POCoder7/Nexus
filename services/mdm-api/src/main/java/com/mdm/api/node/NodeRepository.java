@@ -43,7 +43,7 @@ public class NodeRepository {
 
     public Optional<NodeDetail> find(UUID nodeId, String hierarchyCode, Slice slice) {
         return jdbc.sql("""
-                SELECT n.node_id, n.node_kind::text AS node_kind, a.node_name, a.description,
+                SELECT n.node_id, n.node_kind::text AS node_kind, a.node_name, a.display_name, a.description,
                        coalesce(a.is_active, false) AS is_active,
                        coalesce(a.allows_children, false) AS allows_children
                 FROM mdm.node n
@@ -60,6 +60,7 @@ public class NodeRepository {
                         rs.getObject("node_id", UUID.class),
                         rs.getString("node_kind"),
                         rs.getString("node_name"),
+                        rs.getString("display_name"),
                         rs.getString("description"),
                         rs.getBoolean("is_active"),
                         rs.getBoolean("allows_children"),
