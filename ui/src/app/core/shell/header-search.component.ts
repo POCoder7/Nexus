@@ -1,43 +1,72 @@
 import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { NexusApi } from '../../api/nexus-api';
-import type { SearchHit } from '../../api/generated/models';
+import type { SearchResults } from '../../api/generated/models';
 import { Announcer } from '../announcer';
 import { ContextStore } from '../context.store';
-import { PreferencesStore } from '../preferences.store';
 import { STRINGS } from '../strings';
 import { UiError } from '../ui-error';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const HIERARCHIES_SHOWN = 3;
+const NODES_SHOWN = 5;
+const REQUESTS_SHOWN = 3;
 
 /**
- * `nx-header-search` (Phase 5 LLD §21.1): "Find a node or request" in the header, on every page. A request id opens the
- * request; other text searches node names in the last hierarchy used, or the first one the user can read (search across
- * hierarchies is QRY-03, not built yet, and the hint says which hierarchy is searched). Results open below the box;
- * Escape or a click outside closes them.
+ * `nx-header-search` (Phase 5 LLD §21.1, §17.6.1; QRY-03): "Find a node or request" in the header, on every page. A
+ * request id opens the request; other text searches hierarchies, nodes and requests the user can see, across every
+ * hierarchy, at the slice in view. The list shows the first few of each group and "See all results" (the Search page).
+ * Escape or a click outside closes it.
  */
 @Component({
   selector: 'nx-header-search',
+  imports: [RouterLink],
   template: `
     <form class="hs" role="search" (submit)="search($event)">
-      <label for="nx-header-search" class="nx-visually-hidden">{{ t.searchLabel }}</label>
-      <input id="nx-header-search" type="search" autocomplete="off" [placeholder]="t.searchPlaceholder" [value]="query()"
-             (input)="query.set($any($event.target).value)" aria-describedby="nx-header-search-hint" />
-      <button type="submit" class="hs__button">{{ t.search }}</button>
-      <span id="nx-header-search-hint" class="nx-visually-hidden">{{ t.searchHint(hierarchyName()) }}</span>
+      <label for="nx-header-search" class="nx-visually-hidden">{{ h.searchLabel }}</label>
+      <input id="nx-header-search" type="search" autocomplete="off" [placeholder]="h.searchPlaceholder" [value]="query()"
+             (input)="query.set($any($event.target).value)" />
+      <button type="submit" class="hs__button">{{ h.search }}</button>
       @if (open()) {
-        <div class="hs__results" role="region" [attr.aria-label]="t.searchLabel">
+        <div class="hs__results" role="region" [attr.aria-label]="t.title">
           @if (error(); as e) {
             <p class="nx-error-text" role="status">{{ e }}</p>
-          } @else if (hits().length === 0) {
-            <p class="nx-muted" role="status">{{ t.noResults }}</p>
-          } @else {
-            <p class="nx-muted hs__in">{{ t.searchedIn(hierarchyName() ?? '') }}</p>
-            <ul data-testid="home-search-results">
-              @for (h of hits(); track h.nodeId) {
-                <li><a href="#" (click)="$event.preventDefault(); openHit(h)">{{ h.name }}</a></li>
+          } @else if (results(); as r) {
+            @if (empty(r)) {
+              <p class="nx-muted" role="status">{{ t.none }}</p>
+            } @else {
+              @if ((r.hierarchies ?? []).length > 0) {
+                <h3>{{ t.groups['hierarchies'] }}</h3>
+                <ul>
+                  @for (x of (r.hierarchies ?? []).slice(0, hierarchiesShown); track x.code) {
+                    <li><a [routerLink]="['/hierarchies', x.code]" (click)="close()">{{ x.name }} <span class="nx-muted">({{ x.code }})</span></a></li>
+                  }
+                </ul>
               }
-            </ul>
+              @if ((r.nodes?.items ?? []).length > 0) {
+                <h3>{{ t.groups['nodes'] }}</h3>
+                <ul data-testid="home-search-results">
+                  @for (n of (r.nodes?.items ?? []).slice(0, nodesShown); track n.nodeId + '-' + n.hierarchyCode) {
+                    <li>
+                      <a [routerLink]="['/hierarchies', n.hierarchyCode]" [queryParams]="{ node: n.nodeId }" queryParamsHandling="merge"
+                         (click)="close()">{{ n.name }}</a>
+                      <span class="nx-muted"> {{ t.inHierarchy(n.hierarchyCode ?? '') }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+              @if ((r.requests?.items ?? []).length > 0) {
+                <h3>{{ t.groups['requests'] }}</h3>
+                <ul>
+                  @for (q of (r.requests?.items ?? []).slice(0, requestsShown); track q.id) {
+                    <li><a [routerLink]="['/requests', q.id]" (click)="close()">{{ q.title }}</a>
+                      <span class="nx-muted"> · {{ statuses[q.status ?? ''] ?? q.status }}</span></li>
+                  }
+                </ul>
+              }
+              <a class="hs__all" routerLink="/search" [queryParams]="{ q: query().trim() }" (click)="close()" data-testid="search-see-all">
+                {{ t.seeAll }} →</a>
+            }
           }
         </div>
       }
@@ -53,10 +82,12 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     .hs__results { position: absolute; top: 100%; left: 0; right: 0; z-index: var(--nx-z-dropdown); margin-top: var(--nx-space-1);
                    padding: var(--nx-space-3); border: var(--nx-border-width) solid var(--nx-color-border-strong);
                    background: var(--nx-color-surface-raised); box-shadow: var(--nx-elevation-2); }
+    .hs__results h3 { margin: var(--nx-space-2) 0 var(--nx-space-1); font-size: var(--nx-font-size-label);
+                      color: var(--nx-color-text-secondary); }
     .hs__results ul { margin: 0; padding: 0; list-style: none; }
-    .hs__results li a { display: block; padding: var(--nx-space-2); }
-    .hs__results p { margin: 0 0 var(--nx-space-2); }
-    .hs__in { font-size: var(--nx-font-size-label); }
+    .hs__results li { padding: var(--nx-space-1) 0; }
+    .hs__results p { margin: 0; }
+    .hs__all { display: inline-block; margin-top: var(--nx-space-3); }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -64,24 +95,25 @@ export class HeaderSearchComponent {
   private readonly api = inject(NexusApi);
   private readonly router = inject(Router);
   private readonly context = inject(ContextStore);
-  private readonly prefs = inject(PreferencesStore);
   private readonly announcer = inject(Announcer);
   private readonly host = inject(ElementRef<HTMLElement>);
-  protected readonly t = STRINGS.home;
+  protected readonly h = STRINGS.home;
+  protected readonly t = STRINGS.search;
+  protected readonly statuses = STRINGS.statuses;
+  protected readonly hierarchiesShown = HIERARCHIES_SHOWN;
+  protected readonly nodesShown = NODES_SHOWN;
+  protected readonly requestsShown = REQUESTS_SHOWN;
 
   protected readonly query = signal('');
-  protected readonly hits = signal<SearchHit[]>([]);
+  protected readonly results = signal<SearchResults | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly open = signal(false);
-  /** The hierarchy searched: the last one used, else the first readable one (looked up on the first search). */
-  protected readonly hierarchyName = signal<string | null>(null);
-  private hierarchyCode: string | null = null;
 
   protected async search(event: Event): Promise<void> {
     event.preventDefault();
     const text = this.query().trim();
     this.error.set(null);
-    this.hits.set([]);
+    this.results.set(null);
     if (UUID.test(text)) {
       this.open.set(false);
       await this.router.navigate(['/requests', text]);
@@ -93,24 +125,21 @@ export class HeaderSearchComponent {
       return;
     }
     try {
-      const code = await this.target();
-      if (!code) {
-        this.error.set(this.t.hierarchiesEmpty);
-        this.open.set(true);
-        return;
-      }
-      const page = await this.api.search(code, text, this.context.slice(), 10);
-      this.hits.set(page.items ?? []);
-      this.announcer.polite((page.items ?? []).length ? `${(page.items ?? []).length}` : this.t.noResults);
+      const r = await this.api.searchAll(text, this.context.slice(), NODES_SHOWN);
+      this.results.set(r);
+      this.announcer.polite(this.empty(r) ? this.t.none : this.t.resultsFor(text));
     } catch (e) {
       this.error.set(UiError.from(e).detail);
     }
     this.open.set(true);
   }
 
-  protected openHit(hit: SearchHit): void {
+  protected empty(r: SearchResults): boolean {
+    return !(r.hierarchies ?? []).length && !(r.nodes?.items ?? []).length && !(r.requests?.items ?? []).length;
+  }
+
+  protected close(): void {
     this.open.set(false);
-    void this.router.navigate(['/hierarchies', this.hierarchyCode], { queryParams: { node: hit.nodeId }, queryParamsHandling: 'merge' });
   }
 
   @HostListener('keydown.escape')
@@ -121,19 +150,5 @@ export class HeaderSearchComponent {
   @HostListener('document:click', ['$event'])
   protected onDocumentClick(event: MouseEvent): void {
     if (!this.host.nativeElement.contains(event.target as Node)) this.open.set(false);
-  }
-
-  private async target(): Promise<string | null> {
-    const last = this.prefs.lastHierarchy();
-    if (last && last !== this.hierarchyCode) {
-      this.hierarchyCode = last;
-      this.hierarchyName.set(last);
-    }
-    if (!this.hierarchyCode) {
-      const first = (await this.api.hierarchies()).items?.[0];
-      this.hierarchyCode = first?.code ?? null;
-      this.hierarchyName.set(first?.name ?? first?.code ?? null);
-    }
-    return this.hierarchyCode;
   }
 }

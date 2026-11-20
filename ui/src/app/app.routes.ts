@@ -11,6 +11,8 @@ export const routes: Routes = [
     path: 'hierarchies/:code', canActivate: [contextGuard], title: 'Hierarchy · Nexus',
     loadComponent: () => import('./hierarchy/hierarchy-workspace.page').then((m) => m.HierarchyWorkspacePage),
   },
+  // Phase 5 LLD §17.6.1: search across hierarchies (QRY-03)
+  { path: 'search', canActivate: [contextGuard], title: 'Search · Nexus', loadComponent: () => import('./search/search.page').then((m) => m.SearchPage) },
   // Phase 5 LLD §17.4: compares and baselines (QRY-02, VER-04)
   { path: 'compare', canActivate: [contextGuard], title: 'Compare · Nexus', loadComponent: () => import('./compare/compare.page').then((m) => m.ComparePage) },
   // Phase 5 LLD §18.7: the transaction history (AUD-01)

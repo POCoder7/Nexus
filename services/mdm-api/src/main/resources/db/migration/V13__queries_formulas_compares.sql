@@ -323,3 +323,16 @@ END $$;
 -- only what every role can read.
 GRANT INSERT, UPDATE (status, counts, error, finished_at), DELETE ON mdm.compare_run TO nexus_api;
 GRANT INSERT, DELETE ON mdm.compare_row TO nexus_api;
+
+-- =============================================================================
+-- 5-14 Search across hierarchies (QRY-03; Phase 5 LLD §17.6, §17.6.1; built before 5-10 and 5-11 by ADR-045).
+-- Indexes only: the search itself is explicit SQL in the API. One word uses V10's trigram indexes on node_attr; several
+-- words use full text with the 'simple' configuration (no stemming, so results stay predictable, OD-21).
+-- =============================================================================
+CREATE INDEX node_attr_fts ON mdm.node_attr
+  USING gin (to_tsvector('simple', node_name || ' ' || coalesce(description, '')))
+  WHERE upper_inf(recorded_period);
+-- identifiers match by exact value, ignoring case
+CREATE INDEX node_identifier_value_lower ON mdm.node_identifier (lower(identifier_value)) WHERE upper_inf(recorded_period);
+-- request titles by substring (§17.6.1)
+CREATE INDEX change_request_title_trgm ON mdm.change_request USING gin (title public.gin_trgm_ops);

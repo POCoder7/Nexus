@@ -12,7 +12,7 @@ import { HierarchySummary } from './generated/models';
 import type {
   CreateSandbox, PageConflict, PageDiffRow, PageSandboxChild, PageSandboxView, RefreshResult, SandboxItemAdded, SandboxNode,
   SandboxView, PagePropertyDefinitionView, PageSavedQueryView, QueryDefinition, QueryPage, SaveQuery, SavedQueryView,
-  PageAuditEntry, PageRequestEvent, CompareRequest, CompareRunView, PageCompareRow,
+  PageAuditEntry, PageRequestEvent, CompareRequest, CompareRunView, PageCompareRow, SearchResults,
 } from './generated/models';
 
 /** Transaction-history filters (AUD-01, Phase 5 LLD §18.4): dates are business dates; codes and a login, not ids. */
@@ -75,6 +75,11 @@ export class NexusApi {
 
   children(code: string, parentId: string, slice: Slice, cursor: string | undefined, limit: number): Promise<PageChildNode> {
     return this.api.invoke(fn.listChildren, { code, parentId, ...slice, cursor, limit });
+  }
+
+  /** QRY-03: hierarchies, nodes and requests across every readable hierarchy; with {@code type}, one group from a cursor. */
+  searchAll(q: string, slice: Slice, limit = 20, type?: 'hierarchies' | 'nodes' | 'requests', cursor?: string): Promise<SearchResults> {
+    return this.api.invoke(fn.search, { q, ...slice, limit, type, cursor });
   }
 
   search(code: string, q: string, slice: Slice, limit = 20, cursor?: string): Promise<PageSearchHit> {

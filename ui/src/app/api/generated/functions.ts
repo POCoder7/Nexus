@@ -119,6 +119,8 @@ export type { RebaseSandbox$Params as RebaseSandbox$Params } from './fn/sandbox-
 export { rebaseSandbox as rebaseSandbox } from './fn/sandbox-controller/rebase-sandbox';
 export type { SubmitSandbox$Params as SubmitSandbox$Params } from './fn/sandbox-controller/submit-sandbox';
 export { submitSandbox as submitSandbox } from './fn/sandbox-controller/submit-sandbox';
+export type { Search$Params as Search$Params } from './fn/search-controller/search';
+export { search as search } from './fn/search-controller/search';
 export type { ListVersions$Params as ListVersions$Params } from './fn/version-controller/list-versions';
 export { listVersions as listVersions } from './fn/version-controller/list-versions';
 export type { CreateVersion$Params as CreateVersion$Params } from './fn/version-controller/create-version';

@@ -845,6 +845,29 @@ version can be chosen.
 
 **Target.** `P95_SEARCH_MS` (800), measured at `MAX_NODES_PER_HIERARCHY` with 20 hierarchies sharing nodes.
 
+#### 17.6.1 Hierarchies and requests (ADR-045, owner 2026-11-20)
+The same search returns three groups:
+- **Hierarchies:** code, name or purpose contains the text (case-insensitive), among the hierarchies the user can read; an
+  exact code first, then by name; at most 20 (there are tens).
+- **Nodes:** as above.
+- **Requests:** the title contains the text (a trigram index on `change_request.title`), among requests the user can see
+  (their own; otherwise every item in a hierarchy they can read, no access changes, as `ChangeRequestService.canSee`;
+  ADMINs all), newest first, keyset paged. Sandboxes are not listed (they are the owner's, NEW-08).
+
+**API.** `GET /api/v1/search?q&type&asOf&recordedAsOf&cursor&limit`. Without `type`, the answer has the three groups, each
+with its first page and a cursor; with `type` (`hierarchies`, `nodes`, `requests`) only that group, from the cursor. The
+slice is `asOf` and `recordedAsOf`, as every read (the UI passes a version's slice; a `version` parameter is not needed).
+
+**UI.** The header box (§21.1) searches all three: its list shows the first hierarchies, nodes and requests, and "See all
+results" opens a Search page (`/search?q=`) with the groups and "Show more". A request id still opens the request.
+
+*Built in 5-14 (2026-11-20, ADR-045):* as designed. The node search is explicit SQL in `SearchController`; one word uses
+the trigram indexes, several words full text over name and description (`node_attr_fts`), identifiers an exact lower-case
+match (`node_identifier_value_lower`); request titles use `change_request_title_trgm`. Tests: JUnit `SearchApiTest` (4:
+placements in several hierarchies, shared and parent, ranking, identifier, several words, hierarchies and requests by
+visibility, paging, bad input); Vitest header search (3); Playwright `17-search` (2). The search performance test at
+`MAX_NODES_PER_HIERARCHY` waits for the perf run.
+
 ### 17.7 QRY-05 edit from results, IMP-03 bulk property updates
 **Endpoints.** `POST /api/v1/change-requests/{id}/items/batch` and `POST /api/v1/sandboxes/{id}/items/batch`, with body
 `{items: [ItemCommand…]}` and one `If-Match`.
@@ -990,7 +1013,7 @@ All data is synthetic (ADR-038 D5).
 | 5-11 | `set_property_derivation`: item-factory checks, check again at submit, apply handler, decision guard, admin UI | M | PRP-06 | pgTAP, JUnit, Playwright |
 | 5-12 | Compare runs, endpoints and UI; baselines (**built first**, ADR-044) | L | QRY-02, VER-04 | pgTAP, JUnit, Playwright |
 | 5-13 | Query planner and runner, saved queries, query builder and results UI | L | QRY-01 | pgTAP, JUnit, Playwright |
-| 5-14 | Cross-hierarchy search and the header search box | M | QRY-03 | JUnit, Playwright |
+| 5-14 | Cross-hierarchy search and the header search box (**built first**, ADR-045; also hierarchies and requests) | M | QRY-03 | JUnit, Playwright |
 | 5-15 | Batch items, edit from results, bulk "Set property" | M | QRY-05, IMP-03 | JUnit, Playwright |
 | 5-16 | Scenario acceptance test | S | BLD-03 | JUnit, Playwright |
 

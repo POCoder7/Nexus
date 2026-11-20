@@ -8,7 +8,7 @@
   - demo scripts and setup instructions `247d69d` (the bash scripts are tested; the PowerShell ones are not, because this session cannot run PowerShell).
 
   **2026-11-17: the owner asked for a users, roles and groups model. ADR-042 records the decisions and Phase 5 LLD §19 designs it, replacing 5-4 with 5-4a to 5-4d. Approved the same day with every recommended choice (OD-49); the override also needs Audit-Risk before `main` (OD-49a).** 5-4a, 5-4b and 5-4c are built and committed together (5-4a alone would have left access changes ungoverned), with the All hierarchies tree the owner asked for the same day (LLD §20); the owner decided not to build 5-4d (the Access screens). **2026-11-19: the owner asked for audit as in DRM; ADR-043 takes AUD-01 and AUD-02 ahead of the order, and LLD §18.1 to §18.9 designs them; approved the same day with C-1 to C-5 (OD-50), and built (5-17a to 5-17c).** Next: 5-5. Note for running the UI tooling from Git Bash: Node is at `C:\Program Files\nodejs` (add it to PATH), and the Storybook test runner needs the working directory spelled with an upper-case drive (`cd "C:/Projects/Nexus/ui"`), or it finds no stories
-- **Baseline (2026-11-20, after the revised Home):** db-test **pass** 654/654 (32 files) · mvnw verify **pass** 160/160 · UI: lint pass, unit 102/102, stories 75/75 (axe), production build pass, end to end 55/55 (axe).
+- **Baseline (2026-11-20, after 5-14 search):** db-test **pass** 654/654 (32 files) · mvnw verify **pass** 164/164 · UI: lint pass, unit 103/103, stories 75/75 (axe), production build pass, end to end 57/57 (axe).
 - **Last commit:** see `git log -1`
 
 ## Completed phases
@@ -45,6 +45,7 @@
 | 5-12 Compares and baselines: `compare_run`, `compare_row`, `compare_side`, `compare_fill` (V13); `/compares` (start, poll, rows by kind); version types and `GET /versions?type=`; Compare page, "Compare with baseline" on the Versions page | QRY-02, VER-04 | Done (ADR-044: built before 5-10 and 5-11) | pgTAP `31_compares` (14); JUnit `CompareApiTest` (4); Vitest +2; stories +4 (axe); Playwright `16-compare` | LLD §17.4 "Built in 5-12"; the compare perf test waits for the perf run |
 | Home and header redesign (owner mock-up, 2026-11-19): "Nexus — Master Data Central", top navigation with menus (Hierarchies, Admin), the attention bell, Home with snapshot cards, quick actions, hierarchy details and recent activity; `GET /home` gains `hierarchyCount`, `recentChanges`, `recentActivity` | NEW-10 | Done | JUnit `UiSupportApiTest` (Home fields); Vitest `NavMenuComponent` (2); stories +3 (axe); Playwright 01, 05, 06, 07 follow the new layout. Test fix, no assertion weakened: Approve, Commit and Reject buttons are now found by exact name, because "Welcome E2E Approver" also contains "Approve" | Phase 5 LLD §21. No Learn section, no feedback button, no help icon (owner decisions); Export waits for Phase 8 |
 | Home revised after a UX review (owner, 2026-11-20): search in the header on every page; greeting; "Your work" tabs by role with the actual items (decide, drafts, in flight); what changed recently; continue where you left off; compact hierarchies; ADMIN governance health. `GET /home` gains `drafts`, `inFlight`, `governance` | NEW-10 | Done | JUnit `UiSupportApiTest` (new fields; governance only for ADMIN); Vitest `HeaderSearchComponent` (2); Playwright 01, 05, 06, 07 | Phase 5 LLD §21.1. Removed: attention banner, count cards, quick actions, hierarchy accordion |
+| 5-14 Search across hierarchies, with hierarchies and requests (ADR-045): `GET /search` (three groups, keyset paging, ranking, identifiers, several words); indexes in V13; header search across every readable hierarchy with "See all results"; Search page | QRY-03 | Done (ADR-045: built before 5-10 and 5-11) | JUnit `SearchApiTest` (4); Vitest header search (3); Playwright `17-search` (2) | LLD §17.6.1 and "Built in 5-14"; the search perf test waits for the perf run |
 
 ### Phase 3 progress
 | Increment | Capability | Status | Tests | Notes |
@@ -159,7 +160,7 @@ ADR-040 (database independence, OD-48) is deferred; revisit it before a shared e
 1. Branch `feature/NEW-08-phase-5-remaining-parity` from `develop` (done; records commit `ef97d97`, then 5-1a).
 2. Build, in order:
    - ~~5-1a~~, ~~5-1b~~, ~~5-2~~, ~~5-3~~, ~~5-4a~~, ~~5-4b~~, ~~5-4c~~ (5-4d not built, owner decision), ~~5-17a to 5-17c~~ (audit, ADR-043), **5-5**;
-   - ~~5-9~~, 5-10a (the `dev.cel` dependency and the protobuf smoke test come first), 5-10b, 5-11, ~~5-12~~ (built first by ADR-044), ~~5-13a~~, ~~5-13b~~, 5-14, 5-15, 5-16;
+   - ~~5-9~~, 5-10a (the `dev.cel` dependency and the protobuf smoke test come first), 5-10b, 5-11, ~~5-12~~ (built first by ADR-044), ~~5-13a~~, ~~5-13b~~, ~~5-14~~ (built first by ADR-045), 5-15, 5-16;
    - then write LLD §18 for the 21 ADR-039 rows, and **stop for review** (design stop);
    - then the §18 increments;
    - then the 5-8 gate.
