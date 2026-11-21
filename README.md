@@ -41,6 +41,7 @@ Capabilities: [docs/capabilities.md](docs/capabilities.md)
 | [docs/DESIGN_PROTOCOL.md](docs/DESIGN_PROTOCOL.md) | How the low-level design per phase is produced (do this first) |
 | [docs/BUILD_PROTOCOL.md](docs/BUILD_PROTOCOL.md) | The phase-by-phase build loop: plan, build, test, document, approve |
 | [docs/BUILD_STATE.md](docs/BUILD_STATE.md) | Where the build currently stands |
+| [docs/APPROVAL_MATRIX.md](docs/APPROVAL_MATRIX.md) | Who can raise, approve and commit each kind of change, the four-eyes rules, and the demo users' matrix |
 | [docs/design/UI_STANDARD.md](docs/design/UI_STANDARD.md) | Binding UI standard (Angular on the organisation's design system) |
 | [docs/design/](docs/design/) | Low-level designs per phase, traceability, open decisions |
 | [docs/architecture/](docs/architecture/) | Architecture overview and pattern catalogue |
