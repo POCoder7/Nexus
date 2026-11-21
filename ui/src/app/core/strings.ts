@@ -54,7 +54,7 @@ export const STRINGS = {
     welcome: (name: string) => `Welcome ${name}`,
     devPicker: 'Development user',
     devPickerHint: 'Local and test builds only',
-    switchUser: 'Switch user',
+    devPickerChoose: 'Choose a user',
   },
   tray: {
     title: 'Your draft request',

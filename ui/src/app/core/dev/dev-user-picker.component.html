@@ -1,12 +1,14 @@
-<form class="picker" (submit)="$event.preventDefault(); apply()">
+<!-- a plain dropdown: choosing a user switches to them (owner, 2026-11-20: no typed login, no Switch user button) -->
+<div class="picker">
   <label for="nx-dev-user">{{ t.devPicker }}</label>
-  <input id="nx-dev-user" list="nx-dev-users" autocomplete="off" [ngModel]="value()" (ngModelChange)="value.set($event)"
-         name="login" [attr.aria-describedby]="'nx-dev-user-hint'" />
-  <datalist id="nx-dev-users">
-    @for (u of users(); track u.login) {
-      <option [value]="u.login">{{ u.displayName }}</option>
+  <select id="nx-dev-user" data-testid="dev-user-picker" [value]="value()" (change)="choose($any($event.target).value)"
+          [attr.aria-describedby]="'nx-dev-user-hint'">
+    @if (!value()) {
+      <option value="" disabled selected>{{ t.devPickerChoose }}</option>
     }
-  </datalist>
-  <button type="submit">{{ t.switchUser }}</button>
+    @for (u of options(); track u.login) {
+      <option [value]="u.login" [selected]="u.login === value()">{{ u.displayName }} ({{ u.login }})</option>
+    }
+  </select>
   <span id="nx-dev-user-hint" class="nx-visually-hidden">{{ t.devPickerHint }}</span>
-</form>
+</div>
